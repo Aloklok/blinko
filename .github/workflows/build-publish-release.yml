@@ -135,6 +135,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Lowercase Metadata
+        run: |
+          echo "DOCKER_USERNAME_LC=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REPO_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -159,7 +164,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
           cache-to: type=gha,scope=${{ github.workflow }}-${{ matrix.platform }},mode=max
-          outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/blinko,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.DOCKER_USERNAME_LC }}/blinko,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -225,13 +230,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Lowercase Metadata
+        run: |
+          echo "DOCKER_USERNAME_LC=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REPO_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ secrets.DOCKER_USERNAME }}/blinko
-            ghcr.io/${{ github.repository_owner }}/blinko
+            ${{ env.DOCKER_USERNAME_LC }}/blinko
+            ghcr.io/${{ env.REPO_OWNER_LC }}/blinko
           tags: |
             type=raw,value=${{ env.VERSION }}
           flavor: |
@@ -243,15 +253,15 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.DOCKER_USERNAME }}/blinko@sha256:%s ' *)
+            $(printf '${{ env.DOCKER_USERNAME_LC }}/blinko@sha256:%s ' *)
           
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON" | sed 's/${{ secrets.DOCKER_USERNAME }}\/blinko/ghcr.io\/${{ github.repository_owner }}\/blinko/g') \
-            $(printf '${{ secrets.DOCKER_USERNAME }}/blinko@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON" | sed 's/${{ env.DOCKER_USERNAME_LC }}\/blinko/ghcr.io\/${{ env.REPO_OWNER_LC }}\/blinko/g') \
+            $(printf '${{ env.DOCKER_USERNAME_LC }}/blinko@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ secrets.DOCKER_USERNAME }}/blinko:${{ env.VERSION }}
-          docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/blinko:${{ env.VERSION }}
+          docker buildx imagetools inspect ${{ env.DOCKER_USERNAME_LC }}/blinko:${{ env.VERSION }}
+          docker buildx imagetools inspect ghcr.io/${{ env.REPO_OWNER_LC }}/blinko:${{ env.VERSION }}
 
   trigger-app-release:
     name: Trigger App Build Release
