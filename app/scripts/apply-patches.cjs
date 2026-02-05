@@ -21,8 +21,20 @@ let patchedCount = 0;
 // ============================================================
 // Patch 1: mdast-util-gfm-autolink-literal
 // ============================================================
-const mdastFile = path.join(process.cwd(), 'node_modules/mdast-util-gfm-autolink-literal/lib/index.js');
-if (fs.existsSync(mdastFile)) {
+const mdastPaths = [
+    path.join(process.cwd(), 'node_modules/mdast-util-gfm-autolink-literal/lib/index.js'),
+    path.join(process.cwd(), 'node_modules/.pnpm/mdast-util-gfm-autolink-literal@2.0.1/node_modules/mdast-util-gfm-autolink-literal/lib/index.js')
+];
+
+let mdastFile = null;
+for (const p of mdastPaths) {
+    if (fs.existsSync(p)) {
+        mdastFile = p;
+        break;
+    }
+}
+
+if (mdastFile) {
     let content = fs.readFileSync(mdastFile, 'utf8');
 
     // 原始正则：(?<=^|\s|\p{P}|\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)
