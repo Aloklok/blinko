@@ -214,6 +214,22 @@
   height: 25px;
 }
 
+@media screen and (max-width: 768px) {
+  .vditor-toolbar {
+    height: 38px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  .vditor-toolbar__item .vditor-tooltipped {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .vditor-toolbar__item svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+
 .vditor-toolbar__item .vditor-tooltipped:hover {
   background-color: var(--hover);
   transition: all 0.3s;

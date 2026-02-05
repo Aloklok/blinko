@@ -184,37 +184,35 @@ const Home = observer(() => {
             </div>
           ) : (
             <>
-              <DndContext
+              {/* <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
-              >
-                <Masonry
-                  breakpointCols={{
-                    default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
-                    1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
-                    768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
-                  }}
-                  className="card-masonry-grid"
-                  columnClassName="card-masonry-grid_column">
-                  {
-                    localNotes?.map((i, index) => {
-                      const showInsertLine = insertPosition === i.id && activeId !== i.id;
-                      return (
-                        <DraggableBlinkoCard
-                          key={i.id}
-                          blinkoItem={i}
-                          showInsertLine={showInsertLine}
-                          insertPosition="top"
-                          isDragForbidden={isDragForbidden && showInsertLine}
-                        />
-                      );
-                    })
-                  }
-                </Masonry>
-                <DragOverlay>
+              > */}
+              <Masonry
+                breakpointCols={{
+                  default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
+                  1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
+                  768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
+                }}
+                className="card-masonry-grid"
+                columnClassName="card-masonry-grid_column">
+                {
+                  localNotes?.map((i, index) => {
+                    // const showInsertLine = insertPosition === i.id && activeId !== i.id;
+                    return (
+                      // DISABLED DraggableBlinkoCard via DIY Patch
+                      <BlinkoCard
+                        key={i.id}
+                        blinkoItem={i}
+                      />
+                    );
+                  })
+                }
+              </Masonry>
+              {/* <DragOverlay>
                   {activeId ? (
                     <div className="rotate-3 scale-105 opacity-90 max-w-sm shadow-xl">
                       <BlinkoCard
@@ -222,8 +220,8 @@ const Home = observer(() => {
                       />
                     </div>
                   ) : null}
-                </DragOverlay>
-              </DndContext>
+                </DragOverlay> */}
+              {/* </DndContext> */}
             </>
           )}
 

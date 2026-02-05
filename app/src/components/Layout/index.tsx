@@ -104,7 +104,7 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
           style={!isPc ? {
             position: 'fixed',
             top: 0,
-            borderRadius:'0 0 12px 12px',
+            borderRadius: '0 0 12px 12px',
             zIndex: 11,
             width: '100%',
             background: getFixedHeaderBackground(),
@@ -182,7 +182,6 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
                 {!blinkoStore.config.value?.isCloseDailyReview && <Badge size="sm" className="shrink-0" content={blinkoStore.dailyReviewNoteList.value?.length} color="warning">
                   <Link to="/review">
                     <Button
-                      as="a"
                       className="mt-[2px]"
                       isIconOnly
                       size="sm"

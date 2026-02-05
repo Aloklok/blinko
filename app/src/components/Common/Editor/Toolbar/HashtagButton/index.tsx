@@ -13,9 +13,11 @@ import { useEffect } from 'react';
 interface Props {
   store: EditorStore;
   content: string;
+  size?: number;
+  containerSize?: number;
 }
 
-export const HashtagButton = observer(({ store, content }: Props) => {
+export const HashtagButton = observer(({ store, content, size, containerSize }: Props) => {
   const { t } = useTranslation();
   const isPc = useMediaQuery('(min-width: 768px)')
   const blinko = RootStore.Get(BlinkoStore)
@@ -57,6 +59,8 @@ export const HashtagButton = observer(({ store, content }: Props) => {
           <IconButton
             tooltip={t('insert-hashtag')}
             icon="mingcute:hashtag-line"
+            size={size}
+            containerSize={containerSize}
           />
         </div>
       </PopoverTrigger>

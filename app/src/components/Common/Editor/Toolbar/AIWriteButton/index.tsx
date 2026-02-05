@@ -15,7 +15,7 @@ import { MarkdownRender } from '@/components/Common/MarkdownRender';
 import { eventBus } from '@/lib/event';
 import { PluginApiStore } from '@/store/plugin/pluginApiStore';
 
-export const AIWriteButton = observer(() => {
+export const AIWriteButton = observer(({ size, containerSize }: { size?: number, containerSize?: number }) => {
   const { t } = useTranslation();
   const blinko = RootStore.Get(BlinkoStore);
   const ai = RootStore.Get(AiStore);
@@ -58,6 +58,8 @@ export const AIWriteButton = observer(() => {
           <IconButton
             tooltip={t('ai-write')}
             icon="hugeicons:quill-write-01"
+            size={size}
+            containerSize={containerSize}
           />
         </div>
       </PopoverTrigger>

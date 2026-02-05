@@ -32,6 +32,8 @@ import { PluginApiStore } from "@/store/plugin/pluginApiStore";
 import { PluginRender } from '@/store/plugin/pluginRender';
 import { IconButton } from "./Toolbar/IconButton";
 import { ResourceReferenceButton } from "./Toolbar/ResourceReferenceButton";
+import { RecordingButton } from './Toolbar/RecordingButton';
+import { MoreOptionsButton } from './Toolbar/MoreOptionsButton';
 
 //https://ld246.com/guide/markdown
 type IProps = {
@@ -72,7 +74,7 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
   }, [openPopover]);
 
   // Render toolbar to top when showTopToolbar is true
-  const renderToolbar = () => {
+  const renderPCAndDefaultToolbar = () => {
     if (!hiddenToolbar) {
       return (
         <>
@@ -122,6 +124,46 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
         </>
       );
     }
+    return null;
+  };
+
+  const renderMobileBottomToolbar = () => (
+    <div className='flex items-center gap-2 w-full px-2 py-1'>
+      <NoteTypeButton
+        noteType={store.noteType}
+        setNoteType={(noteType) => {
+          store.noteType = noteType
+        }}
+        containerSize={50}
+        size={26}
+      />
+      <HashtagButton store={store} content={content} containerSize={50} size={26} />
+      <UploadButtons
+        getInputProps={getInputProps}
+        open={open}
+        onFileUpload={store.uploadFiles}
+        containerSize={50}
+        size={26}
+      />
+      <ReferenceButton store={store} containerSize={50} size={26} />
+      {blinko.config.value?.mainModelId && (
+        <AIWriteButton containerSize={50} size={26} />
+      )}
+      <RecordingButton onFileUpload={store.uploadFiles} containerSize={50} size={26} />
+      <div className="ml-auto flex items-center">
+        <FullScreenButton
+          isFullscreen={store.isFullscreen}
+          onClick={() => store.isFullscreen = !store.isFullscreen}
+          containerSize={50}
+          size={26}
+        />
+        <SendButton store={store} isSendLoading={isSendLoading} />
+      </div>
+    </div>
+  );
+
+  const renderToolbar = () => {
+    if (isPc) return renderPCAndDefaultToolbar();
     return null;
   };
 
@@ -213,71 +255,78 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
         </div>,
         topToolbarElement
       )}
-      
-      <div {...getRootProps()} className={`${isDragAccept ? 'border-2 border-green-500 border-dashed' : ''} ${showTopToolbar ? 'h-full flex flex-col' : ''}`}>
-      <Card
-        shadow='none'
-        className={`${showTopToolbar ? 'h-full flex flex-col flex-1 min-h-0' : 'p-2'} relative ${withoutOutline ? '' : 'border-2 border-border'} !transition-all ${showTopToolbar ? 'overflow-hidden' : 'overflow-visible'} 
-        ${store.isFullscreen ? 'fixed inset-0 z-[9999] m-0 rounded-none border-none bg-background' : ''}`}
-        ref={el => {
-          if (el) {
-            //@ts-ignore
-            el.__storeInstance = store;
-          }
-        }}>
 
-        <div ref={cardRef}
-          className={`overflow-visible relative ${showTopToolbar ? 'flex-1 flex flex-col min-h-0' : ''}`}
-          onKeyDown={e => {
-            onHeightChange?.()
-            if (isPc) return
-            store.adjustMobileEditorHeight()
+      <div {...getRootProps()} className={`${isDragAccept ? 'border-2 border-green-500 border-dashed' : ''} ${showTopToolbar ? 'h-full flex flex-col' : ''}`}>
+        <Card
+          shadow='none'
+          className={`${(showTopToolbar || store.isFullscreen) ? 'h-full flex flex-col flex-1 min-h-0' : 'p-2'} relative ${withoutOutline ? '' : 'border-2 border-border'} !transition-all ${(showTopToolbar || store.isFullscreen) ? 'overflow-hidden' : 'overflow-visible'} 
+        ${store.isFullscreen ? 'fixed inset-0 z-[9999] m-0 rounded-none border-none bg-background' : ''}`}
+          ref={el => {
+            if (el) {
+              //@ts-ignore
+              el.__storeInstance = store;
+            }
           }}>
 
-            <div id={`vditor-${mode}`} className={`vditor ${showTopToolbar ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
-          {store.files.length > 0 && (
-            <div className='w-full my-2 attachment-container'>
-              <AttachmentsRender files={store.files} onReorder={handleFileReorder} />
-            </div>
-          )}
+          <div ref={cardRef}
+            className={`overflow-visible relative ${(showTopToolbar || store.isFullscreen) ? 'flex-1 flex flex-col min-h-0' : ''}`}
+            onKeyDown={e => {
+              onHeightChange?.()
+              if (isPc) return
+              store.adjustMobileEditorHeight()
+            }}>
 
-          <div className='w-full mb-2 reference-container'>
-            <ReferenceRender store={store} />
-          </div>
+            <div id={`vditor-${mode}`} className={`vditor ${(showTopToolbar || store.isFullscreen) ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
 
-          {/* Editor Footer Slots */}
-          {pluginApi.customEditorFooterSlots
-            .filter(slot => {
-              if (slot.isHidden) return false;
-              if (slot.showCondition && !slot.showCondition(mode)) return false;
-              if (slot.hideCondition && slot.hideCondition(mode)) return false;
-              return true;
-            })
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .map((slot) => (
-              <div
-                key={slot.name}
-                className={`mb-2 ${slot.className || ''}`}
-                style={slot.style}
-                onClick={slot.onClick}
-                onMouseEnter={slot.onHover}
-                onMouseLeave={slot.onLeave}
-              >
-                <div style={{ maxWidth: slot.maxWidth }}>
-                  <PluginRender content={slot.content} data={mode} />
-                </div>
+            {store.files.length > 0 && (
+              <div className='w-full my-2 attachment-container'>
+                <AttachmentsRender files={store.files} onReorder={handleFileReorder} />
               </div>
-            ))}
+            )}
 
-          {!showTopToolbar && (
-            <div className='flex w-full items-center gap-1 mt-auto'>
-              {renderToolbar()}
-              {renderRightToolbar()}
+            <div className='w-full mb-2 reference-container'>
+              <ReferenceRender store={store} />
             </div>
-          )}
-        </div>
-      </Card>
-    </div>
+
+            {/* Editor Footer Slots */}
+            {pluginApi.customEditorFooterSlots
+              .filter(slot => {
+                if (slot.isHidden) return false;
+                if (slot.showCondition && !slot.showCondition(mode)) return false;
+                if (slot.hideCondition && slot.hideCondition(mode)) return false;
+                return true;
+              })
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
+              .map((slot) => (
+                <div
+                  key={slot.name}
+                  className={`mb-2 ${slot.className || ''}`}
+                  style={slot.style}
+                  onClick={slot.onClick}
+                  onMouseEnter={slot.onHover}
+                  onMouseLeave={slot.onLeave}
+                >
+                  <div style={{ maxWidth: slot.maxWidth }}>
+                    <PluginRender content={slot.content} data={mode} />
+                  </div>
+                </div>
+              ))}
+
+            {!showTopToolbar && (
+              <div className='flex w-full items-center gap-1 mt-auto'>
+                {isPc ? (
+                  <>
+                    {renderToolbar()}
+                    {renderRightToolbar()}
+                  </>
+                ) : (
+                  renderMobileBottomToolbar()
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
     </>
   );
 });

@@ -3,8 +3,9 @@ import { Tooltip } from "@heroui/react";
 import { motion } from "motion/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from 'react-i18next';
+import React, { forwardRef } from 'react';
 
-export const IconButton = observer(({ tooltip, icon, onClick, classNames, children, size = 20, containerSize }: {
+export const IconButton = observer(forwardRef(({ tooltip, icon, onClick, classNames, children, size = 20, containerSize }: {
   tooltip: string | React.ReactNode,
   icon: string | any,
   onClick?: (e) => void,
@@ -15,11 +16,12 @@ export const IconButton = observer(({ tooltip, icon, onClick, classNames, childr
   children?: any,
   size?: number,
   containerSize?: number
-}) => {
+}, ref) => {
   const { t } = useTranslation()
   return (
     <Tooltip content={typeof tooltip == 'string' ? t(tooltip) : tooltip} placement="bottom" delay={300}>
       <motion.div
+        ref={ref}
         whileTap={{ y: 1 }}
         className={`hover:bg-hover !transition-all duration-200 cursor-pointer rounded-md flex items-center justify-center ${classNames?.base}`}
         style={{
@@ -39,4 +41,4 @@ export const IconButton = observer(({ tooltip, icon, onClick, classNames, childr
       </motion.div>
     </Tooltip>
   )
-})
+}))

@@ -170,7 +170,7 @@ export const ScrollArea = observer(forwardRef<ScrollAreaHandles, IProps>(({
 
     // Add pull-to-refresh listeners only if onRefresh exists AND device is mobile
     if (onRefresh && !isPc) {
-      divElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+      divElement.addEventListener('touchstart', handleTouchStart, { passive: true });
       divElement.addEventListener('touchmove', handleTouchMove, { passive: false });
       divElement.addEventListener('touchend', handleTouchEnd, { passive: true });
     }

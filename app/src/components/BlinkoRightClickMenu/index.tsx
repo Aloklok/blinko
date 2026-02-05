@@ -48,7 +48,7 @@ export const ShowEditTimeModel = (showExpired: boolean = false) => {
         if (showExpired) {
           // Handle expired date save
           const existingMetadata = blinko.curSelectedNote?.metadata || {};
-          
+
           blinko.upsertNote.call({
             id: blinko.curSelectedNote?.id,
             metadata: {
@@ -84,7 +84,7 @@ export const ShowEditTimeModel = (showExpired: boolean = false) => {
                 granularity="second"
                 hideTimeZone
               />
-              
+
               {/* Quick time selection buttons */}
               <div className="flex flex-col gap-2">
                 <div className="text-sm text-gray-600 font-medium">{i18n.t('quick-select') || 'Quick Select'}:</div>
@@ -330,7 +330,7 @@ const handleRelatedNotes = async () => {
         return (
           <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
             {relatedNotes.map((note: Note) => (
-              <BlinkoCard key={note.id} blinkoItem={note} withoutHoverAnimation/>
+              <BlinkoCard key={note.id} blinkoItem={note} withoutHoverAnimation />
             ))}
           </div>
         );
@@ -471,10 +471,39 @@ export const EditTimeItem = observer(() => {
   </div>
 })
 
+export const TopActionRow = observer(({ onEdit, onComment, onAITag, onClose }: { onEdit: () => void, onComment: () => void, onAITag: () => void, onClose: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center justify-around w-full py-1">
+      <div
+        className="flex flex-col items-center gap-1 cursor-pointer hover:text-primary transition-colors flex-1"
+        onClick={(e) => { e.stopPropagation(); onComment(); onClose(); }}
+      >
+        <Icon icon="akar-icons:comment" width="16" height="16" />
+        <div className="text-[10px] font-medium">{t('comment')}</div>
+      </div>
+      <div
+        className="flex flex-col items-center gap-1 cursor-pointer hover:text-primary transition-colors flex-1 border-x border-divider"
+        onClick={(e) => { e.stopPropagation(); onAITag(); onClose(); }}
+      >
+        <Icon icon="majesticons:tag-line" width="16" height="16" />
+        <div className="text-[10px] font-medium">{t('ai-tag')}</div>
+      </div>
+      <div
+        className="flex flex-col items-center gap-1 cursor-pointer hover:text-primary transition-colors flex-1"
+        onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}
+      >
+        <Icon icon="tabler:edit" width="16" height="16" />
+        <div className="text-[10px] font-medium">{t('edit')}</div>
+      </div>
+    </div>
+  );
+});
+
 export const BlinkoRightClickMenu = observer(() => {
   const [isDetailPage, setIsDetailPage] = useState(false)
   const location = useLocation()
-  
+
   const blinko = RootStore.Get(BlinkoStore)
   const pluginApi = RootStore.Get(PluginApiStore)
   const isPc = useMediaQuery('(min-width: 768px)')
@@ -517,8 +546,8 @@ export const BlinkoRightClickMenu = observer(() => {
 
     {!blinko.curSelectedNote?.isRecycle ? (
       <ContextMenuItem onClick={handlePublic}>
-      <PublicItem />
-    </ContextMenuItem>
+        <PublicItem />
+      </ContextMenuItem>
     ) : <></>}
 
     {!isPc ? (
@@ -564,6 +593,7 @@ export const BlinkoRightClickMenu = observer(() => {
 
 export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () => void, className: string }) => {
   const [isDetailPage, setIsDetailPage] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const blinko = RootStore.Get(BlinkoStore)
   const pluginApi = RootStore.Get(PluginApiStore)
   const location = useLocation()
@@ -575,14 +605,24 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
 
   const disabledKeys = isDetailPage ? ['MutiSelectItem'] : []
 
-  return <Dropdown onOpenChange={e => onTrigger()}>
+  return <Dropdown isOpen={isOpen} onOpenChange={open => {
+    setIsOpen(open);
+    if (open) onTrigger();
+  }}>
     <DropdownTrigger >
-      <div onClick={onTrigger} className={`${className} text-desc hover:text-primary cursor-pointer hover:scale-1.3 !transition-all`}>
+      <div onClick={() => { onTrigger(); setIsOpen(true); }} className={`${className} text-desc hover:text-primary cursor-pointer hover:scale-1.3 !transition-all`}>
         <Icon icon="fluent:more-vertical-16-regular" width="16" height="16" />
       </div>
     </DropdownTrigger>
     <DropdownMenu aria-label="Static Actions" disabledKeys={disabledKeys}>
-      <DropdownItem key="EditItem" onPress={() => handleEdit(isDetailPage)}><EditItem /></DropdownItem>
+      <DropdownItem key="HeaderActions" isReadOnly className="cursor-default opacity-100" showDivider hover={false}>
+        <TopActionRow
+          onComment={handleComment}
+          onAITag={handleAITag}
+          onEdit={() => handleEdit(isDetailPage)}
+          onClose={() => setIsOpen(false)}
+        />
+      </DropdownItem>
       {!isDetailPage ? (
         <>
           <DropdownItem key="MutiSelectItem" onPress={() => handleMultiSelect()}>
@@ -601,20 +641,8 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
       </DropdownItem>
 
       {!blinko.curSelectedNote?.isRecycle ? (
-        <DropdownItem key="ShareItem" onPress={handlePublic}> 
-          <PublicItem />  
-        </DropdownItem>
-      ) : <></>}
-
-      {!isPc ? (
-        <DropdownItem key="CommentItem" onPress={handleComment}>
-          <CommentItem />
-        </DropdownItem>
-      ) : <></>}
-
-      {blinko.config.value?.mainModelId ? (
-        <DropdownItem key="AITagItem" onPress={handleAITag}>
-          <AITagItem />
+        <DropdownItem key="ShareItem" onPress={handlePublic}>
+          <PublicItem />
         </DropdownItem>
       ) : <></>}
 

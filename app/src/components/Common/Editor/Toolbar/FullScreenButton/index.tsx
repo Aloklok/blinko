@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 interface Props {
   isFullscreen: boolean;
   onClick: () => void;
+  size?: number;
+  containerSize?: number;
 }
 
-export const FullScreenButton = ({ isFullscreen, onClick }: Props) => {
+export const FullScreenButton = ({ isFullscreen, onClick, size, containerSize }: Props) => {
   const { t } = useTranslation();
   const isPc = useMediaQuery('(min-width: 768px)');
 
@@ -16,6 +18,8 @@ export const FullScreenButton = ({ isFullscreen, onClick }: Props) => {
       <IconButton
         tooltip={isFullscreen ? t('exit-fullscreen') : t('fullscreen')}
         icon={isFullscreen ? 'radix-icons:exit-full-screen' : 'basil:expand-outline'}
+        size={size}
+        containerSize={containerSize}
       />
     </div>
   );

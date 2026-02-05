@@ -116,6 +116,18 @@ export class EditorStore {
     this.focus()
   }
 
+  executeCommand = (command: string) => {
+    if (!this.vditor) return;
+    // Use internal vditor instance to trigger toolbar actions
+    const internalVditor = (this.vditor as any).vditor;
+    if (internalVditor && internalVditor.toolbar && internalVditor.toolbar.elements[command]) {
+      const button = internalVditor.toolbar.elements[command].querySelector('button');
+      if (button) {
+        button.click();
+      }
+    }
+  }
+
   getEditorRange = (vditor: IVditor) => {
     let range: Range;
     const element = vditor[vditor.currentMode]!.element;

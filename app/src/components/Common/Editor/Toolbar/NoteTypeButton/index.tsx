@@ -4,9 +4,11 @@ import { NoteType } from '@shared/lib/types';
 import { Div } from '@/components/Common/Div';
 import { useEffect, useState } from 'react';
 
-export const NoteTypeButton = ({ noteType, setNoteType}: {
+export const NoteTypeButton = ({ noteType, setNoteType, size, containerSize }: {
   noteType: NoteType,
-  setNoteType: (noteType: NoteType) => void
+  setNoteType: (noteType: NoteType) => void,
+  size?: number,
+  containerSize?: number
 }) => {
   const { t } = useTranslation();
   const [type, setType] = useState(noteType);
@@ -14,7 +16,7 @@ export const NoteTypeButton = ({ noteType, setNoteType}: {
   useEffect(() => {
     setType(noteType);
   }, [noteType]);
-  
+
   const getNextNoteType = (currentType: NoteType) => {
     switch (currentType) {
       case NoteType.BLINKO:
@@ -66,7 +68,7 @@ export const NoteTypeButton = ({ noteType, setNoteType}: {
         return t('blinko');
     }
   };
-  
+
   return (
     <Div
       className='mr-[-2px]'
@@ -81,6 +83,8 @@ export const NoteTypeButton = ({ noteType, setNoteType}: {
           icon: getColorForType(type)
         }}
         tooltip={getLabelForType(type)}
+        size={size}
+        containerSize={containerSize}
       />
     </Div>
   );

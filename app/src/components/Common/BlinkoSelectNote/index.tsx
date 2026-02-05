@@ -15,14 +15,16 @@ interface Props {
   blackList?: number[];
   tooltip?: string;
   autoClose?: boolean;
+  size?: number;
+  containerSize?: number;
 }
 
-export const BlinkoSelectNote = observer(({ iconButton, onSelect, blackList = [], tooltip = 'reference', autoClose = true }: Props) => {
+export const BlinkoSelectNote = observer(({ iconButton, onSelect, blackList = [], tooltip = 'reference', autoClose = true, size, containerSize }: Props) => {
   const blinko = RootStore.Get(BlinkoStore);
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useTranslation();
 
-  const defaultIconButton = <IconButton tooltip={t(tooltip)} icon="ph:link" />;
+  const defaultIconButton = <IconButton tooltip={t(tooltip)} icon="ph:link" size={size} containerSize={containerSize} />;
 
   const throttleSearch = useCallback(
     throttle(

@@ -8,11 +8,14 @@ const host = process.env.TAURI_DEV_HOST || '0.0.0.0';
 const EXPRESS_PORT = 1111;
 const isDev = process.env.NODE_ENV === 'development';
 
+import { safariTransformPlugin } from './plugins/vite-plugin-safari-transform';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss(),
+    safariTransformPlugin(),
     // PWA: Only enabled in production, disabled in development to avoid caching issues
     ...(!isDev && !process.env.DISABLE_PWA ? [
       VitePWA({
@@ -126,29 +129,30 @@ export default defineConfig({
     }
   },
   build: {
+    target: 'es2020',
     outDir: "../dist/public",
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/react-router-dom')) {
+          if (id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/react-router-dom')) {
             return 'react-vendor';
           }
-          
-          if (id.includes('node_modules/@react-') || 
-              id.includes('node_modules/react-') || 
-              id.includes('node_modules/@ui-') || 
-              id.includes('node_modules/@headlessui') || 
-              id.includes('node_modules/headlessui')) {
+
+          if (id.includes('node_modules/@react-') ||
+            id.includes('node_modules/react-') ||
+            id.includes('node_modules/@ui-') ||
+            id.includes('node_modules/@headlessui') ||
+            id.includes('node_modules/headlessui')) {
             return 'ui-components';
           }
-          
-          if (id.includes('node_modules/lodash') || 
-              id.includes('node_modules/axios') || 
-              id.includes('node_modules/date-fns')) {
+
+          if (id.includes('node_modules/lodash') ||
+            id.includes('node_modules/axios') ||
+            id.includes('node_modules/date-fns')) {
             return 'utils';
           }
         }

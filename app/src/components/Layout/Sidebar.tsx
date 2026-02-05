@@ -26,6 +26,7 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isHovering, setIsHovering] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const routerInfo = {
     pathname: location.pathname,
@@ -94,7 +95,42 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
       <ScrollShadow className="-mr-[16px] mt-[-5px] h-full max-h-full pr-6 hide-scrollbar">
         <div className={`flex flex-col gap-1 mt-4 font-semibold ${base.isSidebarCollapsed ? 'items-center gap-4' : ''}`}>
           {base.routerList
-            .filter((i) => !i.hiddenSidebar)
+            .filter((i) => !i.hiddenSidebar && ['blinko', 'notes', 'todo', 'AI'].includes(i.title))
+            .map((i) => (
+              <Link
+                key={i.title}
+                to={i.href}
+                onClick={() => {
+                  base.currentRouter = i;
+                  onItemClick?.();
+                }}
+                className={`flex items-center gap-1 group ${SideBarItem} ${base.isSideBarActive(routerInfo, i) ? '!bg-primary  !text-primary-foreground' : ''}`}
+              >
+                <Icon className={`${base.isSidebarCollapsed ? 'mx-auto' : ''}`} icon={i.icon} width="20" height="20" />
+                {!base.isSidebarCollapsed && <span className="!transition-all">{t(i.title)}</span>}
+              </Link>
+            ))}
+
+          {!base.isSidebarCollapsed && (
+            <div
+              className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-hover rounded-xl text-xs text-default-400 transition-all active:scale-95 select-none"
+              onClick={() => setShowMore(!showMore)}
+            >
+              <div className="flex-1 h-[1px] bg-border/50" />
+              <div className="flex items-center gap-1 shrink-0">
+                <Icon
+                  icon={showMore ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+                  width="14"
+                  height="14"
+                />
+                <span>{t(showMore ? 'show-less' : 'show-more')}</span>
+              </div>
+              <div className="flex-1 h-[1px] bg-border/50" />
+            </div>
+          )}
+
+          {showMore && base.routerList
+            .filter((i) => !i.hiddenSidebar && ['analytics', 'resources', 'archived'].includes(i.title))
             .map((i) => (
               <Link
                 key={i.title}

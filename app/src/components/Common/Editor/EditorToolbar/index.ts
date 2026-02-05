@@ -139,6 +139,9 @@ export const MoreMobile = {
   name: 'more',
   icon: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="6" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="18" cy="12" r="1.75"/></g></svg>',
   toolbar: [
+    Italic,
+    Strike,
+    Link,
     Table,
     Headings,
     Code,
@@ -168,11 +171,6 @@ export const ToolbarPC = [
 export const ToolbarMobile = [
   Emoji,
   Bold,
-  Italic,
-  Strike,
-  // Indent,
-  // Outdent,
-  Link,
   List,
   OrderedList,
   Check,

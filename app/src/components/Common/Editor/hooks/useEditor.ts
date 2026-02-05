@@ -42,14 +42,14 @@ const updateHighlightCSS = (theme: string, cdn: string): void => {
   const styleName = getHighlightStyle(theme);
   const href = `${cdn}/dist/js/highlight.js/styles/${styleName}.min.css`;
   const existingLink = document.getElementById("vditorHljsStyle") as HTMLLinkElement;
-  
+
   // Update if link doesn't exist or href doesn't match
   if (!existingLink || existingLink.getAttribute('href') !== href) {
     // Remove old link
     if (existingLink) {
       existingLink.remove();
     }
-    
+
     // Create new link
     const styleElement = document.createElement("link");
     styleElement.id = "vditorHljsStyle";
@@ -115,7 +115,7 @@ const renderAllVditorContent = (
 
   // Update CSS link (ensure it's loaded before rendering)
   updateHighlightCSS(theme, cdn);
-  
+
   // Update vditor instance configuration (if instance is provided)
   if (vditorInstance) {
     updateVditorHighlightConfig(vditorInstance, theme);
@@ -128,7 +128,7 @@ const renderAllVditorContent = (
   // Try to find preview element first, fallback to editor element
   const previewElement = editorElement.querySelector('.vditor-preview') as HTMLElement;
   const targetElement = previewElement || editorElement;
-  
+
   Vditor.highlightRender({
     enable: true,
     style: styleName,
@@ -136,7 +136,7 @@ const renderAllVditorContent = (
   }, targetElement, cdn);
 
   // Render math formulas (use MathJax as configured in vditor options)
-  Vditor.mathRender(editorElement, { 
+  Vditor.mathRender(editorElement, {
     cdn,
     math: {
       engine: 'MathJax'
@@ -375,11 +375,11 @@ export const useEditorInit = (
     // Use currentTheme from useTheme hook, fallback to UserStore if not ready
     const theme = currentTheme || RootStore.Get(UserStore).theme || 'light';
     const cdn = getBlinkoEndpoint('').replace(/\/$/, "");
-    
+
     // Pre-load CSS before vditor initialization to ensure it's ready when code blocks render
     // This is key: load CSS before vditor initialization to ensure styles are available when code highlighting renders
     updateHighlightCSS(theme, cdn);
-    
+
     const vditor = new Vditor("vditor" + "-" + mode, {
       width: '100%',
       "toolbar": isPc ? ToolbarPC : ToolbarMobile,
@@ -501,13 +501,13 @@ export const useEditorInit = (
   useEffect(() => {
     if (store.vditor && currentTheme) {
       const cdn = getBlinkoEndpoint('').replace(/\/$/, "");
-      
+
       // Update CSS link
       updateHighlightCSS(currentTheme, cdn);
-      
+
       // Update vditor instance configuration
       updateVditorHighlightConfig(store.vditor, currentTheme);
-      
+
       // Re-render code highlighting
       const editorElement = document.querySelector(`#vditor-${mode}`) as HTMLElement;
       if (editorElement) {
@@ -518,7 +518,7 @@ export const useEditorInit = (
           style: getHighlightStyle(currentTheme),
           lineNumber: true,
         }, targetElement, cdn);
-        
+
         // Apply theme class for ABCJS and mindmap dark mode support
         applyThemeToEditor(mode, currentTheme);
       }

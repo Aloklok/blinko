@@ -65,8 +65,8 @@ export const useSwiper = (threshold = 50) => {
       }
     };
 
-    window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
 
     return () => {
       window.removeEventListener('touchstart', handleTouchStart);
@@ -190,71 +190,71 @@ const initializeAndroidShortcuts = () => {
   isInitialized = true;
 
   const checkAndroidData = () => {
-      // Handle shortcuts
-      const action = window.localStorage.getItem('android_shortcut_action');
-      if (action) {
-        window.localStorage.removeItem('android_shortcut_action');
-        switch (action) {
-          case 'quick_note':
-            ShowEditBlinkoModel('2xl', 'create');
-            FocusEditorFixMobile()
-            break;
+    // Handle shortcuts
+    const action = window.localStorage.getItem('android_shortcut_action');
+    if (action) {
+      window.localStorage.removeItem('android_shortcut_action');
+      switch (action) {
+        case 'quick_note':
+          ShowEditBlinkoModel('2xl', 'create');
+          FocusEditorFixMobile()
+          break;
 
-          case 'voice_recording':
-            ShowEditBlinkoModel('2xl', 'create');
-            // Use eventBus to trigger audio recording after editor is ready
-            setTimeout(() => {
-              eventBus.emit('editor:startAudioRecording');
-            }, 300);
-            break;
-        }
+        case 'voice_recording':
+          ShowEditBlinkoModel('2xl', 'create');
+          // Use eventBus to trigger audio recording after editor is ready
+          setTimeout(() => {
+            eventBus.emit('editor:startAudioRecording');
+          }, 300);
+          break;
       }
+    }
 
-      // Handle shared data
-      const shareDataStr = window.localStorage.getItem('android_share_data');
-      if (shareDataStr && !isProcessingSharedData) {
-        isProcessingSharedData = true;
-        // alert(shareDataStr)
-        window.localStorage.removeItem('android_share_data');
-        try {
-          const shareData = JSON.parse(shareDataStr);
-          if (shareData.text) {
-            // Remove surrounding quotes (single, double, backticks) and trim whitespace
-            let cleanText = shareData.text.trim();
-            if ((cleanText.startsWith('"') && cleanText.endsWith('"')) ||
-                (cleanText.startsWith("'") && cleanText.endsWith("'")) ||
-                (cleanText.startsWith('`') && cleanText.endsWith('`'))) {
-              cleanText = cleanText.slice(1, -1);
-            }
-            ShowEditBlinkoModel('2xl', 'create', { text: cleanText });
-            isProcessingSharedData = false;
+    // Handle shared data
+    const shareDataStr = window.localStorage.getItem('android_share_data');
+    if (shareDataStr && !isProcessingSharedData) {
+      isProcessingSharedData = true;
+      // alert(shareDataStr)
+      window.localStorage.removeItem('android_share_data');
+      try {
+        const shareData = JSON.parse(shareDataStr);
+        if (shareData.text) {
+          // Remove surrounding quotes (single, double, backticks) and trim whitespace
+          let cleanText = shareData.text.trim();
+          if ((cleanText.startsWith('"') && cleanText.endsWith('"')) ||
+            (cleanText.startsWith("'") && cleanText.endsWith("'")) ||
+            (cleanText.startsWith('`') && cleanText.endsWith('`'))) {
+            cleanText = cleanText.slice(1, -1);
           }
-          else if (shareData.stream && shareData.content_type) {
-            readFile(shareData.stream).then(contents => {
-              const file = new File([contents], shareData.name || 'shared_file', {
-                type: shareData.content_type
-              });
-              console.log('xxx!!!')
-              ShowEditBlinkoModel('2xl', 'create', { file });
-              isProcessingSharedData = false;
-            }).catch((error: Error) => {
-              console.warn('fetching shared content failed:', error);
-              RootStore.Get(ToastPlugin).error(error?.message)
-              isProcessingSharedData = false;
+          ShowEditBlinkoModel('2xl', 'create', { text: cleanText });
+          isProcessingSharedData = false;
+        }
+        else if (shareData.stream && shareData.content_type) {
+          readFile(shareData.stream).then(contents => {
+            const file = new File([contents], shareData.name || 'shared_file', {
+              type: shareData.content_type
             });
-          }
-          else {
-            ShowEditBlinkoModel('2xl', 'create');
+            console.log('xxx!!!')
+            ShowEditBlinkoModel('2xl', 'create', { file });
             isProcessingSharedData = false;
-          }
-        } catch (e) {
-          console.error('Failed to parse share data:', e);
-          // Fallback: just open create modal
-          RootStore.Get(ToastPlugin).error(e?.message)
-          setTimeout(() => { isProcessingSharedData = false; }, 100);
+          }).catch((error: Error) => {
+            console.warn('fetching shared content failed:', error);
+            RootStore.Get(ToastPlugin).error(error?.message)
+            isProcessingSharedData = false;
+          });
         }
+        else {
+          ShowEditBlinkoModel('2xl', 'create');
+          isProcessingSharedData = false;
+        }
+      } catch (e) {
+        console.error('Failed to parse share data:', e);
+        // Fallback: just open create modal
+        RootStore.Get(ToastPlugin).error(e?.message)
+        setTimeout(() => { isProcessingSharedData = false; }, 100);
       }
-    };
+    }
+  };
 
   // Start checking immediately
   checkAndroidData();

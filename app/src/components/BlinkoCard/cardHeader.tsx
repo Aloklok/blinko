@@ -53,7 +53,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
   };
 
   return (
-    <div className={`flex items-center select-none ${isExpanded ? 'mb-4' : 'mb-1'}`}>
+    <div className={`flex items-center select-none ${isExpanded ? 'mb-4' : 'mb-3'}`}>
       <div className={`flex items-center w-full gap-1 ${isExpanded ? 'text-base' : 'text-xs'}`}>
         {blinkoItem.isShare && !isShareMode && (
           <Tooltip content={t('shared')} delay={1000}>
@@ -102,7 +102,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
         )}
 
         <Tooltip content={t('edit-time')} delay={1000}>
-          <div 
+          <div
             className={`${isExpanded ? 'text-sm' : 'text-xs'} text-desc cursor-pointer transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
@@ -138,20 +138,23 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
           </Tooltip>
         )}
 
-        {!isShareMode && (
+        {/* DISABLED ShareButton via DIY Patch */}
+        {/* {!isShareMode && (
           <ShareButton blinkoItem={blinkoItem} isIOSDevice={isIOSDevice} />
-        )}
+        )} */}
 
         {/* History button for viewing note versions */}
-        {!isShareMode && !!blinkoItem._count?.histories && blinkoItem._count?.histories > 0 && (
+        {/* DISABLED HistoryButton via DIY Patch */}
+        {/* {!isShareMode && !!blinkoItem._count?.histories && blinkoItem._count?.histories > 0 && (
           <HistoryButton
             noteId={blinkoItem.id!}
             className={'opacity-0 group-hover/card:opacity-100 group-hover/card:translate-x-0 ml-2 cursor-pointer hover:text-primary text-desc mt-[1px]'}
           />
-        )}
+        )} */}
 
         {/* Trash/Recycle bin button */}
-        {!isShareMode && (
+        {/* Trash/Recycle bin button - DISABLED via User Request */}
+        {/* {!isShareMode && (
           <Tooltip content={t('trash')} delay={1000}>
             <Icon
               icon="mingcute:delete-2-line"
@@ -166,7 +169,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
               }}
             />
           </Tooltip>
-        )}
+        )} */}
 
         {blinkoItem.isTop && (
           <Icon

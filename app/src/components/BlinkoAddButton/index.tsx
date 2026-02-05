@@ -118,7 +118,7 @@ export const BlinkoAddButton = observer(() => {
         }}
       >
         <Icon
-          icon={isLongPressing ? "hugeicons:voice-id" : "material-symbols:add"}
+          icon="material-symbols:add"
           width={ICON_SIZE.CENTER}
           height={ICON_SIZE.CENTER}
         />

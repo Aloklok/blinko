@@ -19,7 +19,7 @@ interface CardFooterProps {
 export const CardFooter = ({ blinkoItem, blinko, isShareMode }: CardFooterProps) => {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center">
+    <div className="flex items-center mt-3">
       <ConvertTypeButton blinkoItem={blinkoItem} />
       <RightContent blinkoItem={blinkoItem} t={t} />
     </div>
@@ -43,7 +43,7 @@ export const ConvertTypeButton = ({
   const handleClick = (e) => {
     e.stopPropagation();
     blinko.curSelectedNote = _.cloneDeep(blinkoItem);
-    
+
     if (blinkoItem.type === NoteType.TODO) {
       ShowEditTimeModel(true);
     } else {
@@ -55,10 +55,10 @@ export const ConvertTypeButton = ({
     if (!blinkoItem.metadata?.expireAt) {
       return { color: 'text-green-500', status: 'no-deadline' };
     }
-    
+
     const expireDate = dayjs(blinkoItem.metadata.expireAt);
     const now = dayjs();
-    
+
     if (expireDate.isBefore(now)) {
       return { color: 'text-red-500', status: 'expired' };
     } else if (expireDate.diff(now, 'day') <= 3) {
@@ -101,15 +101,15 @@ export const ConvertTypeButton = ({
       if (!blinkoItem.metadata?.expireAt) {
         return null;
       }
-      
+
       const expireDate = dayjs(blinkoItem.metadata.expireAt);
       const now = dayjs();
-      
+
       if (todoStatus.status === 'expired') {
         const diffInMinutes = now.diff(expireDate, 'minute');
         const diffInHours = now.diff(expireDate, 'hour');
         const diffInDays = now.diff(expireDate, 'day');
-        
+
         if (diffInDays > 0) {
           return t('expired-days', { count: diffInDays });
         } else if (diffInHours > 0) {
@@ -123,7 +123,7 @@ export const ConvertTypeButton = ({
         const diffInMinutes = expireDate.diff(now, 'minute');
         const diffInHours = expireDate.diff(now, 'hour');
         const diffInDays = expireDate.diff(now, 'day');
-        
+
         if (diffInDays > 0) {
           return t('days-left', { count: diffInDays });
         } else if (diffInHours > 0) {
@@ -177,7 +177,7 @@ const RightContent = ({ blinkoItem, t }: { blinkoItem: Note; t: any }) => {
       {<CommentCount blinkoItem={blinkoItem} />}
       {blinkoItem?.metadata?.isIndexed && (
         <Tooltip content={'Indexed'} delay={1500}>
-          <Icon className="!text-ignore opacity-50" icon="hugeicons:ai-beautify" width="16" height="16" />
+          <Icon className="!text-ignore opacity-50" icon="hugeicons:file-search" width="16" height="16" />
         </Tooltip>
       )}
     </div>

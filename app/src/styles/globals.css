@@ -70,12 +70,17 @@
 html,
 body {
   scroll-behavior: smooth;
-  overflow-y: hidden!important;
+  overflow-y: hidden !important;
   height: var(--doc-height);
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   background-color: var(--secondbackground);
   font-family: var(--font-family);
+}
+
+/* Patch: Custom Text Color Variable Override */
+html:not(.dark) {
+  --fgColor-default: #323232 !important;
 }
 
 .h-mobile-full {
@@ -337,4 +342,45 @@ body {
 
 .group[data-focus-visible="true"] .group-data-\[focus-visible\=true\]\:ring-2 {
   --tw-ring-shadow: 0 !important;
+}
+
+/* =========================================
+   Custom UI Enhancements (Flomo Style)
+   ========================================= */
+
+/* 1. Markdown Typography & Breathing Room */
+.markdown-body.content {
+  line-height: 1.8 !important;
+  letter-spacing: -0.01em !important;
+  word-break: break-word;
+  text-justify: inter-character;
+  font-variant-ligatures: common-ligatures;
+  font-weight: 400 !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizelegibility;
+}
+
+/* 2. Tag Styling (More compact and boxy) */
+.blinko-tag {
+  border-radius: 4px !important;
+  /* 7px -> 4px */
+  padding: 1px 6px !important;
+  /* 3px -> 1px 6px */
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  display: inline-block;
+  margin-top: 2px;
+  margin-left: 0px;
+
+  /* Keep original colors */
+  color: var(--primary) !important;
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  text-decoration: none !important;
+}
+
+/* 3. Text Description & Numbers (Proportional nums) */
+.text-desc {
+  opacity: 0.8;
+  font-weight: 400 !important;
+  -webkit-font-smoothing: antialiased;
 }

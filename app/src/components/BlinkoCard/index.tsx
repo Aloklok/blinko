@@ -120,8 +120,7 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
               onContextMenu={e => !isPc && e.stopPropagation()}
               shadow='none'
               className={`
-                flex flex-col p-4 ${glassEffect ? 'bg-transparent' : 'bg-background'} !transition-all group/card
-                ${isPc && !blinkoItem.isShare && !withoutHoverAnimation ? 'hover:translate-y-1' : ''}
+                flex flex-col py-4 px-5 ${glassEffect ? 'bg-transparent' : 'bg-background'} !transition-all group/card
                 ${blinkoItem.isBlog ? 'cursor-pointer' : ''}
                 ${blinko.curMultiSelectIds?.includes(blinkoItem.id!) ? 'border-2 border-primary' : ''}
                 ${className}
@@ -176,7 +175,8 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
         );
 
         // On mobile, wrap with SwipeableCard for swipe actions
-        if (!isPc && !isShareMode) {
+        // DISABLED via DIY Patch
+        /* if (!isPc && !isShareMode) {
           return (
             <SwipeableCard
               onPin={handleSwipePin}
@@ -186,7 +186,7 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
               {wrappedContent}
             </SwipeableCard>
           );
-        }
+        } */
 
         return wrappedContent;
       })()}

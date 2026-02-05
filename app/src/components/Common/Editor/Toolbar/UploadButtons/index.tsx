@@ -21,7 +21,7 @@ interface Props {
   onFileUpload: (files: File[]) => void;
 }
 
-export const UploadButtons = ({ getInputProps, open, onFileUpload }: Props) => {
+export const UploadButtons = ({ getInputProps, open, onFileUpload, size, containerSize }: Props & { size?: number, containerSize?: number }) => {
   const { t } = useTranslation();
   const blinko = RootStore.Get(BlinkoStore);
 
@@ -30,9 +30,9 @@ export const UploadButtons = ({ getInputProps, open, onFileUpload }: Props) => {
     const handleStartAudioRecording = () => {
       ShowAudioDialog((file) => onFileUpload([file]));
     };
-    
+
     eventBus.on('editor:startAudioRecording', handleStartAudioRecording);
-    
+
     return () => {
       eventBus.off('editor:startAudioRecording', handleStartAudioRecording);
     };
@@ -44,13 +44,6 @@ export const UploadButtons = ({ getInputProps, open, onFileUpload }: Props) => {
       icon: 'mage:file-upload',
       title: t('upload-file'),
       onClick: open,
-    },
-    {
-      key: 'audio',
-      icon: "hugeicons:voice-id",
-      title: t('recording'),
-      onClick: () => ShowAudioDialog((file) => onFileUpload([file])),
-      showCondition: blinko.showAi,
     },
     // {
     //   key: 'camera',
@@ -70,6 +63,8 @@ export const UploadButtons = ({ getInputProps, open, onFileUpload }: Props) => {
             icon={action.icon}
             tooltip={action.title}
             onClick={action.onClick}
+            size={size}
+            containerSize={containerSize}
           >
             {action.key === 'file' && <input {...getInputProps()} />}
           </IconButton>
