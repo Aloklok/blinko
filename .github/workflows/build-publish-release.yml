@@ -71,14 +71,6 @@ jobs:
             # Update version using jq
             jq '.version = "${{ env.VERSION }}"' package.json > package.json.tmp
             mv package.json.tmp package.json
-            
-            # Commit changes
-            git add package.json
-            git commit -m "chore: Update version to ${{ env.VERSION }}"
-            git pull --rebase origin ${GITHUB_REF}
-            git push origin HEAD:${GITHUB_REF}
-          else
-            echo "Version ${{ env.VERSION }} already set in package.json, skipping update"
           fi
 
   build:
