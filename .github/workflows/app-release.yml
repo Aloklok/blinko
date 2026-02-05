@@ -123,12 +123,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # Apple Silicon (M-series chip)
-            args: '--target aarch64-apple-darwin'
-          - platform: 'ubuntu-22.04' # Linux Platform
-            args: ''
-          - platform: 'windows-latest' # Windows Platform
-            args: ''
+          - platform: 'macos-15-intel' # Intel Mac for Monterey compatibility
+            args: '--target x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -205,7 +201,7 @@ jobs:
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: x86_64-apple-darwin
 
       - name: Rust Cache
         if: github.event.inputs.disable-all-cache != 'true'
@@ -256,146 +252,11 @@ jobs:
             !app/src-tauri/target/release/bundle/**/*.dSYM/**
           retention-days: 7
 
-  # Android Platform Build Task
-  publish-android:
-    needs: [set-version, update-version]
-    if: always() && !cancelled() && needs.set-version.result == 'success' && (needs.update-version.result == 'success' || needs.update-version.result == 'skipped')
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Update version in tauri.conf.json (Test Mode)
-        if: github.event.inputs.is-test == 'true'
-        run: |
-          # Test mode: update version locally without committing
-          jq '.version = "${{ needs.set-version.outputs.version }}"' app/src-tauri/tauri.conf.json > tmp.json && mv tmp.json app/src-tauri/tauri.conf.json
-          echo "Updated version to ${{ needs.set-version.outputs.version }} (test mode, not committed)"
-          cat app/src-tauri/tauri.conf.json
-
-      - name: Download tauri.conf.json (Release Mode)
-        if: github.event.inputs.is-test != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: tauri-config
-          path: app/src-tauri/
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: sdkmanager "ndk;27.0.11902837"
-
-      - name: Setup Node Environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: Increase Node.js memory limit for Android build
-        run: |
-          echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
-
-      - name: Install Rust Stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-
-      - name: Rust Cache
-        if: github.event.inputs.disable-all-cache != 'true'
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: app/src-tauri
-          cache-on-failure: true
-
-      - name: Install bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: 1.2.8
-
-      - name: Install Dependencies
-        run: |
-          bun install --frozen-lockfile
-
-      - name: Run Prisma Generate
-        run: bun run prisma:generate
-
-      - name: Configure Gradle Cache
-        if: github.event.inputs.disable-all-cache != 'true'
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2.0.0-alpha"
-
-      - name: Upload Keystore File
-        run: |
-          # Create keystore directory
-          mkdir -p ~/.android
-          # Create keystore file
-          echo "${{ secrets.UPLOAD_KEYSTORE }}" | base64 --decode > ~/.android/upload-keystore.jks
-          # Create keystore.properties
-          mkdir -p app/src-tauri/gen/android
-          cat > app/src-tauri/gen/android/keystore.properties << EOF
-          password=106111
-          keyAlias=upload
-          storeFile=$HOME/.android/upload-keystore.jks
-          EOF
-
-      - name: Build Android App
-        run: |
-          cd app
-          bun run tauri:android:build
-        env:
-          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
-
-      - name: Rename Android App File
-        run: |
-          cd app/src-tauri/gen/android/app/build/outputs/apk/universal/release
-          VERSION="${{ needs.set-version.outputs.version }}"
-          echo "Original APK file:"
-          ls -la
-          # Rename APK file
-          mv app-universal-release.apk Blinko_${VERSION}_universal.apk
-          echo "Renamed APK file:"
-          ls -la
-
-      - name: Upload Android App to Release
-        if: github.event.inputs.is-test != 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: app/src-tauri/gen/android/app/build/outputs/apk/universal/release/Blinko_${{ needs.set-version.outputs.version }}_universal.apk
-          tag_name: ${{ needs.set-version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Android APK as artifact (Test Mode)
-        if: github.event.inputs.is-test == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: blinko-test-android-${{ needs.set-version.outputs.version }}
-          path: app/src-tauri/gen/android/app/build/outputs/apk/universal/release/Blinko_${{ needs.set-version.outputs.version }}_universal.apk
-          retention-days: 7
-
-  # Generate changelog after all builds are complete
   generate-changelog:
-    if: github.event.inputs.is-test != 'true' && always() && !cancelled() && (needs.publish-desktop.result == 'success' || needs.publish-android.result == 'success')
+    if: github.event.inputs.is-test != 'true' && always() && !cancelled() && needs.publish-desktop.result == 'success'
     runs-on: ubuntu-latest
-    needs: [set-version, publish-desktop, publish-android]
+    needs: [set-version, publish-desktop]
     outputs:
       changelog: ${{ steps.changelog.outputs.changes }}
     steps:
