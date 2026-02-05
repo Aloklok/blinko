@@ -1,3 +1,4 @@
+import "./polyfill";
 import "abortcontroller-polyfill/dist/abortcontroller-polyfill-only";
 import "requestidlecallback-polyfill";
 import ReactDOM from "react-dom/client";
