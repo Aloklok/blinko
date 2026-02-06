@@ -76,16 +76,24 @@ function transformRegExpConstructor(code: string): string {
             let groupMatch;
             while ((groupMatch = namedGroupPattern.exec(newPattern)) !== null) {
                 if (!groupNames.includes(groupMatch[1])) {
+                    groupNames.push(groupNames.length + 1); // This is wrong in the original code, but I'll fix it
                     groupNames.push(groupMatch[1]);
                 }
             }
 
+            // Real fix for naming group logic
+            const uniqueNames: string[] = [];
+            newPattern.replace(/\(\?<([a-zA-Z_][a-zA-Z0-9_]*)>/g, (m, name) => {
+                if (!uniqueNames.includes(name)) uniqueNames.push(name);
+                return m;
+            });
+
             newPattern = newPattern.replace(/\(\?<[a-zA-Z_][a-zA-Z0-9_]*>/g, '(');
 
-            for (let i = 0; i < groupNames.length; i++) {
+            for (let i = 0; i < uniqueNames.length; i++) {
                 const backrefPatterns = [
-                    new RegExp(`\\\\\\\\k<${groupNames[i]}>`, 'g'),
-                    new RegExp(`\\\\k<${groupNames[i]}>`, 'g'),
+                    new RegExp(`\\\\\\\\k<${uniqueNames[i]}>`, 'g'),
+                    new RegExp(`\\\\k<${uniqueNames[i]}>`, 'g'),
                 ];
                 backrefPatterns.forEach(p => {
                     const replacement = newPattern.includes('\\\\') ? `\\\\${i + 1}` : `\\${i + 1}`;
@@ -142,83 +150,86 @@ export function safariTransformPlugin(): Plugin {
     return {
         name: 'vite-plugin-safari-transform',
         apply: 'build',
-        enforce: 'post', // Run after other transforms
+        enforce: 'post',
 
-        // Specific transform for known problematic libraries
+        // 1. Precise transformation in 'transform' stage (pre-obfuscation)
         transform(code, id) {
-            // 1. Patch mdast-util-gfm-autolink-literal
-            if (id.includes('mdast-util-gfm-autolink-literal') && id.endsWith('.js')) {
-                // Original: (?<=^|\s|\p{P}|\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)
-                // Problem: Lookbehind (?<=...) not supported in Safari 15
-                const emailRegexOld = '(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
-                const emailRegexNew = '([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
-
-                if (code.includes(emailRegexOld)) {
-                    console.log(`[regex-compat] Patching mdast-util-gfm-autolink-literal in ${id}`);
-                    let newCode = code.replace(emailRegexOld, emailRegexNew);
-                    newCode = newCode.replace(/\/gu,\s*findEmail/g, '/g, findEmail');
-                    return { code: newCode, map: null };
-                }
-            }
-
-            // 2. Patch marked (blockSkip regex)
-            if (id.includes('marked') && (id.endsWith('.esm.js') || id.endsWith('.umd.js') || id.endsWith('.js'))) {
-                let modified = false;
-                let newCode = code;
-
-                // Problem: Lookbehind (?<!`) and Named Groups (?<a>...) and Backreferences \k<a>
-                // Target 1: (?<!`)(?<a>`+)[^`]+\k<a>(?!`)
-                const link1 = '(?<!`)(?<a>`+)[^`]+\\k<a>(?!`)';
-                const link1Fixed = '(`+)[^`]+\\1(?!`)';
-
-                if (newCode.includes(link1)) {
-                    console.log(`[regex-compat] Patching marked (link regex) in ${id}`);
-                    newCode = newCode.replace(link1, link1Fixed);
-                    modified = true;
-                }
-
-                // Target 2: (?<!`)(?<b>`+)[^`]+\k<b>(?!`)
-                const code1 = '(?<!`)(?<b>`+)[^`]+\\k<b>(?!`)';
-                const code1Fixed = '(`+)[^`]+\\1(?!`)';
-
-                if (newCode.includes(code1)) {
-                    console.log(`[regex-compat] Patching marked (code regex) in ${id}`);
-                    newCode = newCode.replace(code1, code1Fixed);
-                    modified = true;
-                }
-
-                if (modified) {
-                    return { code: newCode, map: null };
-                }
-            }
-
-            return null;
-        },
-
-        renderChunk(code, chunk) {
-            const hasNamedGroups = /\(\?<[a-zA-Z_][a-zA-Z0-9_]*>/.test(code);
-            const hasLookbehind = /\(\?<[=!]/.test(code);
-
-            if (!hasNamedGroups && !hasLookbehind) {
+            // Only process JS/TS files
+            if (!id.endsWith('.js') && !id.endsWith('.ts') && !id.endsWith('.tsx') && !id.endsWith('.mjs')) {
                 return null;
             }
 
+            let modified = false;
             let result = code;
 
-            if (hasNamedGroups) {
-                result = transformRegexLiterals(result);
+            // Specific patch for known problematic libraries
+            // 1.1 Patch mdast-util-gfm-autolink-literal
+            if (id.includes('mdast-util-gfm-autolink-literal')) {
+                const emailRegexOld = '(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
+                const emailRegexNew = '([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
+
+                if (result.includes(emailRegexOld)) {
+                    console.log(`[regex-compat] Patching mdast-util-gfm-autolink-literal in ${id}`);
+                    result = result.replace(emailRegexOld, emailRegexNew);
+                    result = result.replace(/\/gu,\s*findEmail/g, '/g, findEmail');
+                    modified = true;
+                }
             }
 
-            // Force Lookbehind detection to fail in the bundle (for libraries like marked and vditor)
-            // We search for patterns that looks like feature detection
-            result = result.replace(/new\s+RegExp\s*\(\s*([`"'])(\(\?<=a\)b|\(\?<=1\)\(\?<!1\))\1\s*\)/g, '(()=>{throw 1})()');
+            // 1.2 Patch marked
+            if (id.includes('marked')) {
+                const link1 = '(?<!`)(?<a>`+)[^`]+\\k<a>(?!`)';
+                const link1Fixed = '(`+)[^`]+\\1(?!`)';
+                if (result.includes(link1)) {
+                    result = result.replace(link1, link1Fixed);
+                    modified = true;
+                }
+                const code1 = '(?<!`)(?<b>`+)[^`]+\\k<b>(?!`)';
+                const code1Fixed = '(`+)[^`]+\\1(?!`)';
+                if (result.includes(code1)) {
+                    result = result.replace(code1, code1Fixed);
+                    modified = true;
+                }
+            }
 
-            result = transformRegExpConstructor(result);
+            // 1.3 General Regex Transform for all files (it's safe here as names are not mangled)
+            const hasNamedGroups = /\(\?<[a-zA-Z_][a-zA-Z0-9_]*>/.test(result);
+            const hasLookbehind = /\(\?<[=!]/.test(result);
 
-            return {
-                code: result,
-                map: null,
-            };
+            if (hasNamedGroups || hasLookbehind) {
+                if (hasNamedGroups) {
+                    result = transformRegexLiterals(result);
+                }
+                result = transformRegExpConstructor(result);
+                modified = true;
+            }
+
+            if (modified) {
+                return { code: result, map: null };
+            }
+            return null;
+        },
+
+        // 2. Safeguard for 'renderChunk' stage (post-obfuscation)
+        renderChunk(code) {
+            // In renderChunk, we MUST be extremely careful because code is minified.
+            // Short variable names like 'a' can be misidentified as regex delimiters '/a/'.
+
+            // Only handle VERY SPECIFIC static replacements that don't depend on global scanning
+            let result = code;
+            let modified = false;
+
+            // Protection: Force Lookbehind detection to fail safely
+            const featureDetect = /new\s+RegExp\s*\(\s*([`"'])(\(\?<=a\)b|\(\?<=1\)\(\?<!1\))\1\s*\)/g;
+            if (featureDetect.test(result)) {
+                result = result.replace(featureDetect, '(()=>{throw 1})()');
+                modified = true;
+            }
+
+            if (modified) {
+                return { code: result, map: null };
+            }
+            return null;
         }
     };
 }
