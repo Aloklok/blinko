@@ -53,8 +53,10 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
 
   useEffect(() => {
     files?.filter(i => i.previewType === 'audio').forEach(file => {
-      // Get metadata for all audio files (for music info)
-      getMetadata(file);
+      // 如果是用户录音，元数据通常已经包含在 file.metadata 中，无需再次解析
+      if (!isUserVoiceRecording(file)) {
+        getMetadata(file);
+      }
 
       // Set initial duration from metadata or file properties
       const fileDuration = getDuration(file);

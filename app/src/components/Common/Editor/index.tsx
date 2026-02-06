@@ -128,36 +128,70 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
   };
 
   const renderMobileBottomToolbar = () => (
-    <div className='flex items-center gap-1 w-full px-2 py-1'>
-      <NoteTypeButton
-        noteType={store.noteType}
-        setNoteType={(noteType) => {
-          store.noteType = noteType
-        }}
-        containerSize={40}
-        size={24}
-      />
-      <HashtagButton store={store} content={content} containerSize={40} size={24} />
-      <UploadButtons
-        getInputProps={getInputProps}
-        open={open}
-        onFileUpload={store.uploadFiles}
-        containerSize={40}
-        size={24}
-      />
-      <ReferenceButton store={store} containerSize={40} size={24} />
-      {blinko.config.value?.mainModelId && (
-        <AIWriteButton containerSize={40} size={24} />
-      )}
-      <RecordingButton onFileUpload={store.uploadFiles} containerSize={40} size={24} />
-      <div className="ml-auto flex items-center">
-        <FullScreenButton
-          isFullscreen={store.isFullscreen}
-          onClick={() => store.isFullscreen = !store.isFullscreen}
-          containerSize={40}
-          size={24}
+    <div className='flex flex-col w-full px-2 py-1 gap-1'>
+      {/* 第一行：高频操作 */}
+      <div className='flex items-center gap-1 w-full'>
+        <NoteTypeButton
+          noteType={store.noteType}
+          setNoteType={(noteType) => {
+            store.noteType = noteType
+          }}
+          containerSize={44}
+          size={26}
         />
-        <SendButton store={store} isSendLoading={isSendLoading} />
+        <HashtagButton store={store} content={content} containerSize={44} size={26} />
+        <UploadButtons
+          getInputProps={getInputProps}
+          open={open}
+          onFileUpload={store.uploadFiles}
+          containerSize={44}
+          size={26}
+        />
+        <RecordingButton onFileUpload={store.uploadFiles} containerSize={44} size={26} />
+        <div className="ml-auto flex items-center">
+          <FullScreenButton
+            isFullscreen={store.isFullscreen}
+            onClick={() => store.isFullscreen = !store.isFullscreen}
+            containerSize={44}
+            size={26}
+          />
+          <SendButton store={store} isSendLoading={isSendLoading} width={56} height={36} />
+        </div>
+      </div>
+      {/* 分割线 */}
+      <div className='w-full h-px bg-default-200' />
+      {/* 第二行：高级功能 (引用、AI、插件) */}
+      <div className='flex items-center gap-1 w-full'>
+        <ReferenceButton store={store} containerSize={44} size={26} />
+        {blinko.config.value?.mainModelId && (
+          <AIWriteButton containerSize={44} size={26} />
+        )}
+        {/* 插件工具栏按钮 */}
+        {pluginApi.customToolbarIcons.map((item) => (
+          item.content ? (
+            <Popover
+              key={item.name}
+              placement={item.placement}
+              isOpen={openPopover === item.name}
+              onOpenChange={(open) => {
+                setOpenPopover(open ? item.name : null);
+              }}
+            >
+              <PopoverTrigger>
+                <div className="hover:bg-default-100 rounded-md">
+                  <IconButton icon={item.icon} tooltip={item.tooltip} onClick={item.onClick} containerSize={44} size={26} />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent>
+                <PluginRender content={item.content} data={mode} />
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <div key={item.name} className="hover:bg-default-100 rounded-md">
+              <IconButton icon={item.icon} tooltip={item.tooltip} onClick={item.onClick} containerSize={44} size={26} />
+            </div>
+          )
+        ))}
       </div>
     </div>
   );
