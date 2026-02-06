@@ -69,10 +69,10 @@ process.on('exit', (code) => {
 async function initializeJobs() {
   try {
     console.log('Initializing pg-boss scheduled jobs...');
-    
+
     // Start pg-boss
     await getPgBoss();
-    
+
     // Initialize all jobs
     // These will restore their schedules from the database if they were running
     await ArchiveJob.initialize();
@@ -80,7 +80,7 @@ async function initializeJobs() {
     await RebuildEmbeddingJob.initialize();
     await RecommandJob.initialize();
     await AIScheduledTaskJob.initialize();
-    
+
     console.log('All scheduled jobs initialized successfully');
   } catch (error) {
     console.error('Failed to initialize scheduled jobs:', error);
@@ -105,12 +105,8 @@ if (process.env.NODE_ENV === 'production') {
       build: { outDir: "public" }
     }
   });
-} else {
   ViteExpress.config({
     viteConfigFile: path.resolve(appRootDev, 'vite.config.ts'),
-    inlineViteConfig: {
-      root: appRootDev,
-    }
   });
 }
 
@@ -150,35 +146,35 @@ async function setupApiRoutes(app: express.Application) {
   app.use('/api/file/upload', uploadRouter);
   app.use('/api/file/delete', deleteRouter);
   app.use('/api/s3file', s3fileRouter);
-  
+
   // Helper function to serve vditor dependencies with gzip compression
   const serveVditorFile = (routePath: string, filePath: string) => {
     app.use(routePath, (req, res) => {
       const fullPath = path.resolve(__dirname, filePath);
-      
+
       // Check if file exists
       if (!fs.existsSync(fullPath)) {
         res.status(404).send('File not found');
         return;
       }
-      
+
       // Check if client accepts gzip encoding
       const acceptEncoding = req.headers['accept-encoding'] || '';
       const supportsGzip = acceptEncoding.includes('gzip');
-      
+
       // Determine content type based on file extension
-      const contentType = filePath.endsWith('.css') 
-        ? 'text/css' 
-        : filePath.endsWith('.js') 
-        ? 'application/javascript'
-        : 'application/octet-stream';
-      
+      const contentType = filePath.endsWith('.css')
+        ? 'text/css'
+        : filePath.endsWith('.js')
+          ? 'application/javascript'
+          : 'application/octet-stream';
+
       res.set({
         'Cache-Control': 'public, max-age=604800, immutable',
         'Expires': new Date(Date.now() + 604800000).toUTCString(),
         'Content-Type': contentType
       });
-      
+
       // CSS files should not be gzipped (they're already minified)
       // Only gzip JS files
       if (supportsGzip && !filePath.endsWith('.css')) {
@@ -196,7 +192,7 @@ async function setupApiRoutes(app: express.Application) {
 
   // Special handling for lute.min.js with gzip compression
   serveVditorFile('/dist/js/lute/lute.min.js', './lute.min.js');
-  
+
   app.use('/dist/js/icons/ant.js', (req, res) => {
     res.set({
       'Cache-Control': 'public, max-age=604800, immutable',
@@ -255,7 +251,7 @@ async function setupApiRoutes(app: express.Application) {
       }
     })
   );
-  
+
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
@@ -316,12 +312,12 @@ async function bootstrap() {
       const server = app.listen(PORT, "0.0.0.0", () => {
         console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
       });
-      
+
       // Increase timeout for large file uploads (5 minutes)
       server.timeout = 5 * 60 * 1000;
       server.keepAliveTimeout = 5 * 60 * 1000;
       server.headersTimeout = 5 * 60 * 1000;
-      
+
       ViteExpress.bind(app, server); // the server binds to all network interfaces
     } else {
       console.log(`API routes updated - env: ${process.env.NODE_ENV || 'development'}`);
