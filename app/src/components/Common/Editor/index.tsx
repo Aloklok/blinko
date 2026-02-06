@@ -128,34 +128,34 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
   };
 
   const renderMobileBottomToolbar = () => (
-    <div className='flex items-center gap-2 w-full px-2 py-1'>
+    <div className='flex items-center gap-1 w-full px-2 py-1'>
       <NoteTypeButton
         noteType={store.noteType}
         setNoteType={(noteType) => {
           store.noteType = noteType
         }}
-        containerSize={50}
-        size={26}
+        containerSize={40}
+        size={24}
       />
-      <HashtagButton store={store} content={content} containerSize={50} size={26} />
+      <HashtagButton store={store} content={content} containerSize={40} size={24} />
       <UploadButtons
         getInputProps={getInputProps}
         open={open}
         onFileUpload={store.uploadFiles}
-        containerSize={50}
-        size={26}
+        containerSize={40}
+        size={24}
       />
-      <ReferenceButton store={store} containerSize={50} size={26} />
+      <ReferenceButton store={store} containerSize={40} size={24} />
       {blinko.config.value?.mainModelId && (
-        <AIWriteButton containerSize={50} size={26} />
+        <AIWriteButton containerSize={40} size={24} />
       )}
-      <RecordingButton onFileUpload={store.uploadFiles} containerSize={50} size={26} />
+      <RecordingButton onFileUpload={store.uploadFiles} containerSize={40} size={24} />
       <div className="ml-auto flex items-center">
         <FullScreenButton
           isFullscreen={store.isFullscreen}
           onClick={() => store.isFullscreen = !store.isFullscreen}
-          containerSize={50}
-          size={26}
+          containerSize={40}
+          size={24}
         />
         <SendButton store={store} isSendLoading={isSendLoading} />
       </div>

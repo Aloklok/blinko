@@ -6,7 +6,7 @@
 }
 
 .bm-menu-wrap {
-  width: fit-content;
+  width: 250px !important;
   height: 100%;
   overflow: hidden !important;
 }

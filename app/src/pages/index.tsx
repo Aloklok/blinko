@@ -126,17 +126,21 @@ const Home = observer(() => {
 
   return (
     <div
-      style={{
-        maxWidth: blinko.config.value?.maxHomePageWidth ? `${blinko.config.value?.maxHomePageWidth}px` : '100%'
-      }}
-      className={`pt-1 md:p-0 relative h-full flex flex-col-reverse md:flex-col mx-auto w-full`}>
+      className={`pt-1 md:p-0 relative h-full flex flex-col-reverse md:flex-col w-full`}>
 
-      {store.showEditor && isPc && !blinko.config.value?.hidePcEditor && <div className='px-2 md:px-6' >
-        <BlinkoEditor mode='create' key='create-key' onHeightChange={height => {
-          if (!isPc) return
-          store.editorHeight = height
-        }} />
-      </div>}
+      {store.showEditor && isPc && !blinko.config.value?.hidePcEditor && (
+        <div
+          className='px-2 md:px-6 mx-auto w-full'
+          style={{
+            maxWidth: blinko.config.value?.maxHomePageWidth ? `${blinko.config.value?.maxHomePageWidth}px` : '100%'
+          }}
+        >
+          <BlinkoEditor mode='create' key='create-key' onHeightChange={height => {
+            if (!isPc) return
+            store.editorHeight = height
+          }} />
+        </div>
+      )}
       {(!isPc || blinko.config.value?.hidePcEditor) && <BlinkoAddButton />}
 
       <LoadingAndEmpty
@@ -156,76 +160,83 @@ const Home = observer(() => {
             blinko.onBottom();
           }}
           style={{ height: store.showEditor ? `calc(100% - ${(isPc ? (!store.showEditor ? store.editorHeight : 10) : 0)}px)` : '100%' }}
-          className={`px-2 mt-0 md:${blinko.config.value?.hidePcEditor ? 'mt-0' : 'mt-4'} md:px-6 w-full h-full !transition-all scroll-area`}>
+          className={`px-0 mt-0 md:${blinko.config.value?.hidePcEditor ? 'mt-0' : 'mt-4'} w-full h-full !transition-all scroll-area`}>
 
-          {isTodoView ? (
-            <div className="timeline-view relative">
-              {Object.entries(todosByDate).map(([date, { displayDate, todos }]) => (
-                <div key={date} className="mb-6 relative">
-                  <div className="flex items-center mb-2 relative z-10">
-                    <div className="w-4 h-4 rounded-sm bg-primary absolute left-[4.5px] transform translate-x-[-50%]"></div>
-                    <h3 className="text-base font-bold ml-5">{displayDate}</h3>
-                  </div>
-                  <div className="md:pl-4">
-                    {todos.map(todo => (
-                      <div key={todo.id} className="mb-3">
-                        <BlinkoCard blinkoItem={todo} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {Object.keys(todosByDate).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Icon icon="mdi:clipboard-text-outline" width="48" height="48" className="mx-auto mb-2 opacity-50" />
-                  <p>{t('no-data-here-well-then-time-to-write-a-note')}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
-              > */}
-              <Masonry
-                breakpointCols={{
-                  default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
-                  1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
-                  768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
-                }}
-                className="card-masonry-grid"
-                columnClassName="card-masonry-grid_column">
-                {
-                  localNotes?.map((i, index) => {
-                    // const showInsertLine = insertPosition === i.id && activeId !== i.id;
-                    return (
-                      // DISABLED DraggableBlinkoCard via DIY Patch
-                      <BlinkoCard
-                        key={i.id}
-                        blinkoItem={i}
-                      />
-                    );
-                  })
-                }
-              </Masonry>
-              {/* <DragOverlay>
-                  {activeId ? (
-                    <div className="rotate-3 scale-105 opacity-90 max-w-sm shadow-xl">
-                      <BlinkoCard
-                        blinkoItem={localNotes.find(n => n.id === activeId)}
-                      />
+          <div
+            className="w-full mx-auto px-2 md:px-6"
+            style={{
+              maxWidth: blinko.config.value?.maxHomePageWidth ? `${blinko.config.value?.maxHomePageWidth}px` : '100%'
+            }}
+          >
+            {isTodoView ? (
+              <div className="timeline-view relative">
+                {Object.entries(todosByDate).map(([date, { displayDate, todos }]) => (
+                  <div key={date} className="mb-6 relative">
+                    <div className="flex items-center mb-2 relative z-10">
+                      <div className="w-4 h-4 rounded-sm bg-primary absolute left-[4.5px] transform translate-x-[-50%]"></div>
+                      <h3 className="text-base font-bold ml-5">{displayDate}</h3>
                     </div>
-                  ) : null}
-                </DragOverlay> */}
-              {/* </DndContext> */}
-            </>
-          )}
+                    <div className="md:pl-4">
+                      {todos.map(todo => (
+                        <div key={todo.id} className="mb-3">
+                          <BlinkoCard blinkoItem={todo} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {Object.keys(todosByDate).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Icon icon="mdi:clipboard-text-outline" width="48" height="48" className="mx-auto mb-2 opacity-50" />
+                    <p>{t('no-data-here-well-then-time-to-write-a-note')}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                > */}
+                <Masonry
+                  breakpointCols={{
+                    default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
+                    1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
+                    768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
+                  }}
+                  className="card-masonry-grid"
+                  columnClassName="card-masonry-grid_column">
+                  {
+                    localNotes?.map((i, index) => {
+                      // const showInsertLine = insertPosition === i.id && activeId !== i.id;
+                      return (
+                        // DISABLED DraggableBlinkoCard via DIY Patch
+                        <BlinkoCard
+                          key={i.id}
+                          blinkoItem={i}
+                        />
+                      );
+                    })
+                  }
+                </Masonry>
+                {/* <DragOverlay>
+                    {activeId ? (
+                      <div className="rotate-3 scale-105 opacity-90 max-w-sm shadow-xl">
+                        <BlinkoCard
+                          blinkoItem={localNotes.find(n => n.id === activeId)}
+                        />
+                      </div>
+                    ) : null}
+                  </DragOverlay> */}
+                {/* </DndContext> */}
+              </>
+            )}
 
-          {store.showLoadAll && <div className='select-none w-full text-center text-sm font-bold text-ignore my-4'>{t('all-notes-have-been-loaded', { items: currentListState.value?.length })}</div>}
+            {store.showLoadAll && <div className='select-none w-full text-center text-sm font-bold text-ignore my-4'>{t('all-notes-have-been-loaded', { items: currentListState.value?.length })}</div>}
+          </div>
         </ScrollArea>
       }
     </div>

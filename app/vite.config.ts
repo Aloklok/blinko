@@ -129,7 +129,7 @@ export default defineConfig({
     }
   },
   build: {
-    target: 'es2020',
+    target: ['es2020', 'safari15'],
     outDir: "../dist/public",
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,

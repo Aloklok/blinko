@@ -95,7 +95,7 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
       <ScrollShadow className="-mr-[16px] mt-[-5px] h-full max-h-full pr-6 hide-scrollbar">
         <div className={`flex flex-col gap-1 mt-4 font-semibold ${base.isSidebarCollapsed ? 'items-center gap-4' : ''}`}>
           {base.routerList
-            .filter((i) => !i.hiddenSidebar && ['blinko', 'notes', 'todo', 'AI'].includes(i.title))
+            .filter((i) => !i.hiddenSidebar && ['blinko', 'notes', 'todo'].includes(i.title))
             .map((i) => (
               <Link
                 key={i.title}
@@ -130,7 +130,7 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
           )}
 
           {showMore && base.routerList
-            .filter((i) => !i.hiddenSidebar && ['analytics', 'resources', 'archived'].includes(i.title))
+            .filter((i) => !i.hiddenSidebar && ['analytics', 'resources', 'archived', 'AI'].includes(i.title))
             .map((i) => (
               <Link
                 key={i.title}
