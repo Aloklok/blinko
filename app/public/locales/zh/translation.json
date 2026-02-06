@@ -155,6 +155,8 @@
   "speech-recognition-requires-the-use-of": "语音识别需要使用",
   "ai-expand": "AI扩写",
   "ai-polish": "AI润色",
+  "ai-polishing": "AI 正在润色中...",
+  "ai-polish-failed": "AI 润色失败",
   "accept": "接受",
   "reject": "拒绝",
   "stop": "停止",

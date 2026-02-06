@@ -204,6 +204,8 @@ jobs:
       - name: Build frontend with Bun (ensure consistent build environment)
         shell: bash
         run: |
+          echo "Generating icons..."
+          bun run build:blinko:iconify
           cd app
           echo "Building frontend with Bun to ensure consistent minification..."
           bun run build:no-pwa

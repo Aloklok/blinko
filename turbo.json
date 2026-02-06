@@ -28,11 +28,17 @@
         "node_modules/.prisma/**"
       ]
     },
+    "build:iconify:icons": {
+      "outputs": [
+        "src/components/Common/Iconify/icons.tsx"
+      ]
+    },
     "build:web": {
       "inputs": [
         ".env"
       ],
       "dependsOn": [
+        "build:iconify:icons",
         "^build:web",
         "prisma:generate"
       ],

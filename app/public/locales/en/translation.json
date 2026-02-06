@@ -164,6 +164,8 @@
   "speech-recognition-requires-the-use-of": "Speech recognition requires the use of",
   "ai-expand": "AI Expand",
   "ai-polish": "AI Polish",
+  "ai-polishing": "AI is polishing...",
+  "ai-polish-failed": "AI Polish failed",
   "accept": "Accept",
   "reject": "Reject",
   "stop": "Stop",

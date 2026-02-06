@@ -175,7 +175,8 @@ export default defineConfig({
     exclude: []
   },
   css: {
-    devSourcemap: false
+    devSourcemap: false,
+    postcss: './postcss.config.js'
   },
   cacheDir: 'node_modules/.vite',
   experimental: {

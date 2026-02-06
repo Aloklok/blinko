@@ -6,46 +6,36 @@ import fs from 'fs';
 import path from 'path';
 import { iconToSVG } from '@iconify/utils';
 
-// Always include these icons even if they're not detected by scanning
+// Icons used in functions or conditional returns that might be hard to detect
+// Note: With the new robust scanning, this list can be minimal or empty
 const ALWAYS_INCLUDE_ICONS = [
-  // Icons used in functions or conditional returns that might be hard to detect
   'lets-icons:check-fill',
   'ci:radio-unchecked',
   'ri:indeterminate-circle-line',
-  'hugeicons:ai-chemistry-02',
-  // Icons from baseStore.ts
-  'basil:lightning-outline',
-  'basil:expand-outline',
-  'grommet-icons:form-view',
-  'tabler:source-code',
-  'hugeicons:note',
-  'hugeicons:analytics-01',
-  'solar:database-linear',
-  'solar:box-broken',
-  'hugeicons:delete-02',
-  'hugeicons:plug-socket',
-  'hugeicons:settings-01',
-  'hugeicons:settings-01',
-  'mingcute:hashtag-line',
-  // Fix for missing icons
-  'mdi:chevron-left',
-  'material-symbols:add',
-  'fluent:mic-24-filled'
+  'hugeicons:ai-chemistry-02'
 ];
+
+// Project paths
+const ROOT_DIR = process.cwd();
+const SRC_DIR = path.join(ROOT_DIR, 'src');
+const NODE_MODULES_DIR = path.join(ROOT_DIR, 'node_modules');
+const OUTPUT_FILE = path.join(SRC_DIR, 'components', 'Common', 'Iconify', 'icons.tsx');
 
 // Recursively scan directories for files
 function scanDirectory(dir, fileExtensions, result = []) {
+  if (!fs.existsSync(dir)) return result;
+
   const files = fs.readdirSync(dir);
 
   for (const file of files) {
+    if (file === 'node_modules' || file === '.git' || file === 'dist') continue;
+
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
 
     if (stat.isDirectory()) {
-      // Recursively scan subdirectories
       scanDirectory(fullPath, fileExtensions, result);
     } else if (fileExtensions.includes(path.extname(file))) {
-      // If file extension matches, add file to results
       result.push(fullPath);
     }
   }
@@ -56,66 +46,44 @@ function scanDirectory(dir, fileExtensions, result = []) {
 // Scan project for used icons
 function scanProjectIcons() {
   try {
-    console.log('Scanning project for icons...');
+    console.log(`Scanning project at ${SRC_DIR} for icons...`);
+    const files = scanDirectory(SRC_DIR, ['.tsx', '.jsx', '.ts', '.js']);
 
-    // Scan all tsx and jsx files in the src directory
-    const srcPath = path.join(__dirname, '..', '..', '..', '..');
-    const files = scanDirectory(path.join(srcPath, 'src'), ['.tsx', '.jsx', '.ts']);
+    // Match patterns like "prefix:name" or 'prefix:name'
+    // This is broad to capture dynamic usage in ternary ops etc.
+    const iconRegex = /\b([a-z0-9-]+):([a-z0-9-]+)\b/g;
+    const potentialIcons = new Set();
 
-    // Extract icon names
-    // 1. Match JSX attributes: icon="collection:name-with-hyphen" or icon='collection:name-with-hyphen'
-    const jsxIconRegex = /icon=["']([a-zA-Z0-9_-]+:[a-zA-Z0-9_\-\.]+)["']/g;
-    // 2. Match JS/TS object properties: icon: "collection:name-with-hyphen" or icon: 'collection:name-with-hyphen'
-    const jsIconRegex = /icon:\s*["']([a-zA-Z0-9_-]+:[a-zA-Z0-9_\-\.]+)["']/g;
-
-    const iconMatches = [];
-
-    // Iterate through all files
     for (const file of files) {
+      if (file === OUTPUT_FILE) continue;
+
       const content = fs.readFileSync(file, 'utf8');
       let match;
-
-      // Reset regex state for each file to avoid lastIndex issues
-      jsxIconRegex.lastIndex = 0;
-      jsIconRegex.lastIndex = 0;
-
-      // Scan for JSX icon attributes
-      while ((match = jsxIconRegex.exec(content)) !== null) {
-        iconMatches.push(match[1]);
-      }
-
-      // Scan for JS/TS object icon properties
-      while ((match = jsIconRegex.exec(content)) !== null) {
-        iconMatches.push(match[1]);
+      iconRegex.lastIndex = 0;
+      while ((match = iconRegex.exec(content)) !== null) {
+        potentialIcons.add(match[0]);
       }
     }
 
-    console.log(`Found ${iconMatches.length} icon usage instances`);
+    console.log(`Found ${potentialIcons.size} potential icon strings`);
 
-    // Add always-include icons
-    ALWAYS_INCLUDE_ICONS.forEach(iconName => {
-      if (!iconMatches.includes(iconName)) {
-        iconMatches.push(iconName);
-      }
-    });
+    ALWAYS_INCLUDE_ICONS.forEach(iconName => potentialIcons.add(iconName));
 
-    console.log(`Total icons including defaults: ${iconMatches.length}`);
-
-    // Group icons by collection
     const iconsByCollection = {};
 
-    iconMatches.forEach(iconName => {
-      const parts = iconName.split(':');
-      if (parts.length < 2) return;
-      const collection = parts[0];
-      const name = parts.slice(1).join(':');
+    for (const iconName of potentialIcons) {
+      const [collection, name] = iconName.split(':');
+      if (!collection || !name) continue;
 
-      if (!iconsByCollection[collection]) {
-        iconsByCollection[collection] = new Set();
+      const collectionPath = path.join(NODE_MODULES_DIR, '@iconify', 'json', 'json', `${collection}.json`);
+
+      if (fs.existsSync(collectionPath)) {
+        if (!iconsByCollection[collection]) {
+          iconsByCollection[collection] = new Set();
+        }
+        iconsByCollection[collection].add(name);
       }
-
-      iconsByCollection[collection].add(name);
-    });
+    }
 
     return iconsByCollection;
   } catch (error) {
@@ -124,28 +92,18 @@ function scanProjectIcons() {
   }
 }
 
-/**
- * Recursively resolve an icon, following aliases if necessary
- */
 function resolveIcon(iconsData, iconName) {
-  // 1. Try to find in regular icons
   if (iconsData.icons && iconsData.icons[iconName]) {
     return iconsData.icons[iconName];
   }
-
-  // 2. Try to find in aliases
   if (iconsData.aliases && iconsData.aliases[iconName]) {
     const alias = iconsData.aliases[iconName];
-    // console.log(`Resolving alias: ${iconName} -> ${alias.parent}`);
     return resolveIcon(iconsData, alias.parent);
   }
-
   return null;
 }
 
-// Extract icons from Iconify
 async function extractIcons() {
-  // Get icons used in the project
   const iconsByCollection = scanProjectIcons();
 
   let output = `// This file is auto-generated by buildIcons.js
@@ -168,50 +126,38 @@ export interface IconCollection {
 }
 `;
 
-  // First define all icon collections
   for (const [collection, icons] of Object.entries(iconsByCollection)) {
     try {
-      console.log(`Processing collection ${collection} with ${icons.size} icons...`);
+      const collectionPath = path.join(NODE_MODULES_DIR, '@iconify', 'json', 'json', `${collection}.json`);
+      if (!fs.existsSync(collectionPath)) continue;
 
-      // Load icon data from Iconify JSON
-      try {
-        const fullIconsPath = require.resolve(`@iconify/json/json/${collection}.json`);
-        const iconsData = JSON.parse(fs.readFileSync(fullIconsPath, 'utf8'));
+      console.log(`Processing collection ${collection} (${icons.size} icons)...`);
+      const iconsData = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
 
-        // Create a new icon data object
-        const iconSet = {
-          prefix: iconsData.prefix || collection,
-          icons: {},
-          width: iconsData.width || 24,
-          height: iconsData.height || 24
-        };
+      const iconSet = {
+        prefix: iconsData.prefix || collection,
+        icons: {},
+        width: iconsData.width || 24,
+        height: iconsData.height || 24
+      };
 
-        // Add required icons
-        for (const iconName of icons) {
-          const resolvedData = resolveIcon(iconsData, iconName);
-          if (resolvedData) {
-            iconSet.icons[iconName] = resolvedData;
-          } else {
-            console.warn(`Icon "${iconName}" not found in "${collection}" collection (even as alias)`);
-          }
+      for (const iconName of icons) {
+        const resolvedData = resolveIcon(iconsData, iconName);
+        if (resolvedData) {
+          iconSet.icons[iconName] = resolvedData;
         }
+      }
 
-        // Export collection data
-        const variableName = collection.replace(/-/g, '_');
-
-        output += `
+      const variableName = collection.replace(/-/g, '_');
+      output += `
 // ${collection} icon collection
 export const ${variableName}: IconCollection = ${JSON.stringify(iconSet, null, 2)};
 `;
-      } catch (err) {
-        console.error(`Could not load icon collection ${collection}:`, err.message);
-      }
-    } catch (error) {
-      console.error(`Error processing collection ${collection}:`, error);
+    } catch (err) {
+      console.error(`Error processing collection ${collection}:`, err.message);
     }
   }
 
-  // Add Icon component code
   output += `
 // Icon component Props interface
 interface IconProps {
@@ -267,13 +213,10 @@ export const Icon = ({
   style = {},
   onClick 
 }: IconProps) => {
-  // Return null if icon name is empty
   if (!icon) return null;
   
-  // Get icon data
   const iconData = getIconData(icon);
   
-  // If local icon not found, use Iconify as fallback
   if (!iconData) {
     console.warn(\`Local icon not found: \${icon}, using Iconify fallback\`);
     return <IconifyIcon 
@@ -287,13 +230,11 @@ export const Icon = ({
     />;
   }
   
-  // Generate SVG from icon data
   const renderData = iconToSVG(iconData, {
     width: typeof width === 'number' ? width.toString() : width || '24',
     height: typeof height === 'number' ? height.toString() : height || '24',
   });
   
-  // Build SVG attributes
   const svgAttributes = {
     width,
     height,
@@ -307,17 +248,14 @@ export const Icon = ({
     onClick,
   };
   
-  // Render SVG
   return <svg {...svgAttributes} />;
 };
 
 export default Icon;
 `;
 
-  // Save file
-  fs.writeFileSync(path.join(__dirname, 'icons.tsx'), output);
-  console.log('Icons file generated successfully!');
+  fs.writeFileSync(OUTPUT_FILE, output);
+  console.log(`Icons file generated successfully at ${OUTPUT_FILE}`);
 }
 
-// Execute extraction
-extractIcons(); 
+extractIcons();

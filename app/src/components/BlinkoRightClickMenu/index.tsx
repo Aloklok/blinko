@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ContextMenu, ContextMenuItem } from '@/components/Common/ContextMenu';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { PromiseCall } from '@/store/standard/PromiseState';
-import { api } from '@/lib/trpc';
+import { api, streamApi } from '@/lib/trpc';
 import { RootStore } from "@/store";
 import { DialogStore } from "@/store/module/Dialog";
 import { BlinkoEditor } from "../BlinkoEditor";
@@ -294,6 +294,45 @@ const handleAITag = () => {
   aiStore.autoTag.call(blinko.curSelectedNote?.id!, blinko.curSelectedNote?.content!)
 }
 
+const handleAIPolish = async () => {
+  const blinko = RootStore.Get(BlinkoStore)
+  const toast = RootStore.Get(ToastPlugin);
+
+  toast.loading(i18n.t('ai-polishing'));
+
+  try {
+    const noteContent = blinko.curSelectedNote?.content || '';
+    let polishedContent = '';
+
+    const res = await streamApi.ai.writing.mutate({
+      question: '',
+      type: 'polish',
+      content: noteContent
+    });
+
+    for await (const item of res) {
+      if (item.type == 'text-delta') {
+        polishedContent += item.textDelta;
+      } else if (item.type == 'error') {
+        throw new Error((item.error as any)?.name || 'AI Error');
+      }
+    }
+
+    toast.remove();
+    if (polishedContent.trim()) {
+      if (blinko.curSelectedNote) {
+        blinko.curSelectedNote.content = polishedContent;
+        ShowEditBlinkoModel();
+      }
+    }
+
+  } catch (error) {
+    toast.remove();
+    toast.error(i18n.t('ai-polish-failed'));
+    console.error(error);
+  }
+}
+
 
 
 const handleTrash = () => {
@@ -433,6 +472,17 @@ export const AITagItem = observer(() => {
 
 
 
+
+export const AIPolishItem = observer(() => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-start gap-2">
+      <Icon icon="lucide:scan-text" width="20" height="20" />
+      <div>{t('ai-polish')}</div>
+    </div>
+  );
+});
+
 export const RelatedNotesItem = observer(() => {
   const { t } = useTranslation();
   return (
@@ -566,6 +616,12 @@ export const BlinkoRightClickMenu = observer(() => {
       </ContextMenuItem>
     ) : <></>}
 
+    {blinko.config.value?.mainModelId ? (
+      <ContextMenuItem onClick={handleAIPolish}>
+        <AIPolishItem />
+      </ContextMenuItem>
+    ) : <></>}
+
 
 
     {blinko.config.value?.mainModelId ? (
@@ -657,6 +713,12 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
       {blinko.config.value?.mainModelId ? (
         <DropdownItem key="RelatedNotesItem" onPress={handleRelatedNotes}>
           <RelatedNotesItem />
+        </DropdownItem>
+      ) : <></>}
+
+      {blinko.config.value?.mainModelId ? (
+        <DropdownItem key="AIPolishItem" onPress={handleAIPolish}>
+          <AIPolishItem />
         </DropdownItem>
       ) : <></>}
 
