@@ -102,12 +102,12 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
 
 # Install dependencies with --ignore-scripts to skip native compilation
 RUN echo "Installing additional dependencies..." && \
-    npm install @node-rs/crc32 lightningcss sharp@0.34.1 prisma@5.21.1 && \
-    npm install -g prisma@5.21.1 && \
-    npm install sqlite3@5.1.7 && \
-    npm install llamaindex @langchain/community@0.3.40 && \
-    npm install @libsql/client @libsql/core && \
-    npm install @trpc/client @langchain/core @langchain/textsplitters langchain ncp && \
+    npm install --legacy-peer-deps @node-rs/crc32 lightningcss sharp@0.34.1 prisma@5.22.0 @prisma/client@5.22.0 && \
+    npm install -g prisma@5.22.0 && \
+    npm install --legacy-peer-deps sqlite3@5.1.7 && \
+    npm install --legacy-peer-deps llamaindex @langchain/community@0.3.40 && \
+    npm install --legacy-peer-deps @libsql/client @libsql/core && \
+    npm install --legacy-peer-deps @trpc/client @langchain/core @langchain/textsplitters langchain ncp && \
     npx prisma generate && \
     # find / -type d -name "onnxruntime-*" -exec rm -rf {} + 2>/dev/null || true && \
     # npm cache clean --force && \
