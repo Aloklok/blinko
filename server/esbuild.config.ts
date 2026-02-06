@@ -37,12 +37,6 @@ async function build() {
         'sqlite3',
         '@libsql/linux-arm64-musl',
         '@libsql/linux-arm64-gnu',
-        // Fix for missing dependencies in bundle
-        '@trpc/client',
-        '@langchain/core',
-        '@langchain/textsplitters',
-        'langchain',
-        'ncp'
       ],
       define: {
         'process.env.NODE_ENV': '"production"',
