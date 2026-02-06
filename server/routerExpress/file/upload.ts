@@ -1,5 +1,7 @@
 import express from 'express';
 import { FileService } from '../../lib/files';
+import { AiService } from '../../aiServer/index';
+import { AiModelFactory } from '../../aiServer/aiModelFactory';
 import { getTokenFromRequest } from '../../lib/helper';
 import { Readable, PassThrough } from 'stream';
 import busboy from 'busboy';
@@ -79,11 +81,11 @@ router.post('/', async (req, res) => {
     if (!contentType.includes('multipart/form-data')) {
       return res.status(400).json({ error: "Content type must be multipart/form-data" });
     }
-    
+
     const bb = busboy({
       headers: req.headers
     });
-    
+
     let fileInfo: {
       stream: PassThrough | null,
       filename: string,
@@ -113,12 +115,12 @@ router.post('/', async (req, res) => {
         const passThrough = new PassThrough();
         let fileSize = 0;
         const decodedFilename = Buffer.from(info.filename, 'binary').toString('utf-8');
-        
+
         stream.on('data', (chunk) => {
           fileSize += chunk.length;
           passThrough.write(chunk);
         });
-        
+
         stream.on('end', () => {
           passThrough.end();
           fileInfo = {
@@ -133,15 +135,15 @@ router.post('/', async (req, res) => {
         });
       }
     });
-    
+
     bb.on('finish', async () => {
       if (!fileInfo || !fileInfo.stream) {
         return res.status(400).json({ error: "No files received." });
       }
-      
+
       try {
         const webReadableStream = Readable.toWeb(fileInfo.stream) as unknown as ReadableStream;
-        
+
         // Build metadata object
         const metadata: any = {};
         if (fileInfo.isUserVoiceRecording) {
@@ -162,27 +164,52 @@ router.post('/', async (req, res) => {
           accountId: Number(token.id),
           metadata: Object.keys(metadata).length > 0 ? metadata : undefined
         });
-        
+
+        let transcription = '';
+        if (fileInfo.isUserVoiceRecording) {
+          try {
+            const config = await AiModelFactory.globalConfig();
+            if (config.voiceModelId) {
+              const fileResult = await FileService.getFile(filePath.filePath);
+              try {
+                transcription = await AiService.transcribeAudio({
+                  filePath: fileResult.path,
+                  voiceModelId: config.voiceModelId,
+                  accountId: Number(token.id)
+                });
+              } finally {
+                if (fileResult.cleanup) {
+                  await fileResult.cleanup();
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Auto transcription failed:', error);
+            // Don't fail the upload if transcription fails
+          }
+        }
+
         res.set({
           'Access-Control-Allow-Origin': req.headers.origin || '',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': '*',
           'Access-Control-Allow-Credentials': 'true'
         });
-        
+
         res.status(200).json({
           Message: "Success",
           status: 200,
           ...filePath,
           type: fileInfo.mimeType,
-          size: fileInfo.size
+          size: fileInfo.size,
+          transcription
         });
       } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: "Upload failed" });
       }
     });
-    
+
     req.pipe(bb);
   } catch (error) {
     console.error('Upload error:', error);

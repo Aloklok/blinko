@@ -1064,15 +1064,14 @@ export const noteRouter = router({
             const [name, parent] = relationTag.split('<key>');
             const tagId = newTags.find((t) => t.name == name && t.parent == Number(parent))?.id;
             if (tagId) {
-              try {
-                await prisma.tagsToNote.create({
-                  data: { noteId: note.id, tagId },
-                });
-              } catch (error) {
-                if (error.code !== 'P2002') {
-                  throw error;
-                }
-              }
+              // Use upsert to avoid unique constraint errors without throwing
+              await prisma.tagsToNote.upsert({
+                where: {
+                  noteId_tagId: { noteId: note.id, tagId }
+                },
+                update: {}, // Do nothing if exists
+                create: { noteId: note.id, tagId },
+              });
             }
           }
         }
@@ -1149,10 +1148,13 @@ export const noteRouter = router({
           // Process audio attachments if voice model is configured
           if (config?.voiceModelId && attachments.length > 0) {
             try {
-              // Check if there are any audio attachments
-              const audioAttachments = attachments.filter(attachment =>
-                AiService.isAudio(attachment.name || attachment.path)
-              );
+              // Check if there are any audio attachments that haven't been transcribed yet
+              // Skip user voice recordings (my_recording_* files) as they are transcribed during upload
+              const audioAttachments = attachments.filter(attachment => {
+                const fileName = attachment.name || attachment.path.split('/').pop() || '';
+                const isUserRecording = fileName.startsWith('my_recording_');
+                return AiService.isAudio(attachment.name || attachment.path) && !isUserRecording;
+              });
 
               if (audioAttachments.length > 0) {
                 // Run audio transcription asynchronously to not block the response

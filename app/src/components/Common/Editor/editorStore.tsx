@@ -275,6 +275,14 @@ export class EditorStore {
               }
             }
 
+            // If transcription is returned (for voice recordings), insert it into editor
+            if (data.transcription) {
+              // We use a slight delay to ensure the editor is ready and to separate from the attachment
+              setTimeout(() => {
+                this.insertMarkdown(`\n${data.transcription}\n`);
+              }, 100);
+            }
+
             if (data.filePath) {
               uploadFileType[file.name] = data.type
               return data.filePath

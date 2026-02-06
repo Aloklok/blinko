@@ -77,12 +77,12 @@ export const publicRouter = router({
               console.error('Failed to get latest version:', res.message || 'Invalid response');
               return '';
             }
-            
+
             if (!res.data || !res.data.tag_name) {
               console.error('Failed to get latest version: Missing tag_name in response');
               return '';
             }
-            
+
             const latestVersion = res.data.tag_name.replace('v', '');
             return latestVersion;
           } catch (error) {
@@ -110,28 +110,28 @@ export const publicRouter = router({
                 },
               },
             });
-            
+
             if ('error' in res && res.error) {
               console.error('Failed to get latest server version:', res.message || 'Invalid response');
               return '';
             }
-            
+
             if (!res.data || !res.data.results || !Array.isArray(res.data.results)) {
               console.error('Failed to get latest server version: Invalid response format');
               return '';
             }
-            
+
             const tags = res.data.results
               .filter((tag: any) => tag.name !== 'latest')
               .sort((a: any, b: any) => {
                 return new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime();
               });
-            
+
             if (tags.length === 0) {
               console.error('No valid tags found');
               return '';
             }
-            
+
             return tags[0].name;
           } catch (error) {
             console.error('Failed to get latest server version:', error instanceof Error ? error.message : String(error));
@@ -237,10 +237,10 @@ export const publicRouter = router({
             try {
               // Extract relative path from API path
               const relativePath = input.filePath.replace('/api/file/', '');
-              
+
               // Use FileService to validate and resolve the path
               const realFilePath = FileService.validateAndResolvePath(relativePath, UPLOAD_FILE_PATH);
-              
+
               const fileBuffer = await fs.promises.readFile(realFilePath);
               metadata = await mm.parseBuffer(new Uint8Array(fileBuffer), {
                 mimeType: 'audio/mpeg',
@@ -249,10 +249,10 @@ export const publicRouter = router({
             } catch (error: any) {
               // Security fix: Don't leak file existence information through different error messages
               // Return a generic error for both path traversal and file not found
-              if (error.message?.includes('path traversal') || 
-                  error.message?.includes('outside allowed directory') ||
-                  error.message?.includes('dangerous characters') ||
-                  error.code === 'ENOENT') {
+              if (error.message?.includes('path traversal') ||
+                error.message?.includes('outside allowed directory') ||
+                error.message?.includes('dangerous characters') ||
+                error.code === 'ENOENT') {
                 throw new TRPCError({
                   code: 'NOT_FOUND',
                   message: 'File not found'
@@ -262,20 +262,10 @@ export const publicRouter = router({
             }
           } else if (input.filePath.includes('s3file')) {
             try {
-              const response = await fetch(input.filePath);
-              if (!response.ok) {
-                throw new Error(`Failed to get presigned URL: ${response.statusText}`);
-              }
-
-              const presignedUrl = response.url;
-              console.log('presignedUrl', { presignedUrl });
-              const fileResponse = await fetch(presignedUrl);
-              if (!fileResponse.ok) {
-                throw new Error(`Failed to fetch file content: ${fileResponse.statusText}`);
-              }
-
-              const arrayBuffer = await fileResponse.arrayBuffer();
-              metadata = await mm.parseBuffer(new Uint8Array(arrayBuffer), {
+              // Use FileService.getFileBuffer to directly read from S3
+              // This avoids HTTP permission checks and is more efficient
+              const fileBuffer = await FileService.getFileBuffer(input.filePath);
+              metadata = await mm.parseBuffer(new Uint8Array(fileBuffer), {
                 mimeType: 'audio/mpeg',
               });
             } catch (error) {
@@ -426,17 +416,17 @@ export const publicRouter = router({
                 },
               },
             });
-            
+
             if ('error' in response && response.error) {
               console.error('Failed to fetch hub site list:', response.message || 'Invalid response');
               return [];
             }
-            
+
             if (!response.data || !response.data.sites) {
               console.error('Failed to fetch hub site list: Missing sites in response');
               return [];
             }
-            
+
             return response.data.sites;
           } catch (error) {
             console.error('Failed to fetch hub site list:', error instanceof Error ? error.message : String(error));

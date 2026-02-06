@@ -40,7 +40,8 @@ export const HandleFileType = (originFiles: Attachment[]): FileType[] => {
       extension: extension ?? '',
       preview: file.path,
       uploadPromise: new PromiseState({ function: async () => file.path }),
-      type: file.type
+      type: file.type,
+      metadata: (file as any).metadata
     }
   })
   res?.map(i => i.uploadPromise.call())

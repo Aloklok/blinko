@@ -40,7 +40,7 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
   const getMetadata = async (file: FileType) => {
     try {
       const metadata = await api.public.musicMetadata.query({
-        filePath: file.preview.includes('s3file') ? new URL(file.preview, window.location.href).href : file.preview
+        filePath: file.preview
       });
       setAudioMetadata(prev => ({
         ...prev,
@@ -244,9 +244,12 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
         // Use file preview and construct proper URL like music manager does
         if (file.preview) {
           let audioUrl = getBlinkoEndpoint(file.preview);
-          const token = RootStore.Get(UserStore).tokenData?.value?.token;
-          if (token) {
-            audioUrl = `${audioUrl}?token=${token}`;
+          // Only add token for non-blob URLs (blob URLs are local and don't need auth)
+          if (!audioUrl.startsWith('blob:')) {
+            const token = RootStore.Get(UserStore).tokenData?.value?.token;
+            if (token) {
+              audioUrl = `${audioUrl}?token=${token}`;
+            }
           }
 
           audioRef.current.src = audioUrl;
@@ -270,8 +273,8 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
         if (audioRef.current) {
           audioRef.current.removeEventListener('ended', handleVoiceEnded);
           audioRef.current.removeEventListener('timeupdate', updateVoiceProgress);
-          audioRef.current.removeEventListener('error', () => {});
-          audioRef.current.removeEventListener('canplaythrough', () => {});
+          audioRef.current.removeEventListener('error', () => { });
+          audioRef.current.removeEventListener('canplaythrough', () => { });
           audioRef.current.pause();
           audioRef.current = null;
         }
@@ -405,11 +408,10 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
               return (
                 <div
                   key={i}
-                  className={`w-1 rounded-full transition-all duration-200 ${
-                    isPlayed
-                      ? 'bg-blue-500 shadow-sm'
-                      : 'bg-blue-300/60 hover:bg-blue-300/80'
-                  }`}
+                  className={`w-1 rounded-full transition-all duration-200 ${isPlayed
+                    ? 'bg-blue-500 shadow-sm'
+                    : 'bg-blue-300/60 hover:bg-blue-300/80'
+                    }`}
                   style={{
                     height: `${12 + Math.sin(i * 0.5) * 4}px`,
                     animation: isVoicePlaying && isPlayed ? `pulse 1.5s ease-in-out infinite ${i * 50}ms` : 'none',
@@ -470,133 +472,133 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
                 {isVoiceMessage ? (
                   <VoiceMessageRender file={file} />
                 ) : (
-                <div className={`group relative flex items-center gap-3 p-2 md:p-3 cursor-pointer !transition-all rounded-xl ${getBackgroundStyle(metadata?.coverUrl)}`}>
-                  {metadata?.coverUrl && (
-                    <>
+                  <div className={`group relative flex items-center gap-3 p-2 md:p-3 cursor-pointer !transition-all rounded-xl ${getBackgroundStyle(metadata?.coverUrl)}`}>
+                    {metadata?.coverUrl && (
+                      <>
+                        <div
+                          className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40"
+                          style={{ backgroundImage: `url(${metadata.coverUrl})` }}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-20" />
+                      </>
+                    )}
+
+                    <div className="relative flex items-center gap-3 w-full z-10">
                       <div
-                        className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40"
-                        style={{ backgroundImage: `url(${metadata.coverUrl})` }}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-20" />
-                    </>
-                  )}
-
-                  <div className="relative flex items-center gap-3 w-full z-10">
-                    <div
-                      className="relative min-w-[40px] md:min-w-[50px] h-[40px] md:h-[50px] cursor-pointer"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        togglePlay(file.name);
-                      }}>
-                      {metadata?.coverUrl ? (
-                        <>
-                          <img
-                            src={metadata.coverUrl}
-                            alt="Album Cover"
-                            className="w-full h-full rounded-md object-cover pointer-events-none"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center hover:bg-black/20 rounded-md !transition-all pointer-events-none">
-                            <Icon
-                              icon={isCurrentPlaying(file.name) ? "ph:pause-fill" : "ph:play-fill"}
-                              className="w-6 h-6 text-white drop-shadow-lg"
+                        className="relative min-w-[40px] md:min-w-[50px] h-[40px] md:h-[50px] cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          togglePlay(file.name);
+                        }}>
+                        {metadata?.coverUrl ? (
+                          <>
+                            <img
+                              src={metadata.coverUrl}
+                              alt="Album Cover"
+                              className="w-full h-full rounded-md object-cover pointer-events-none"
                             />
+                            <div className="absolute inset-0 flex items-center justify-center hover:bg-black/20 rounded-md !transition-all pointer-events-none">
+                              <Icon
+                                icon={isCurrentPlaying(file.name) ? "ph:pause-fill" : "ph:play-fill"}
+                                className="w-6 h-6 text-white drop-shadow-lg"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-blue-500 flex items-center justify-center pointer-events-none shadow-lg hover:bg-blue-600 transition-colors">
+                            {!isCurrentPlaying(file.name) && (
+                              <Icon icon="ph:music-notes-fill" className="w-5 h-5 text-white" />
+                            )}
+                            {isCurrentPlaying(file.name) && (
+                              <Icon
+                                icon="ph:pause-fill"
+                                className="w-4 h-4 text-white"
+                              />
+                            )}
                           </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full rounded-full bg-blue-500 flex items-center justify-center pointer-events-none shadow-lg hover:bg-blue-600 transition-colors">
-                          {!isCurrentPlaying(file.name) && (
-                            <Icon icon="ph:music-notes-fill" className="w-5 h-5 text-white" />
-                          )}
-                          {isCurrentPlaying(file.name) && (
-                            <Icon
-                              icon="ph:pause-fill"
-                              className="w-4 h-4 text-white"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className={`font-medium truncate max-w-[90%] ${metadata?.coverUrl ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
-                          {metadata?.trackName || file.name}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className={`font-medium truncate max-w-[90%] ${metadata?.coverUrl ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
+                            {metadata?.trackName || file.name}
+                          </div>
+                          <AnimatePresence>
+                            {isCurrentPlaying(file.name) && (
+                              <motion.div
+                                className={`text-xs ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                              >
+                                {currentTime[file.name]} / {getDuration(file) || formatTime((() => {
+                                  const rawDuration = musicManager.audioElement?.duration;
+                                  const dur = (rawDuration && isFinite(rawDuration) && !isNaN(rawDuration)) ? rawDuration : musicManager.duration;
+                                  return dur || 0;
+                                })())}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
+                        {metadata?.artists && metadata.artists.length > 0 && (
+                          <div className={`text-sm truncate ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}>
+                            {metadata.artists.join(', ')}
+                          </div>
+                        )}
+
+                        {!isCurrentPlaying(file.name) && !metadata?.artists && getDuration(file) && (
+                          <div className={`text-sm ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}>
+                            {getDuration(file)}
+                          </div>
+                        )}
+
                         <AnimatePresence>
                           {isCurrentPlaying(file.name) && (
                             <motion.div
-                              className={`text-xs ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
                               transition={{ type: "spring", stiffness: 300, damping: 25 }}
                             >
-                              {currentTime[file.name]} / {getDuration(file) || formatTime((() => {
-                                 const rawDuration = musicManager.audioElement?.duration;
-                                 const dur = (rawDuration && isFinite(rawDuration) && !isNaN(rawDuration)) ? rawDuration : musicManager.duration;
-                                 return dur || 0;
-                               })())}
+                              <div
+                                className="relative h-1 bg-black/20 rounded-full mt-2 cursor-pointer"
+                                onClick={(e) => handleProgressBarClick(e, file.name)}
+                                onMouseDown={(e) => handleProgressBarDrag(e, file.name)}
+                              >
+                                <div
+                                  ref={el => {
+                                    if (el) {
+                                      progressRefs.current[file.name] = el;
+                                    }
+                                  }}
+                                  className={`absolute h-full rounded-full !transition-all duration-100 ${metadata?.coverUrl ? 'bg-white' : 'bg-primary'
+                                    }`}
+                                />
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
-                      {metadata?.artists && metadata.artists.length > 0 && (
-                        <div className={`text-sm truncate ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}>
-                          {metadata.artists.join(', ')}
-                        </div>
-                      )}
 
-                      {!isCurrentPlaying(file.name) && !metadata?.artists && getDuration(file) && (
-                        <div className={`text-sm ${metadata?.coverUrl ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}>
-                          {getDuration(file)}
-                        </div>
+                      {!file.uploadPromise?.loading?.value && !preview && (
+                        <DeleteIcon
+                          files={files}
+                          className={`ml-2 group-hover:opacity-100 opacity-0 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-red-500'
+                            }`}
+                          file={file}
+                        />
                       )}
-
-                      <AnimatePresence>
-                        {isCurrentPlaying(file.name) && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                          >
-                            <div
-                              className="relative h-1 bg-black/20 rounded-full mt-2 cursor-pointer"
-                              onClick={(e) => handleProgressBarClick(e, file.name)}
-                              onMouseDown={(e) => handleProgressBarDrag(e, file.name)}
-                            >
-                              <div
-                                ref={el => {
-                                  if (el) {
-                                    progressRefs.current[file.name] = el;
-                                  }
-                                }}
-                                className={`absolute h-full rounded-full !transition-all duration-100 ${metadata?.coverUrl ? 'bg-white' : 'bg-primary'
-                                  }`}
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      {preview && (
+                        <DownloadIcon
+                          className={`ml-2 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-blue-500'}`}
+                          file={file}
+                        />
+                      )}
                     </div>
-
-                    {!file.uploadPromise?.loading?.value && !preview && (
-                      <DeleteIcon
-                        files={files}
-                        className={`ml-2 group-hover:opacity-100 opacity-0 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-red-500'
-                          }`}
-                        file={file}
-                      />
-                    )}
-                    {preview && (
-                      <DownloadIcon
-                        className={`ml-2 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-blue-500'}`}
-                        file={file}
-                      />
-                    )}
                   </div>
-                </div>
                 )}
               </motion.div>
             )}

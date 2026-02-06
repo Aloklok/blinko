@@ -102,6 +102,7 @@
 | **字体颜色** | 强制 Light Mode 下正文颜色为 `#323232` | 提升文字对比度和可读性 |
 | **交互动画** | 移除了卡片 Hover 时的上浮位移 | 减少页面抖动，提升稳重感 |
 | **UI 洁癖** | 隐藏了 **Trash Icon** (垃圾桶) | 极致极简，防止误删 |
+| **极致精简** | 隐藏了 **Comment** (顶部评论)、**Edit Time**、**Convert** 按钮 | 仅保留核心阅读区，排除低频干扰 |
 | **空间呼吸** | 卡片 Header 底部间距增加 (`mb-3`) | 优化视觉层次，避免信息拥挤 |
 
 ## 6. Flomo 风格排版 (Style Overhaul)
@@ -205,3 +206,92 @@
     *   **安全预览**: 仅当 AI 成功返回完整结果后，才会弹出编辑器并自动填入润色后的内容。
     *   **无损交互**: 用户可在编辑器中对比确认，满意则保存，取消则原笔记不受任何影响。
 *   **异常熔断**: 若 AI 请求失败（网络波动或模型错误），直接提示失败而不弹出编辑器，避免用户面对空白内容不知所措。
+
+---
+
+## 13. 插件系统与 AI 官方接口 (Plugin System & AI Bridge)
+
+为了支持高性能、可扩展的 AI 插件功能，我们对基座与插件的通信层进行了深度解耦与标准化重构。
+
+### 13.1 官方流式接口封装 (`streamApi`)
+*   **🔴 问题**: 插件系统以往通过手动 `fetch` 模拟 TRPC 请求，由于缺少 SuperJSON 序列化支持和正确的 Batching 协议头，频繁导致 **HTTP 415 不支持的媒体类型** 错误。
+*   **🟢 方案**: 在基座层将官方生产环境使用的 `streamApi` 直接挂载至 `window.Blinko`。
+*   **收益**: 插件可直接调用官方同步的流式 AI 客户端，无需关心底层协议与序列化细节，彻底杜绝了 415 报错。
+
+### 13.2 原生编辑器桥接 (`openEditor`)
+*   **🔴 问题**: 插件在美化/修改笔记后，无法弹出基座原生的编辑器模态框，只能使用自定义的简易弹窗，导致丢失了附件管理、多格式支持等原生编辑体验。
+*   **🟢 方案**: 实现 `Blinko.openEditor(note, content?)` 桥接函数，授权插件安全调用基座内部的 `ShowEditBlinkoModel`。
+*   **收益**: 实现了“插件处理 -> 原生预览 -> 用户确认”的无缝闭环。AI 处理结果会自动填入标准编辑器，用户可立即进行二次审查与保存。
+
+### 13.3 插件加载幂等性修复
+*   **优化**: 修复了 HMR (热更新) 模式下重复注册侧边栏图标和右键菜单的 Bug，引入了基于名称的 Hook 覆盖机制，确保插件系统无论如何加载都能保持 UI 状态的唯一性。
+
+### 13.4 插件持久化配置管理 (`updateConfig`)
+*   **🔴 问题**: 插件无法保存用户的个性化设置（如自定义 Prompt），导致每次刷新页面都会重置。手动操作数据库对非技术用户不友好。
+*   **🟢 方案**: 在基座层实现了 `updateConfig` 和 `config` 注入机制。基座在插件初始化时自动从 `plugin_config` 表读取数据，并为插件实例注入异步持久化方法。
+*   **收益**: 插件现在具备了真正的“状态保持”能力，支持用户在 UI 界面直接修改并持久化 Prompt 等关键参数。
+
+### 13.5 设置面板上下文修复 (Context Binding)
+*   **🔴 问题**: 插件设置面板 (`renderSettingPanel`) 由基座 React 组件调用时，由于丢失了 `this` 上下文，导致无法读取插件配置，按钮点击失效且由于 JS 报错导致白屏。
+*   **🟢 方案**: 确立了插件开发的 Context 安全规范，基座支持从实例层级准确分发配置，同时插件推荐使用箭头函数定义渲染逻辑，实现了复杂的配置面板在 React 模态框中的稳健渲染。
+
+### 13.6 AI 生成交互闭环 (Streaming UX)
+*   **🔴 问题**: AI 美化期间，初始的 `success` 提示会自动消失，导致长达 10s+ 的生成过程中界面无任何反馈（交互真空期）。
+*   **🟢 方案**: 系统性将插件提示逻辑升级为 `Blinko.toast.loading`。提示框将持续显示旋转动画，直到 AI 响应结束、报错或弹出预览编辑器时才会被精准销毁 (`dismiss`)。
+*   **收益**: 用户对 AI 的运行进度有了明确且持续的视觉感知，消除了由于“等待焦虑”导致的重复点击或误操作。
+
+## 14. 卡片摘要渲染优化 (Card Summary Rendering)
+*   **🔴 问题**: 用户在使用引用格式 (`> Title`) 美化笔记标题时，卡片缩略图（Blog 模式）会直接显示 `>` 符号，因为摘要生成逻辑仅进行了简单的纯文本截断，未过滤 Blockquote 标记。
+*   **🟢 方案**: 更新 `CardBlogBox` 的文本处理管道，在剔除 `#` (标题) 和 `*` (加粗) 的基础上，新增了对 `>` (引用符) 的正则表达式过滤。
+*   **收益**: 此后用户在卡片中使用引用样式作为装饰性标题时，摘要视图将保持整洁的纯文本显示，不再出现 Markdown 源码符号泄漏。
+
+## 15. 语音转文字功能集成 (Voice-to-Text Integration)
+
+为录音笔记提供自动转录能力，提升语音输入的实用性。
+
+### 15.1 核心功能实现
+*   **上传时转录**: 在 `server/routerExpress/file/upload.ts` 中，当检测到用户录音 (`isUserVoiceRecording`) 时，自动调用 `AiService.transcribeAudio` 进行转录。
+*   **S3 兼容**: 对于 S3 存储的文件，通过 `FileService.getFile` 下载到临时目录进行处理，处理完成后自动清理。
+*   **前端集成**: 在 `editorStore.tsx` 的 `uploadFiles` 方法中，接收后端返回的 `transcription` 并自动插入编辑器。
+
+### 15.2 音频元数据传递修复
+*   **🔴 问题**: 首页列表中的录音显示时长为 `0:00`，因为 `HandleFileType` 函数在转换 `Attachment` 为 `FileType` 时丢失了 `metadata` 字段。
+*   **🟢 方案**: 修改 `app/src/components/Common/Editor/editorUtils.tsx`，在返回对象中保留 `metadata` 字段。
+*   **收益**: 录音的时长、大小等元数据能够正确传递到渲染组件。
+
+### 15.3 S3 文件读取优化
+*   **🔴 问题**: `musicMetadata` TRPC 程序通过 `fetch` 请求 `/api/s3file/...` 获取音频元数据，导致 `401 Unauthorized` 错误。
+*   **🟢 方案**: 修改 `server/routerTrpc/public.ts`，使用 `FileService.getFileBuffer` 直接通过 S3 SDK 读取文件，绕过 HTTP 权限检查。
+*   **收益**: 更高效、更安全的服务端文件访问。
+
+### 15.4 重复转录问题修复
+*   **🔴 问题**: 用户录音在上传时转录一次，保存笔记时又尝试转录一次，导致 `ENOENT` 错误（临时文件已被清理）。
+*   **🟢 方案**: 修改 `server/routerTrpc/note.ts`，在音频附件过滤逻辑中跳过 `my_recording_` 前缀的文件。
+*   **收益**: 避免无效的重复转录请求。
+
+### 15.5 Blob URL Token 拼接修复
+*   **🔴 问题**: 录音上传过程中，前端尝试在 `blob:` URL 上拼接 token，导致 `ERR_FILE_NOT_FOUND` 错误。
+*   **🟢 方案**: 修改 `app/src/components/Common/AttachmentRender/audioRender.tsx`，仅对非 `blob:` URL 拼接 token。
+*   **收益**: 消除控制台错误，改善开发体验。
+
+### 15.6 音频/视频文件 Embedding 跳过
+*   **🔴 问题**: Embedding 功能尝试使用 `UnstructuredLoader` 解析 `.webm` 音频文件，导致 `ECONNRESET` 错误。
+*   **🟢 方案**: 修改 `server/aiServer/index.ts` 的 `loadFileContent` 函数，对音频和视频文件直接返回空字符串。
+*   **收益**: 避免无效的外部 API 调用。
+
+---
+
+## 16. AI 后处理逻辑优化 (AI Post-Processing Fix)
+
+修复 AI 后处理模式判断不正确和标签重复创建的问题。
+
+### 16.1 CommentAgent 无条件调用修复
+*   **🔴 问题**: 即使用户选择 `tags` (自动添加标签) 模式，`CommentAgent` 仍然会被调用，浪费 AI 调用次数。
+*   **🟢 方案**: 修改 `server/aiServer/index.ts`，将 `CommentAgent` 调用移入 `if (processingMode === 'comment' || processingMode === 'both')` 条件块内。
+*   **收益**: 仅在需要时调用 CommentAgent，节省 AI 资源。
+
+### 16.2 标签关联唯一约束冲突修复
+*   **🔴 问题**: AI 添加标签后调用 `caller.notes.upsert` 会再次触发笔记更新，导致 `Unique constraint failed on (noteId, tagId)` 错误日志。
+*   **🟢 方案**: 修改 `server/routerTrpc/note.ts`，将 `prisma.tagsToNote.create()` + try-catch 替换为 `prisma.tagsToNote.upsert()`。
+*   **收益**: 消除 Prisma 错误日志，代码更干净优雅。
+

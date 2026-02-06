@@ -40,6 +40,17 @@ export class AiService {
 
   static async loadFileContent(filePath: string): Promise<string> {
     try {
+      // Skip audio and video files - they cannot be parsed as text
+      // Audio transcription is handled separately
+      const audioExtensions = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.wma', '.opus', '.webm'];
+      const videoExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm'];
+      const lowerPath = filePath.toLowerCase();
+
+      if (audioExtensions.some(ext => lowerPath.endsWith(ext)) ||
+        videoExtensions.some(ext => lowerPath.endsWith(ext))) {
+        return '';
+      }
+
       let loader: BaseDocumentLoader;
       switch (true) {
         case filePath.endsWith('.pdf'):
@@ -395,26 +406,26 @@ export class AiService {
 
       const processingMode = config.aiPostProcessingMode || 'comment';
 
-      // Get the custom prompt, or use default
-      const prompt = config.aiCommentPrompt || 'Analyze the following note content. Extract key topics as tags and provide a brief summary of the main points.';
-
-      // Process with AI
-      const agent = await AiModelFactory.CommentAgent();
-      const result = await agent.generate([
-        {
-          role: 'user',
-          content: prompt,
-        },
-        {
-          role: 'user',
-          content: `Note content: ${note.content}`,
-        },
-      ]);
-
-      const aiResponse = result.text.trim();
-
       // Handle based on the processing mode
       if (processingMode === 'comment' || processingMode === 'both') {
+        // Get the custom prompt, or use default
+        const prompt = config.aiCommentPrompt || 'Analyze the following note content. Extract key topics as tags and provide a brief summary of the main points.';
+
+        // Process with AI - only call CommentAgent when needed
+        const agent = await AiModelFactory.CommentAgent();
+        const result = await agent.generate([
+          {
+            role: 'user',
+            content: prompt,
+          },
+          {
+            role: 'user',
+            content: `Note content: ${note.content}`,
+          },
+        ]);
+
+        const aiResponse = result.text.trim();
+
         // Add comment
         await prisma.comments.create({
           data: {
