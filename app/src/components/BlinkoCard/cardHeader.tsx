@@ -103,7 +103,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
 
         <Tooltip content={t('edit-time')} delay={1000}>
           <div
-            className={`${isExpanded ? 'text-sm' : 'text-xs'} text-desc cursor-pointer transition-colors`}
+            className={`${isExpanded ? 'text-base' : 'text-sm'} text-desc cursor-pointer transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
               blinko.curSelectedNote = _.cloneDeep(blinkoItem);
@@ -118,7 +118,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
         </Tooltip>
 
         <Copy
-          size={16}
+          size={18}
           className={`ml-auto ${isIOSDevice
             ? 'opacity-100'
             : 'opacity-0 group-hover/card:opacity-100 group-hover/card:translate-x-0 translate-x-1'
@@ -126,7 +126,7 @@ export const CardHeader = observer(({ blinkoItem, blinko, isShareMode, isExpande
           content={blinkoItem.content + `\n${blinkoItem.attachments?.map(i => window.location.origin + i.path).join('\n')}`}
         />
 
-        <CommentButton blinkoItem={blinkoItem} />
+        {/* <CommentButton blinkoItem={blinkoItem} /> */}
 
         {isShareMode && (
           <Tooltip content="RSS" delay={1000}>

@@ -1,6 +1,6 @@
 /// <reference types="systemjs" />
 import 'systemjs/dist/system.js';
-import { api } from "@/lib/trpc";
+import { api, streamApi } from "@/lib/trpc";
 import { BasePlugin } from ".";
 import { Store } from "../standard/base";
 import { eventBus } from "@/lib/event";
@@ -18,6 +18,10 @@ import { ResourceStore } from "../resourceStore";
 import { HubStore } from "../hubStore";
 import copy from "copy-to-clipboard";
 import { UserStore } from "../user";
+import { _ } from '@/lib/lodash';
+import { ShowEditBlinkoModel } from "@/components/BlinkoRightClickMenu";
+import { FocusEditorFixMobile } from "@/components/Common/Editor/editorUtils";
+import { Note } from "@shared/lib/types";
 
 export class PluginManagerStore implements Store {
   sid = 'pluginManagerStore';
@@ -79,28 +83,28 @@ export class PluginManagerStore implements Store {
     try {
       // Remove previously loaded CSS files
       this.removeCssFiles(pluginName);
-      
+
       // Use API to get CSS content
       const cssContents = await api.plugin.getPluginCssContents.query({ pluginName });
-      
+
       if (cssContents.length > 0) {
         const styleElements: HTMLStyleElement[] = [];
-        
+
         for (const cssData of cssContents) {
           // Create style element
           const styleElement = document.createElement('style');
           styleElement.type = 'text/css';
           styleElement.dataset.pluginName = pluginName;
           styleElement.dataset.fileName = cssData.fileName;
-          
+
           // Set CSS content
           styleElement.textContent = cssData.content;
-          
+
           // Add to document
           document.head.appendChild(styleElement);
           styleElements.push(styleElement);
         }
-        
+
         this.loadedCssFiles.set(pluginName, styleElements);
       }
     } catch (error) {
@@ -134,7 +138,7 @@ export class PluginManagerStore implements Store {
   async connectDevPlugin(url: string) {
     try {
       this.disconnectDevPlugin(); // Ensure previous connection is closed
-      
+
       this.devWebscoketUrl.save(url);
       this.wsConnectionStatus = 'disconnected';
 
@@ -177,7 +181,7 @@ export class PluginManagerStore implements Store {
         if (this.latestDevFileName) {
           await this.destroyPlugin(this.latestDevFileName);
         }
-        
+
         // Handle multi-file message format
         if (data.type === "code" && Array.isArray(data.files)) {
           await this.handleMultiFileDevPlugin(data);
@@ -215,21 +219,21 @@ export class PluginManagerStore implements Store {
     // Save metadata
     this.devPluginMetadata = data.metadata;
     this.wsConnectionStatus = 'connected';
-    
+
     // Process file encoding
     const processedFiles = this.processDevPluginFiles(data.files);
-    
+
     // Find main JS file
     const mainJsFile = this.findMainJsFile(processedFiles);
     if (!mainJsFile) {
       throw new Error('No valid JS entry file found');
     }
-    
+
     this.latestDevFileName = mainJsFile.fileName;
-    
+
     // Save all files
     await this.saveDevFiles(processedFiles);
-    
+
     // Load plugin
     await this.loadDevPlugin(mainJsFile.fileName);
     RootStore.Get(ToastPlugin).success(i18n.t('plugin-updated'));
@@ -281,6 +285,7 @@ export class PluginManagerStore implements Store {
       //@ts-ignore
       window.Blinko = {
         api,
+        streamApi,
         copyToClipboard: copy,
         eventBus,
         i18n,
@@ -311,6 +316,22 @@ export class PluginManagerStore implements Store {
         getEditorMetadata: pluginApi.getEditorMetadata.bind(pluginApi),
         setEditorMetadata: pluginApi.setEditorMetadata.bind(pluginApi),
         getActiveEditorStore: pluginApi.getActiveEditorStore.bind(pluginApi),
+        openEditor: (note: Note, content?: string) => {
+          blinkoStore.curSelectedNote = _.cloneDeep(note);
+          if (content !== undefined) {
+            blinkoStore.curSelectedNote.content = content;
+          }
+          ShowEditBlinkoModel();
+          FocusEditorFixMobile();
+        },
+        updatePluginConfig: async (pluginName: string, config: any) => {
+          for (const key of Object.keys(config)) {
+            await api.config.setPluginConfig.mutate({ pluginName, key, value: config[key] });
+          }
+        },
+        getPluginConfig: async (pluginName: string) => {
+          return await api.config.getPluginConfig.query({ pluginName });
+        }
       };
     }
   }
@@ -318,12 +339,12 @@ export class PluginManagerStore implements Store {
   /**
    * Find main JS file
    */
-  private findMainJsFile(files: Array<{fileName: string, content: string, fileType: string}>) {
+  private findMainJsFile(files: Array<{ fileName: string, content: string, fileType: string }>) {
     const jsFiles = files.filter(f => f.fileType === 'js');
-    return jsFiles.find(f => 
-      f.fileName === 'index.js' || 
-      f.fileName === 'main.js' || 
-      f.fileName.endsWith('/index.js') || 
+    return jsFiles.find(f =>
+      f.fileName === 'index.js' ||
+      f.fileName === 'main.js' ||
+      f.fileName.endsWith('/index.js') ||
       f.fileName.endsWith('/main.js')
     ) || jsFiles[0]; // If standard name not found, use first JS file
   }
@@ -333,10 +354,10 @@ export class PluginManagerStore implements Store {
    */
   private async saveDevFile(code: string, fileName: string) {
     try {
-      await api.plugin.saveDevPlugin.mutate({ 
-        code, 
-        fileName, 
-        metadata: this.devPluginMetadata 
+      await api.plugin.saveDevPlugin.mutate({
+        code,
+        fileName,
+        metadata: this.devPluginMetadata
       });
     } catch (error) {
       console.error('Save dev plugin error:', error);
@@ -347,18 +368,18 @@ export class PluginManagerStore implements Store {
   /**
    * Save multiple development plugin files
    */
-  private async saveDevFiles(files: Array<{fileName: string, content: string, fileType: string}>) {
+  private async saveDevFiles(files: Array<{ fileName: string, content: string, fileType: string }>) {
     try {
       // Prepare main JS file
       const mainJsFile = this.findMainJsFile(files);
-      
+
       if (!mainJsFile) {
         throw new Error('No valid JS file found');
       }
-      
+
       // Save main JS file
       await this.saveDevFile(mainJsFile.content, mainJsFile.fileName);
-      
+
       // Create separate requests for additional files
       const savePromises = files
         .filter(file => file !== mainJsFile) // Exclude already saved main JS file
@@ -373,7 +394,7 @@ export class PluginManagerStore implements Store {
             return Promise.resolve();
           }
         });
-      
+
       // Save all other files in parallel
       await Promise.all(savePromises);
     } catch (error) {
@@ -386,7 +407,7 @@ export class PluginManagerStore implements Store {
     console.log('loadDevPlugin');
     try {
       await this.loadCssFiles("dev");
-      
+
       const module = await System.import(`/plugins/dev/${fileName}`);
       return await this.initPlugin(module.default, "dev");
     } catch (error) {
@@ -556,9 +577,26 @@ export class PluginManagerStore implements Store {
   private async initPlugin(PluginClass: any, pluginName: string) {
     try {
       const plugin = new PluginClass();
+
+      // Load plugin config before initialization
+      const config = await api.config.getPluginConfig.query({ pluginName });
+      plugin.config = config || {};
+
+      // Inject updateConfig method
+      plugin.updateConfig = async (newConfig: any) => {
+        for (const key of Object.keys(newConfig)) {
+          await api.config.setPluginConfig.mutate({
+            pluginName,
+            key,
+            value: newConfig[key],
+          });
+        }
+        plugin.config = { ...plugin.config, ...newConfig };
+      };
+
       plugin.init();
       this.plugins.set(pluginName, plugin);
-      
+
       if (plugin.withSettingPanel) {
         // For dev plugin, we need to update metadata
         if (pluginName === "dev") {
@@ -566,7 +604,7 @@ export class PluginManagerStore implements Store {
         }
         this.plugins.get(pluginName)!.withSettingPanel = true;
       }
-      
+
       return plugin;
     } catch (error) {
       console.error(`Failed to initialize plugin: ${pluginName}`, error);

@@ -18,6 +18,7 @@ declare global {
   interface Window {
     Blinko: {
       api: typeof api;
+      streamApi: typeof api;
       eventBus: typeof eventBus;
       i18n: typeof i18n;
       version: string;
@@ -34,6 +35,8 @@ declare global {
         userStore: InstanceType<typeof UserStore>;
       };
       globalRefresh: () => void;
+      updatePluginConfig: (pluginName: string, config: any) => Promise<void>;
+      getPluginConfig: (pluginName: string) => Promise<any>;
     } & InstanceType<typeof PluginApiStore>;
     System?: typeof System;
   }
@@ -85,6 +88,11 @@ export abstract class BasePlugin {
   withSettingPanel?: boolean;
   /** Function to render the settings panel UI */
   renderSettingPanel?: () => HTMLElement;
+
+  /** Plugin configuration stored in database */
+  config: any = {};
+  /** Function to update plugin configuration */
+  updateConfig?: (config: any) => Promise<void>;
 
   /**
    * Constructs a new BasePlugin instance

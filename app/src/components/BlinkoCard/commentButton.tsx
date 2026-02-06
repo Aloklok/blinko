@@ -379,8 +379,8 @@ export const CommentButton = observer(({ blinkoItem, alwaysShow = false }: { bli
       <div className="flex items-center gap-2">
         <Icon
           icon="akar-icons:comment"
-          width="15"
-          height="15"
+          width="18"
+          height="18"
           className={`cursor-pointer ml-2 ${isIOSDevice
             ? 'opacity-60'
             : `${alwaysShow ? '!text-ignore' : '!text-desc opacity-0 group-hover/card:opacity-100 group-hover/card:translate-x-0 translate-x-1'}`

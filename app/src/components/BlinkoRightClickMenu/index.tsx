@@ -294,44 +294,6 @@ const handleAITag = () => {
   aiStore.autoTag.call(blinko.curSelectedNote?.id!, blinko.curSelectedNote?.content!)
 }
 
-const handleAIPolish = async () => {
-  const blinko = RootStore.Get(BlinkoStore)
-  const toast = RootStore.Get(ToastPlugin);
-
-  toast.loading(i18n.t('ai-polishing'));
-
-  try {
-    const noteContent = blinko.curSelectedNote?.content || '';
-    let polishedContent = '';
-
-    const res = await streamApi.ai.writing.mutate({
-      question: '',
-      type: 'polish',
-      content: noteContent
-    });
-
-    for await (const item of res) {
-      if (item.type == 'text-delta') {
-        polishedContent += item.textDelta;
-      } else if (item.type == 'error') {
-        throw new Error((item.error as any)?.name || 'AI Error');
-      }
-    }
-
-    toast.remove();
-    if (polishedContent.trim()) {
-      if (blinko.curSelectedNote) {
-        blinko.curSelectedNote.content = polishedContent;
-        ShowEditBlinkoModel();
-      }
-    }
-
-  } catch (error) {
-    toast.remove();
-    toast.error(i18n.t('ai-polish-failed'));
-    console.error(error);
-  }
-}
 
 
 
@@ -473,15 +435,6 @@ export const AITagItem = observer(() => {
 
 
 
-export const AIPolishItem = observer(() => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-start gap-2">
-      <Icon icon="lucide:scan-text" width="20" height="20" />
-      <div>{t('ai-polish')}</div>
-    </div>
-  );
-});
 
 export const RelatedNotesItem = observer(() => {
   const { t } = useTranslation();
@@ -616,11 +569,6 @@ export const BlinkoRightClickMenu = observer(() => {
       </ContextMenuItem>
     ) : <></>}
 
-    {blinko.config.value?.mainModelId ? (
-      <ContextMenuItem onClick={handleAIPolish}>
-        <AIPolishItem />
-      </ContextMenuItem>
-    ) : <></>}
 
 
 
@@ -673,7 +621,7 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
   }}>
     <DropdownTrigger >
       <div onClick={() => { onTrigger(); setIsOpen(true); }} className={`${className} text-desc hover:text-primary cursor-pointer hover:scale-1.3 !transition-all`}>
-        <Icon icon="fluent:more-vertical-16-regular" width="16" height="16" />
+        <Icon icon="fluent:more-vertical-16-regular" width="18" height="18" />
       </div>
     </DropdownTrigger>
     <DropdownMenu aria-label="Static Actions" disabledKeys={disabledKeys}>
@@ -695,8 +643,8 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
           </DropdownItem>
         </>
       ) : null}
-      <DropdownItem key="EditTimeItem" onPress={() => ShowEditTimeModel()}> <EditTimeItem /></DropdownItem>
-      <DropdownItem key="ConvertItem" onPress={ConvertItemFunction}> <ConvertItem /></DropdownItem>
+      {/* <DropdownItem key="EditTimeItem" onPress={() => ShowEditTimeModel()}> <EditTimeItem /></DropdownItem> */}
+      {/* <DropdownItem key="ConvertItem" onPress={ConvertItemFunction}> <ConvertItem /></DropdownItem> */}
       <DropdownItem key="TopItem" onPress={handleTop}> <TopItem />  </DropdownItem>
       <DropdownItem key="ArchivedItem" onPress={handleArchived}>
         <ArchivedItem />
@@ -716,11 +664,6 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
         </DropdownItem>
       ) : <></>}
 
-      {blinko.config.value?.mainModelId ? (
-        <DropdownItem key="AIPolishItem" onPress={handleAIPolish}>
-          <AIPolishItem />
-        </DropdownItem>
-      ) : <></>}
 
       {
         pluginApi.customRightClickMenus.length > 0 ?

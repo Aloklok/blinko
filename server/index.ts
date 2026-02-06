@@ -95,6 +95,13 @@ const appRootDev = path.resolve(__dirname, '../app');
 const appRootProd = path.resolve(__dirname, '../server');
 let server: any = null;
 
+ViteExpress.config({
+  viteConfigFile: path.resolve(appRootDev, 'vite.config.ts'),
+  inlineViteConfig: {
+    root: appRootDev,
+  },
+});
+
 if (process.env.NODE_ENV === 'production') {
   // Vite configuration
   ViteExpress.config({
@@ -104,9 +111,6 @@ if (process.env.NODE_ENV === 'production') {
       root: appRootProd,
       build: { outDir: "public" }
     }
-  });
-  ViteExpress.config({
-    viteConfigFile: path.resolve(appRootDev, 'vite.config.ts'),
   });
 }
 
@@ -309,7 +313,7 @@ async function bootstrap() {
 
     // Start or update server
     if (!server) {
-      const server = app.listen(PORT, "0.0.0.0", () => {
+      server = app.listen(PORT, "0.0.0.0", () => {
         console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
       });
 
@@ -327,7 +331,7 @@ async function bootstrap() {
     try {
       // Attempt to start server even if route setup fails
       if (!server) {
-        const server = app.listen(PORT, "0.0.0.0", () => {
+        server = app.listen(PORT, "0.0.0.0", () => {
           console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
         });
         ViteExpress.bind(app, server); // the server binds to all network interfaces

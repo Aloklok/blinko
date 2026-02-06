@@ -104,7 +104,7 @@ export let api = createTRPCClient<AppRouter>({
   links: [getLinks(false)],
 });
 
-//@ts-ignore
+// @ts-ignore
 export let streamApi = createTRPCClient<AppRouter>({
   links: [getLinks(true)],
 });
