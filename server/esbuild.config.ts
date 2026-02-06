@@ -38,10 +38,6 @@ async function build() {
         '@libsql/linux-arm64-musl',
         '@libsql/linux-arm64-gnu',
         // Fix for missing dependencies in bundle
-        'dayjs',
-        'lodash',
-        'mime-types',
-        'p-limit',
         '@trpc/client',
         '@langchain/core',
         '@langchain/textsplitters',

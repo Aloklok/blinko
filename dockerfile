@@ -107,6 +107,7 @@ RUN echo "Installing additional dependencies..." && \
     npm install sqlite3@5.1.7 && \
     npm install llamaindex @langchain/community@0.3.40 && \
     npm install @libsql/client @libsql/core && \
+    npm install @trpc/client @langchain/core @langchain/textsplitters langchain ncp && \
     npx prisma generate && \
     # find / -type d -name "onnxruntime-*" -exec rm -rf {} + 2>/dev/null || true && \
     # npm cache clean --force && \
