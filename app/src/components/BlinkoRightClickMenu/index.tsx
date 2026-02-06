@@ -294,6 +294,8 @@ const handleAITag = () => {
   aiStore.autoTag.call(blinko.curSelectedNote?.id!, blinko.curSelectedNote?.content!)
 }
 
+
+
 const handleTrash = () => {
   const blinko = RootStore.Get(BlinkoStore)
   PromiseCall(api.notes.trashMany.mutate({ ids: [blinko.curSelectedNote?.id!] }))
@@ -429,6 +431,8 @@ export const AITagItem = observer(() => {
   );
 });
 
+
+
 export const RelatedNotesItem = observer(() => {
   const { t } = useTranslation();
   return (
@@ -562,6 +566,8 @@ export const BlinkoRightClickMenu = observer(() => {
       </ContextMenuItem>
     ) : <></>}
 
+
+
     {blinko.config.value?.mainModelId ? (
       <ContextMenuItem onClick={handleRelatedNotes}>
         <RelatedNotesItem />
@@ -645,6 +651,8 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
           <PublicItem />
         </DropdownItem>
       ) : <></>}
+
+
 
       {blinko.config.value?.mainModelId ? (
         <DropdownItem key="RelatedNotesItem" onPress={handleRelatedNotes}>

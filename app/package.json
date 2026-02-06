@@ -16,8 +16,7 @@
     "tauri:android:dev": "tauri android dev --host",
     "tauri:android:build": "tauri android build",
     "tauri:desktop:build": "tauri build",
-    "svg2vectordrawable": "bun add svg2vectordrawable",
-    "postinstall": "node scripts/apply-patches.cjs"
+    "svg2vectordrawable": "bun add svg2vectordrawable"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

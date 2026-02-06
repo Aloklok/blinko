@@ -8,6 +8,7 @@
  * 1. Named Groups (?<name>...) -> (...)
  * 2. Named Backreferences \k<name> -> \1, \2...
  * 3. Lookbehind (?<=...) and (?<!...) -> Simplified/Removed
+ * 4. Specific patches for 'marked' and 'mdast-util-gfm-autolink-literal'
  */
 
 import type { Plugin } from 'vite';
@@ -56,6 +57,14 @@ function transformRegExpConstructor(code: string): string {
 
         // Handle Lookbehind
         if (newPattern.includes('(?<!') || newPattern.includes('(?<=')) {
+            // Environment detection check: new RegExp("(?<=a)b")
+            // If it's this exact detection pattern or contains it, DO NOT clean it.
+            // This ensures Safari 15 throws an error and the library correctly detects lack of support.
+            if (newPattern.includes('(?<=a)b') || newPattern.includes('(?<=1)(?<!1)')) {
+                console.log(`[regex-compat] Bypassing environment detection: ${newPattern}`);
+                return match;
+            }
+            console.log(`[regex-compat] Cleaning RegExp constructor: ${newPattern}`);
             newPattern = removeLookbehindFromPattern(newPattern);
             modified = true;
         }
@@ -135,6 +144,57 @@ export function safariTransformPlugin(): Plugin {
         apply: 'build',
         enforce: 'post', // Run after other transforms
 
+        // Specific transform for known problematic libraries
+        transform(code, id) {
+            // 1. Patch mdast-util-gfm-autolink-literal
+            if (id.includes('mdast-util-gfm-autolink-literal') && id.endsWith('.js')) {
+                // Original: (?<=^|\s|\p{P}|\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)
+                // Problem: Lookbehind (?<=...) not supported in Safari 15
+                const emailRegexOld = '(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
+                const emailRegexNew = '([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)';
+
+                if (code.includes(emailRegexOld)) {
+                    console.log(`[regex-compat] Patching mdast-util-gfm-autolink-literal in ${id}`);
+                    let newCode = code.replace(emailRegexOld, emailRegexNew);
+                    newCode = newCode.replace(/\/gu,\s*findEmail/g, '/g, findEmail');
+                    return { code: newCode, map: null };
+                }
+            }
+
+            // 2. Patch marked (blockSkip regex)
+            if (id.includes('marked') && (id.endsWith('.esm.js') || id.endsWith('.umd.js') || id.endsWith('.js'))) {
+                let modified = false;
+                let newCode = code;
+
+                // Problem: Lookbehind (?<!`) and Named Groups (?<a>...) and Backreferences \k<a>
+                // Target 1: (?<!`)(?<a>`+)[^`]+\k<a>(?!`)
+                const link1 = '(?<!`)(?<a>`+)[^`]+\\k<a>(?!`)';
+                const link1Fixed = '(`+)[^`]+\\1(?!`)';
+
+                if (newCode.includes(link1)) {
+                    console.log(`[regex-compat] Patching marked (link regex) in ${id}`);
+                    newCode = newCode.replace(link1, link1Fixed);
+                    modified = true;
+                }
+
+                // Target 2: (?<!`)(?<b>`+)[^`]+\k<b>(?!`)
+                const code1 = '(?<!`)(?<b>`+)[^`]+\\k<b>(?!`)';
+                const code1Fixed = '(`+)[^`]+\\1(?!`)';
+
+                if (newCode.includes(code1)) {
+                    console.log(`[regex-compat] Patching marked (code regex) in ${id}`);
+                    newCode = newCode.replace(code1, code1Fixed);
+                    modified = true;
+                }
+
+                if (modified) {
+                    return { code: newCode, map: null };
+                }
+            }
+
+            return null;
+        },
+
         renderChunk(code, chunk) {
             const hasNamedGroups = /\(\?<[a-zA-Z_][a-zA-Z0-9_]*>/.test(code);
             const hasLookbehind = /\(\?<[=!]/.test(code);
@@ -148,6 +208,10 @@ export function safariTransformPlugin(): Plugin {
             if (hasNamedGroups) {
                 result = transformRegexLiterals(result);
             }
+
+            // Force Lookbehind detection to fail in the bundle (for libraries like marked and vditor)
+            // We search for patterns that looks like feature detection
+            result = result.replace(/new\s+RegExp\s*\(\s*([`"'])(\(\?<=a\)b|\(\?<=1\)\(\?<!1\))\1\s*\)/g, '(()=>{throw 1})()');
 
             result = transformRegExpConstructor(result);
 

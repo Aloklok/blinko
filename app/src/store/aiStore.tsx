@@ -366,6 +366,8 @@ export class AiStore implements Store {
     },
   });
 
+
+
   autoEmoji = new PromiseState({
     function: async (id: number, content: string) => {
       try {

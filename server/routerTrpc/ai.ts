@@ -208,6 +208,8 @@ export const aiRouter = router({
       return await AiService.AIComment(input)
     }),
 
+
+
   rebuildEmbeddingStart: authProcedure
     .input(z.object({
       force: z.boolean().optional(),
