@@ -205,7 +205,7 @@ jobs:
         shell: bash
         run: |
           echo "Generating icons..."
-          bun run build:blinko:iconify
+          bun run turbo run build:iconify:icons
           cd app
           echo "Building frontend with Bun to ensure consistent minification..."
           bun run build:no-pwa
