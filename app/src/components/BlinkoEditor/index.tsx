@@ -132,6 +132,7 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
       withoutOutline={withoutOutline}
       initialData={initialData}
       showTopToolbar={showTopToolbar}
+      isInDialog={isInDialog}
       onHeightChange={() => {
         onHeightChange?.(editorRef.current?.clientHeight ?? 75)
         if (editorRef.current) {

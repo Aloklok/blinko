@@ -18,7 +18,12 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
-const getPluginRootDir = () => path.join(process.cwd(), 'plugins');
+const getPluginRootDir = () => {
+  if (process.env.NODE_ENV !== 'production' && process.cwd().endsWith('server')) {
+    return path.join(process.cwd(), '../plugins');
+  }
+  return path.join(process.cwd(), 'plugins');
+}
 
 /**
  * Ensures the plugin directory exists

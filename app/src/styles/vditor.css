@@ -39,7 +39,7 @@
 .vditor-toolbar {
   padding: 0;
   padding-left: 4px !important;
-  background-color: transparent;
+  background-color: var(--background);
   border: none;
   overflow: visible;
   height: 25px;

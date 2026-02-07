@@ -49,10 +49,11 @@ type IProps = {
   hiddenToolbar?: boolean,
   withoutOutline?: boolean,
   initialData?: { file?: File, text?: string },
-  showTopToolbar?: boolean
+  showTopToolbar?: boolean,
+  isInDialog?: boolean
 }
 
-const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles, originReference = [], mode, onHeightChange, hiddenToolbar = false, withoutOutline = false, initialData, showTopToolbar = false }: IProps) => {
+const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles, originReference = [], mode, onHeightChange, hiddenToolbar = false, withoutOutline = false, initialData, showTopToolbar = false, isInDialog = false }: IProps) => {
   const cardRef = React.useRef(null)
   const isPc = useMediaQuery('(min-width: 768px)')
   const store = useLocalObservable(() => new EditorStore())
@@ -293,7 +294,9 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
       <div {...getRootProps()} className={`${isDragAccept ? 'border-2 border-green-500 border-dashed' : ''} ${showTopToolbar ? 'h-full flex flex-col' : ''}`}>
         <Card
           shadow='none'
-          className={`${(showTopToolbar || store.isFullscreen) ? 'h-full flex flex-col flex-1 min-h-0' : 'p-2'} relative ${withoutOutline ? '' : 'border-2 border-border'} !transition-all ${(showTopToolbar || store.isFullscreen) ? 'overflow-hidden' : 'overflow-visible'} 
+          className={`${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex flex-col flex-1 min-h-0' : 'p-2'} 
+          ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? (isInDialog && !isPc ? 'h-[85vh]' : 'h-full') : ''}
+          relative ${withoutOutline ? '' : 'border-2 border-border'} !transition-all ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'overflow-hidden' : 'overflow-visible'} 
         ${store.isFullscreen ? 'fixed inset-0 z-[9999] m-0 rounded-none border-none bg-background' : ''}`}
           ref={el => {
             if (el) {
@@ -303,14 +306,14 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
           }}>
 
           <div ref={cardRef}
-            className={`overflow-visible relative ${(showTopToolbar || store.isFullscreen) ? 'flex-1 flex flex-col min-h-0' : ''}`}
+            className={`overflow-visible relative ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex-1 flex flex-col min-h-0' : ''}`}
             onKeyDown={e => {
               onHeightChange?.()
               if (isPc) return
               store.adjustMobileEditorHeight()
             }}>
 
-            <div id={`vditor-${mode}`} className={`vditor ${(showTopToolbar || store.isFullscreen) ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
+            <div id={`vditor-${mode}`} className={`vditor ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
 
             {store.files.length > 0 && (
               <div className='w-full my-2 attachment-container'>
