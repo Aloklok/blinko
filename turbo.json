@@ -29,9 +29,16 @@
       ]
     },
     "build:iconify:icons": {
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "src/**/*.jsx",
+        "src/**/*.js"
+      ],
       "outputs": [
         "src/components/Common/Iconify/icons.tsx"
-      ]
+      ],
+      "cache": false
     },
     "build:web": {
       "inputs": [

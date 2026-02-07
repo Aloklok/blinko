@@ -89,6 +89,9 @@ COPY --from=builder /app/node_modules/.prisma/client ./node_modules/.prisma/clie
 COPY --from=builder /app/start.sh ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
+# Copy built-in plugins
+COPY --from=builder /app/server/.blinko/plugins ./.blinko/plugins
+
 RUN chmod +x ./start.sh && \
     ls -la start.sh
 
