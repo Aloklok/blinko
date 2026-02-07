@@ -3,19 +3,26 @@ import react from "@vitejs/plugin-react";
 import path from 'path';
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import legacy from '@vitejs/plugin-legacy'
 
 const host = process.env.TAURI_DEV_HOST || '0.0.0.0';
 const EXPRESS_PORT = 1111;
 const isDev = process.env.NODE_ENV === 'development';
 
-import { safariTransformPlugin } from './plugins/vite-plugin-safari-transform';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  root: __dirname,
   plugins: [
     react(),
     tailwindcss(),
-    safariTransformPlugin(),
+    // Legacy: Only enabled in production build for Safari 15 compatibility
+    ...(!isDev ? [
+      legacy({
+        targets: ['safari >= 15', 'ios >= 15'],
+        modernPolyfills: true
+      })
+    ] : []),
     // PWA: Only enabled in production, disabled in development to avoid caching issues
     ...(!isDev && !process.env.DISABLE_PWA ? [
       VitePWA({
@@ -129,7 +136,7 @@ export default defineConfig({
     }
   },
   build: {
-    target: ['es2020', 'safari15'],
+    target: 'esnext', // Modern browsers; Safari 15 handled by @vitejs/plugin-legacy
     outDir: "../dist/public",
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
@@ -161,8 +168,6 @@ export default defineConfig({
   },
   clearScreen: false,
   server: {
-    port: EXPRESS_PORT,
-    strictPort: false,
     host: host || false,
     allowedHosts: true,
     watch: {
@@ -170,9 +175,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    force: false,
-    include: ['react', 'react-dom', 'react-router-dom'],
-    exclude: []
+    include: ['react', 'react-dom', 'react-router-dom']
   },
   css: {
     devSourcemap: false,

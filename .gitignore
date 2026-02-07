@@ -17,6 +17,9 @@ public/robots.txt
 public/sitemap*
 public/assets
 .blinko/*
+# 允许提交内置插件
+!.blinko/plugins/
+!.blinko/plugins/**
 dump.sql
 public/sw*
 public/plugins/*
@@ -26,10 +29,14 @@ dist
 .turbo
 keystore.properties
 !**/lute.min.js
-.blinko
+# .blinko 其他目录继续忽略
+.blinko/files/
+.blinko/pgdump/
+.blinko/vector/
 dev-dist
 .claudeconfig
 .claude/*
 .claude/settings.local.json
 target
 server/public
+.bunfig.toml

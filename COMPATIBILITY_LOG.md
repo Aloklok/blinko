@@ -8,8 +8,8 @@
 | :--- | :--- | :--- | :--- |
 | **CSS 样式** | `postcss-preset-env` | ✅ 无损 | 自动降级，视觉效果一致 |
 | **JS API** | NPM Polyfills | ✅ 无损 | 补齐标准 API，无逻辑副作用 |
-| **JS 正则** | `vite-plugin-safari-transform` | ⚠️ 有损 | 牺牲正则精确度以换取不崩溃 |
-| **构建目标** | Target `es2020` | ⚪️ 微损 | 包体积轻微增加，理论性能无感 |
+| **JS 正则** | `@vitejs/plugin-legacy` | ✅ 无损 | Babel 自动转译，语义等价 |
+| **构建目标** | Target `esnext` + legacy 插件 | ✅ 无损 | 现代浏览器更小包体积，旧浏览器自动兼容 |
 | **图标提取** | 自动化扫描 + Turbo 管道 | ✅ 无损 | 全自动同步，解决动态图标缺失 |
 | **交互优化** | AI 润色集成 | ✅ 无损 | 复用现有编辑器，增加快捷入口 |
 
@@ -54,113 +54,75 @@
 
 ---
 
-## 3. JS 正则表达式 (有损改造)
+## 3. JS 正则表达式 (无损改造)
 
 ### 🔴 原版问题
 这是最棘手的问题。Safari 15 的 JS 引擎 (WebKit 605) **不支持** 正则 Lookbehind (反向断言 `(?<=...)`)。
 一旦 JS 文件中包含这种语法（哪怕不执行），解析器也会直接抛出 `SyntaxError`，导致整个应用白屏。
-主要来源是第三方库：`vditor` (Markdown编辑器), `prismjs` (代码高亮)。
+主要来源是第三方库：`vditor` (Markdown编辑器), `prismjs` (代码高亮), `marked`, `mermaid` 等。
 
 ### 🟢 我们的方案
-*   **工具**: 自研 Vite 插件 `vite-plugin-safari-transform`。
-*   **原理**: 在构建的最后阶段 (`renderChunk`)，暴力扫描所有 JS 代码，将 Lookbehind 语法移除或替换。
-*   **具体行为**:
-    *   `(?<=@)\w+`  -> 转换为 -> `(?:@)\w+` (非捕获组)
-    *   `(?<!@)\w+`  -> 转换为 -> `(?:@)\w+`
-*   **差异 (有损点)**:
-    *   **原意**: "匹配前面是 @ 的字符，但不包含 @ 本身"。
-    *   **现意**: "匹配 @ 及其后面的字符" (因为变成了普通非捕获组)。
-*   **潜在影响**:
-    *   在 Markdown 编辑或代码高亮时，某些特殊的语法块（如嵌套的括号、特定的代码注释）可能**高亮颜色范围不对**。
-    *   例如：原本只该高亮函数名的，现在可能连前面的空格也一起高亮了。
-*   **结论**: **有损，但在可接受范围内**。
-    *   **User Impact**: 仅仅是代码高亮稍微有点瑕疵，而不是整个 App 打不开。这是工程上的权衡 (Trade-off)。
+*   **工具**: 使用官方 `@vitejs/plugin-legacy` 插件。
+*   **原理**: 在**生产构建**时，插件使用 Babel 自动转译所有不兼容的 ES2018+ 语法（包括正则后行断言），生成 Safari 15 兼容的代码。
+*   **配置**:
+    ```typescript
+    // vite.config.ts
+    import legacy from '@vitejs/plugin-legacy'
+    
+    export default defineConfig({
+      plugins: [
+        // Legacy: Only enabled in production build for Safari 15 compatibility
+        ...(!isDev ? [
+          legacy({
+            targets: ['safari >= 15', 'ios >= 15'],
+            modernPolyfills: true
+          })
+        ] : [])
+      ]
+    });
+    ```
+*   **结论**: **完全无损**。Babel 处理的转译是语义等价的，不会改变正则的匹配行为。
+
+> [!NOTE]
+> **2026-02-07 更新**: 
+> 移除了早期尝试的手动正则转换插件 `vite-plugin-safari-transform`。
+> 该方案存在转义层级复杂、边缘情况处理困难等问题。
+> 官方 `@vitejs/plugin-legacy` 是更可靠的解决方案，推荐使用。
+>
+> **开发模式注意事项**:
+> `@vitejs/plugin-legacy` 仅在生产构建时生效。
+> 开发模式下请使用 Chrome 或 Firefox 测试应用。
+> 生产构建后再使用 Safari 15 进行最终验证。
 
 ---
 
-## 4. 构建环境
+## 4. 构建目标 (已简化)
 
 ### 🔴 原版配置
 *   `target`: 默认为 `modules` (通常是近年来主流浏览器)。
 
 ### 🟢 我们的方案
-*   `target`: 显式指定为 `es2020`。
-*   **差异**: 编译器会将某些新语法（如 `BigInt` 的某些用法，或 Optional Chaining 的边缘情况）编译成更繁琐的 ES5/ES6 代码。
-*   **结论**: 包体积可能会增加几 KB，**功能无损**。
+*   `target`: 设置为 `esnext`，让现代浏览器使用最新语法以减小包体积。
+*   **Safari 15 兼容性**: 由 `@vitejs/plugin-legacy` 自动处理（见第 3 节）。
+*   **结论**: 现代浏览器获得更小的包体积，旧浏览器通过 legacy chunk 获得兼容代码。
+
+> [!NOTE]
+> **2026-02-07 更新**: 
+> 移除了早期的 `target: ['es2020', 'safari15']` 配置。
+> `@vitejs/plugin-legacy` 会自动生成 Safari 15 兼容的 legacy chunk，
+> 因此 `build.target` 可以设为 `esnext` 以优化现代浏览器的输出。
 
 ---
 
-## 5. 个性化交互 (DIY 定制)
+## 5. 个性化定制 (DIY)
 
-此部分为满足特定用户体验而做的**非标准化修改**，从 `blinko-64-dmg` 的 `disable-interactions.patch` 移植而来。
+> 个性化 UI/UX 定制内容已拆分至 **[DIY_CUSTOMIZATIONS.md](./DIY_CUSTOMIZATIONS.md)**。
+> 
+> 包含：交互简化、Flomo 风格排版、移动端编辑器重构、构建流优化、卡片交互优化等。
 
-| 功能 | 变更内容 | 原因 |
-| :--- | :--- | :--- |
-| **禁止滑动** | 移除了移动端的左右滑动交互 (`react-swipeable`) | 旧设备触摸板/鼠标容易误触左滑删除 |
-| **禁止拖拽** | 禁用了看板的拖拽重排功能 (`dnd-kit`) | 避免误操作，保持布局静态 |
-| **精简按钮** | 隐藏了卡片头部的 "Share" 和 "History" 按钮 | 减少视觉干扰，功能极简主义 |
-| **字体颜色** | 强制 Light Mode 下正文颜色为 `#323232` | 提升文字对比度和可读性 |
-| **交互动画** | 移除了卡片 Hover 时的上浮位移 | 减少页面抖动，提升稳重感 |
-| **UI 洁癖** | 隐藏了 **Trash Icon** (垃圾桶) | 极致极简，防止误删 |
-| **极致精简** | 隐藏了 **Comment** (顶部评论)、**Edit Time**、**Convert** 按钮 | 仅保留核心阅读区，排除低频干扰 |
-| **空间呼吸** | 卡片 Header 底部间距增加 (`mb-3`) | 优化视觉层次，避免信息拥挤 |
+---
 
-## 6. Flomo 风格排版 (Style Overhaul)
-
-为了追求极致的中文阅读体验，我们引入了一套类 Flomo 的排版规范 (`globals.css`)：
-
-*   **排版几何**:
-    *   **行高**: 锁定 `1.8` (原 1.5)，增加行间呼吸感。
-    *   **字号**: 锁定 `15px` (原 14/16px)，移动端阅读的最佳平衡点。
-    *   **两端对齐**: 启用 `text-justify: inter-character`，让块状文本更整齐。
-    *   **段落重置**: 移除 `p` 标签的默认 margin，消除割裂感。
-*   **组件微调**:
-    *   **标签 (Tag)**: 圆角由 7px 收缩为 4px，视觉更硬朗干练。
-    *   **数字**: 启用 `proportional-nums` (比例数字)，让时间戳更精致。
-
-## 7. 移动端编辑器重构 (Mobile Editor Overhaul)
-
-针对 iPhone SE 等小屏设备进行了深度的交互反馈与布局重构，确保极致的触控体验。
-
-### 7.1 双层工具栏架构
-*   **Top Row**: 复用 Vditor 原生工具栏，负责基础格式（加粗、列表、Emoji），确保 100% 的状态同步稳定性。
-*   **Bottom Row**: 自定义 React 组件，集成业务逻辑（笔记类型、标签、引用、AI、附件、全屏）。
-
-### 7.2 触控人体工学 (Ergonomics)
-*   **超大点击位**: 底部按钮统一采用 **50px** 容器（原 32px 左右），图标放大至 **26px**，极大降低了误触率。
-*   **高质感录音按钮**: 采用 `solar:soundwave-bold` 绿色通透图标，移除实心背景以保持视觉灵动感。
-
-### 7.3 全屏高度修正 (Layout Fix)
-*   **问题**: 移动端弹出框全屏模式下，编辑器无法自动撑开，导致底部工具栏悬浮在屏幕中间。
-*   **方案**: 解耦了全屏类名与顶部工具栏显示状态的依赖关系。强制在 `store.isFullscreen` 为真时应用 `flex-1` 和 `fullscreen-editor` 类。
-*   **结论**: 实现了移动端编辑器的“沉浸式”创作体验，内容区自动铺满视口，工具栏强制沉底。
-
-## 8. 构建流深度优化 (Workflow Optimization)
-
-移除了所有非核心的 CI/CD 流程，专注于 "Monterey Intel Mac" 私有化构建与 "Zeabur Docker" 部署。
-
-*   **App Release**:
-    *   **删减**: 移除 Windows / Linux / Android / Apple Silicon 构建矩阵。
-    *   **锁定**: 仅保留 `macos-15-intel` (x86_64)，直接产出兼容 macOS 12 (Monterey) 的 DMG。
-*   **Docker Release**:
-    *   **策略**: 保留 `amd64` + `arm64` 双架构构建，确保 Zeabur 等 PaaS 平台的兼容性。
-*   **环境净化**:
-    *   删除了 `docker-build.yml` (临时)、`translator.yml` 等 5 个冗余工作流文件。
-
-## 9. 卡片交互优化 (BlinkoCard UX)
-
-针对高频操作进行了路径缩短与视觉降噪处理。
-
-### 9.1 下拉菜单重构 (Dropdown Menu)
-*   **首行速操作**: 将高频使用的 **[评论]**、**[AI标签]**、**[编辑]** 提权至菜单首行。
-*   **水平并列**: 采用图标+微型文本的水平布局 (Flex Row)，显著压缩了菜单的垂直长度。
-*   **自动收起**: 优化了点击反馈，点击首行任一图标后自动关闭下拉菜单。
-
-### 9.2 侧边栏折叠 (Sidebar)
-*   **区域收纳**: 将 "Statistics" / "Resources" / "Archive" 等低频区域默认折叠。
-*   **Show More**: 增加展开/收起切换器，减少侧边栏视觉噪音，聚焦核心笔记功能。
-
-## 10. AI 自动标签去重 (Deduplication)
+## 6. AI 自动标签去重 (Deduplication)
 
 ### 🔴 原版问题
 当启用 AI 后处理自动生成标签时，系统会无差别地将建议标签追加到笔记末尾。如果笔记已手动打过相同标签（或多次触发后处理），会导致笔记末尾堆叠大量重复的标签（例如：`#tag1 #tag1 #tag1`），严重影响视觉美观和搜索效率。
@@ -177,7 +139,7 @@
 
 ---
 
-## 11. 图标提取系统 (Icon Extraction Automation)
+## 7. 图标提取系统 (Icon Extraction Automation)
 
 ### 🔴 原版问题
 官方使用了 Iconify 的动态图标加载。在旧版构建环境或某些离线部署中，由于扫描脚本 `buildIcons.js` 的正则匹配范围过窄（仅限固定属性赋值），导致动态生成的图标（如三元表达式 `collapsed ? 'right' : 'left'`）无法被正确提取至本地 `icons.tsx`，产生 `Local icon not found` 错误。
@@ -196,7 +158,7 @@
 
 ---
 
-## 12. AI 润色功能 (AI Polish Integration)
+## 8. AI 润色功能 (AI Polish Integration)
 
 为了提升笔记的快速优化体验，我们在卡片列表页集成了 AI 润色入口。
 
@@ -209,7 +171,7 @@
 
 ---
 
-## 13. 插件系统与 AI 官方接口 (Plugin System & AI Bridge)
+## 9. 插件系统与 AI 官方接口 (Plugin System & AI Bridge)
 
 为了支持高性能、可扩展的 AI 插件功能，我们对基座与插件的通信层进行了深度解耦与标准化重构。
 
@@ -240,12 +202,12 @@
 *   **🟢 方案**: 系统性将插件提示逻辑升级为 `Blinko.toast.loading`。提示框将持续显示旋转动画，直到 AI 响应结束、报错或弹出预览编辑器时才会被精准销毁 (`dismiss`)。
 *   **收益**: 用户对 AI 的运行进度有了明确且持续的视觉感知，消除了由于“等待焦虑”导致的重复点击或误操作。
 
-## 14. 卡片摘要渲染优化 (Card Summary Rendering)
+## 10. 卡片摘要渲染优化 (Card Summary Rendering)
 *   **🔴 问题**: 用户在使用引用格式 (`> Title`) 美化笔记标题时，卡片缩略图（Blog 模式）会直接显示 `>` 符号，因为摘要生成逻辑仅进行了简单的纯文本截断，未过滤 Blockquote 标记。
 *   **🟢 方案**: 更新 `CardBlogBox` 的文本处理管道，在剔除 `#` (标题) 和 `*` (加粗) 的基础上，新增了对 `>` (引用符) 的正则表达式过滤。
 *   **收益**: 此后用户在卡片中使用引用样式作为装饰性标题时，摘要视图将保持整洁的纯文本显示，不再出现 Markdown 源码符号泄漏。
 
-## 15. 语音转文字功能集成 (Voice-to-Text Integration)
+## 11. 语音转文字功能集成 (Voice-to-Text Integration)
 
 为录音笔记提供自动转录能力，提升语音输入的实用性。
 
@@ -281,7 +243,7 @@
 
 ---
 
-## 16. AI 后处理逻辑优化 (AI Post-Processing Fix)
+## 12. AI 后处理逻辑优化 (AI Post-Processing Fix)
 
 修复 AI 后处理模式判断不正确和标签重复创建的问题。
 
@@ -297,7 +259,7 @@
 
 ---
 
-## 17. 移动端编辑器工具栏重构 (Mobile Toolbar Redesign)
+## 13. 移动端编辑器工具栏重构 (Mobile Toolbar Redesign)
 
 针对移动端小屏幕设备，对编辑器底部工具栏进行了结构性重构，以解决按钮拥挤、溢出和不可见的问题。
 
@@ -314,7 +276,7 @@
 
 ---
 
-## 18. 音频加载性能优化 (Audio Loading Optimization)
+## 14. 音频加载性能优化 (Audio Loading Optimization)
 
 优化了笔记列表页中大量录音文件的加载策略，减少不必要的网络请求和后端日志冗余。
 
