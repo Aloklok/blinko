@@ -31,7 +31,7 @@
     "concurrently": "^9.1.2",
     "eslint": "^8.56.0",
     "prettier": "^3.2.5",
-    "prisma": "5.22.0",
+    "prisma": "7.3.0",
     "ncp": "^2.0.0",
     "turbo": "latest",
     "typescript": "^5.1.6",
@@ -43,7 +43,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "7.3.0",
     "dotenv": "^16.5.0",
     "lru-cache": "^11.1.0",
     "react-i18next": "^15.4.1",
