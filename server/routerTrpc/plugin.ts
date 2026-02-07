@@ -22,7 +22,7 @@ const RETRY_DELAY = 1000; // 1 second
  * Ensures the plugin directory exists
  */
 const ensurePluginDir = async () => {
-  const dir = path.join(process.cwd(), 'plugins');
+  const dir = path.resolve(__dirname, '../../plugins');
   await ensureDirectoryExists(dir);
 };
 
@@ -85,7 +85,7 @@ async function downloadWithRetry(url: string, filePath: string, retries = MAX_RE
 
 
 const getPluginDir = (pluginName: string) => {
-  return path.join('plugins', pluginName);
+  return path.resolve(__dirname, '../../plugins', pluginName);
 };
 
 const cleanPluginDir = async (pluginName: string) => {
@@ -131,7 +131,7 @@ export const pluginRouter = router({
     })))
     .query(async ({ input }) => {
       try {
-        const pluginDir = path.join('plugins', input.pluginName);
+        const pluginDir = path.resolve(__dirname, '../../plugins', input.pluginName);
         if (!existsSync(pluginDir)) {
           return [];
         }
@@ -346,11 +346,21 @@ export const pluginRouter = router({
           });
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       // Clean up on error
       await cleanPluginDir(input.name);
-      console.error('Install plugin error:', error);
-      throw error;
+      console.error('Install plugin error details:', {
+        name: input.name,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
+      // Ensure we throw a proper Error or TRPCError
+      if (error instanceof TRPCError) throw error;
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   }),
 
