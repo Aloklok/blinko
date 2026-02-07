@@ -20,7 +20,7 @@ export default defineConfig({
     ...(!isDev ? [
       legacy({
         targets: ['safari >= 15', 'ios >= 15'],
-        modernPolyfills: true
+        modernPolyfills: false
       })
     ] : []),
     // PWA: Only enabled in production, disabled in development to avoid caching issues
@@ -139,6 +139,7 @@ export default defineConfig({
     target: 'esnext', // Modern browsers; Safari 15 handled by @vitejs/plugin-legacy
     outDir: "../dist/public",
     emptyOutDir: true,
+    sourcemap: false,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {

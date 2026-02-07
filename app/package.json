@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "cd ../server && bun run dev",
     "build": "bun run build:web",
-    "build:no-pwa": "cross-env DISABLE_PWA=true NODE_OPTIONS=\"--max-old-space-size=4096\" bun run build:web",
+    "build:no-pwa": "cross-env DISABLE_PWA=true NODE_OPTIONS=\"--max-old-space-size=8192\" bun run build:web",
     "icon": "bun run tauri icon",
     "build:iconify:icons": "bun run src/components/Common/Iconify/buildIcons.js",
-    "build:web": "NODE_OPTIONS=\"--max-old-space-size=4096\" vite build",
+    "build:web": "NODE_OPTIONS=\"--max-old-space-size=8192\" vite build",
     "tauri": "tauri",
     "tauri:dev": "RUST_BACKTRACE=1 tauri dev",
     "tauri:build:desktop:local": "tauri build --no-bundle",
