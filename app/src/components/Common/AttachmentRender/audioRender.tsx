@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
 import { api } from '@/lib/trpc';
 import { FileType } from '../Editor/type';
 import { DeleteIcon, DownloadIcon } from './icons';
@@ -26,6 +26,254 @@ interface Props {
 }
 
 const INITIAL_DISPLAY_COUNT = 3;
+
+// Utility functions - moved outside component to avoid recreation
+const formatTime = (seconds: number): string => {
+  if (!isFinite(seconds) || isNaN(seconds)) {
+    return "0:00";
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+const isUserVoiceRecording = (file: FileType): boolean => {
+  const fileProperty = (file as any).isUserVoiceRecording;
+  const attachmentMetadata = (file as any).metadata;
+  const isRecordingFile = file.name.startsWith('my_recording_');
+  return fileProperty === true || attachmentMetadata?.isUserVoiceRecording === true || isRecordingFile;
+};
+
+// Props interface for VoiceMessageRender
+interface VoiceMessageRenderProps {
+  file: FileType;
+  files: FileType[];
+  preview: boolean;
+  fileDuration: string;
+}
+
+// Voice message component - extracted as independent memoized component
+const VoiceMessageRender = memo(({ file, files, preview, fileDuration }: VoiceMessageRenderProps) => {
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [voiceCurrentTime, setVoiceCurrentTime] = useState(0);
+  const [voiceProgress, setVoiceProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+
+  // Initialize independent audio element for this voice message
+  useEffect(() => {
+    // Prevent double initialization
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+
+    audioRef.current = new Audio();
+
+    const handleVoiceEnded = () => {
+      setIsVoicePlaying(false);
+      setVoiceCurrentTime(0);
+      setVoiceProgress(0);
+    };
+
+    const updateVoiceProgress = () => {
+      if (!audioRef.current) return;
+
+      const current = audioRef.current.currentTime;
+      let duration = audioRef.current.duration;
+
+      if (!duration || !isFinite(duration)) {
+        const metadataDuration = (file as any).metadata?.audioDurationSeconds;
+        if (metadataDuration) {
+          duration = metadataDuration;
+        }
+      }
+
+      setVoiceCurrentTime(current);
+      if (duration && isFinite(duration) && duration > 0) {
+        setVoiceProgress((current / duration) * 100);
+      }
+    };
+
+    // Use file preview and construct proper URL like music manager does
+    if (file.preview) {
+      let audioUrl = getBlinkoEndpoint(file.preview);
+      // Only add token for non-blob URLs (blob URLs are local and don't need auth)
+      if (!audioUrl.startsWith('blob:')) {
+        const token = RootStore.Get(UserStore).tokenData?.value?.token;
+        if (token) {
+          audioUrl = `${audioUrl}?token=${token}`;
+        }
+      }
+
+      audioRef.current.src = audioUrl;
+      audioRef.current.preload = 'none'; // Prevent automatic preloading
+
+      // Add error handling for audio loading
+      audioRef.current.addEventListener('error', (e) => {
+        console.error('Audio loading error:', e, 'Source:', audioRef.current?.src);
+      });
+    } else {
+      console.error('No audio preview available for file:', file);
+    }
+
+    audioRef.current.addEventListener('ended', handleVoiceEnded);
+    audioRef.current.addEventListener('timeupdate', updateVoiceProgress);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('ended', handleVoiceEnded);
+        audioRef.current.removeEventListener('timeupdate', updateVoiceProgress);
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      isInitializedRef.current = false;
+    };
+  }, []); // Empty dependency - only run once on mount
+
+  const toggleVoicePlay = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      if (isVoicePlaying) {
+        audioRef.current.pause();
+        setIsVoicePlaying(false);
+      } else {
+        // Check if audio source is valid before playing
+        if (!audioRef.current.src || audioRef.current.src === window.location.href) {
+          console.error('Invalid audio source:', audioRef.current.src);
+          return;
+        }
+
+        // Load the audio if not already loaded
+        if (audioRef.current.readyState < 2) {
+          audioRef.current.load();
+          await new Promise((resolve, reject) => {
+            const onCanPlay = () => {
+              audioRef.current?.removeEventListener('canplay', onCanPlay);
+              audioRef.current?.removeEventListener('error', onError);
+              resolve(null);
+            };
+            const onError = (e: Event) => {
+              audioRef.current?.removeEventListener('canplay', onCanPlay);
+              audioRef.current?.removeEventListener('error', onError);
+              reject(e);
+            };
+            audioRef.current?.addEventListener('canplay', onCanPlay);
+            audioRef.current?.addEventListener('error', onError);
+          });
+        }
+
+        await audioRef.current.play();
+        setIsVoicePlaying(true);
+      }
+    } catch (error) {
+      console.error('Voice playback error:', error);
+      setIsVoicePlaying(false);
+    }
+  };
+
+  const handleVoiceProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current) return;
+
+    const waveformContainer = e.currentTarget;
+    const rect = waveformContainer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+
+    let duration = audioRef.current.duration;
+
+    if (!duration || !isFinite(duration)) {
+      const metadataDuration = (file as any).metadata?.audioDurationSeconds;
+      if (metadataDuration) {
+        duration = metadataDuration;
+      }
+    }
+
+    if (duration && isFinite(duration) && duration > 0) {
+      audioRef.current.currentTime = duration * percentage;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
+      className="group"
+    >
+      <div
+        className="flex items-center gap-3 p-3 bg-blue-500/10 hover:bg-blue-500/20 rounded-2xl cursor-pointer transition-all duration-200 max-w-xs"
+        onClick={toggleVoicePlay}
+      >
+        {/* Play button */}
+        <div className="relative min-w-[40px] h-[40px] bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
+          <Icon
+            icon={isVoicePlaying ? "ph:pause-fill" : "ph:play-fill"}
+            className="w-5 h-5 text-white ml-0.5"
+          />
+        </div>
+
+        {/* Waveform as progress visualization */}
+        <div
+          className="flex items-center gap-1 flex-1 min-w-0 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleVoiceProgressClick(e);
+          }}
+        >
+          {[...Array(20)].map((_, i) => {
+            const progress = voiceProgress / 100;
+            const barProgress = (i + 0.5) / 20;
+            const isPlayed = barProgress <= progress;
+
+            return (
+              <div
+                key={i}
+                className={`w-1 rounded-full transition-all duration-200 ${isPlayed
+                  ? 'bg-blue-500 shadow-sm'
+                  : 'bg-blue-300/60 hover:bg-blue-300/80'
+                  }`}
+                style={{
+                  height: `${12 + Math.sin(i * 0.5) * 4}px`,
+                  animation: isVoicePlaying && isPlayed ? `pulse 1.5s ease-in-out infinite ${i * 50}ms` : 'none',
+                  transform: isPlayed ? 'scaleY(1.1)' : 'scaleY(1)'
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Duration */}
+        <div className="text-xs text-gray-600 dark:text-gray-400 font-medium min-w-[35px] text-right">
+          {isVoicePlaying && voiceCurrentTime > 0
+            ? formatTime(voiceCurrentTime)
+            : fileDuration || "0:00"
+          }
+        </div>
+
+        {/* Delete button for voice messages */}
+        {!preview && (
+          <DeleteIcon
+            files={files}
+            className="ml-1 group-hover:opacity-100 opacity-0 transition-opacity text-gray-400 hover:text-red-500"
+            file={file}
+          />
+        )}
+        {preview && (
+          <DownloadIcon
+            className="ml-1 text-gray-400 hover:text-blue-500"
+            file={file}
+          />
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+VoiceMessageRender.displayName = 'VoiceMessageRender';
 
 export const AudioRender = observer(({ files, preview = false }: Props) => {
   const [audioMetadata, setAudioMetadata] = useState<Record<string, AudioMetadata>>({});
@@ -93,16 +341,6 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
     });
   };
 
-  const formatTime = (seconds: number): string => {
-    // Handle invalid input
-    if (!isFinite(seconds) || isNaN(seconds)) {
-      return "0:00";
-    }
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
   // Get duration from metadata first, then fallback to other sources
   const getDuration = (file: FileType): string => {
     // Priority 1: Check attachment metadata with duration (from database)
@@ -130,18 +368,6 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
     }
 
     return "";
-  };
-
-  // Check if this is a user voice recording
-  const isUserVoiceRecording = (file: FileType): boolean => {
-    // Check file properties for user voice recording flag
-    const fileProperty = (file as any).isUserVoiceRecording;
-    // Check attachment metadata for user voice recording flag
-    const attachmentMetadata = (file as any).metadata;
-    // Check file name pattern for user recordings
-    const isRecordingFile = file.name.startsWith('my_recording_');
-
-    return fileProperty === true || attachmentMetadata?.isUserVoiceRecording === true || isRecordingFile;
   };
 
   useEffect(() => {
@@ -229,228 +455,6 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
     return 'bg-cover bg-center relative overflow-hidden hover:bg-opacity-90';
   };
 
-  // Voice message component (Telegram-style) with independent audio
-  const VoiceMessageRender = ({ file }: { file: FileType }) => {
-    const fileDuration = getDuration(file);
-    const [isVoicePlaying, setIsVoicePlaying] = useState(false);
-    const [voiceCurrentTime, setVoiceCurrentTime] = useState(0);
-    const [voiceProgress, setVoiceProgress] = useState(0);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const animationFrameRef = useRef<number | null>(null);
-
-    // Initialize independent audio element for this voice message
-    useEffect(() => {
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-
-        // Use file preview and construct proper URL like music manager does
-        if (file.preview) {
-          let audioUrl = getBlinkoEndpoint(file.preview);
-          // Only add token for non-blob URLs (blob URLs are local and don't need auth)
-          if (!audioUrl.startsWith('blob:')) {
-            const token = RootStore.Get(UserStore).tokenData?.value?.token;
-            if (token) {
-              audioUrl = `${audioUrl}?token=${token}`;
-            }
-          }
-
-          audioRef.current.src = audioUrl;
-
-          // Add error handling for audio loading
-          audioRef.current.addEventListener('error', (e) => {
-            console.error('Audio loading error:', e, 'Source:', audioRef.current?.src);
-          });
-        } else {
-          console.error('No audio preview available for file:', file);
-        }
-
-        audioRef.current.addEventListener('ended', handleVoiceEnded);
-        audioRef.current.addEventListener('timeupdate', updateVoiceProgress);
-      }
-
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-        if (audioRef.current) {
-          audioRef.current.removeEventListener('ended', handleVoiceEnded);
-          audioRef.current.removeEventListener('timeupdate', updateVoiceProgress);
-          audioRef.current.removeEventListener('error', () => { });
-          audioRef.current.removeEventListener('canplaythrough', () => { });
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
-      };
-    }, [file.preview]);
-
-    const updateVoiceProgress = () => {
-      if (!audioRef.current) return;
-
-      const current = audioRef.current.currentTime;
-      let duration = audioRef.current.duration;
-
-      // If audio duration is not available, try to get it from metadata
-      if (!duration || !isFinite(duration)) {
-        const metadataDuration = (file as any).metadata?.audioDurationSeconds;
-        if (metadataDuration) {
-          duration = metadataDuration;
-        }
-      }
-
-      setVoiceCurrentTime(current);
-      if (duration && isFinite(duration) && duration > 0) {
-        setVoiceProgress((current / duration) * 100);
-      }
-    };
-
-    const handleVoiceEnded = () => {
-      setIsVoicePlaying(false);
-      setVoiceCurrentTime(0);
-      setVoiceProgress(0);
-    };
-
-    const toggleVoicePlay = async () => {
-      if (!audioRef.current) return;
-
-      try {
-        if (isVoicePlaying) {
-          audioRef.current.pause();
-          setIsVoicePlaying(false);
-        } else {
-          // Check if audio source is valid before playing
-          if (!audioRef.current.src || audioRef.current.src === window.location.href) {
-            console.error('Invalid audio source:', audioRef.current.src);
-            return;
-          }
-
-          // Load the audio if not already loaded
-          if (audioRef.current.readyState < 2) {
-            audioRef.current.load();
-            await new Promise((resolve, reject) => {
-              const onCanPlay = () => {
-                audioRef.current?.removeEventListener('canplay', onCanPlay);
-                audioRef.current?.removeEventListener('error', onError);
-                resolve(null);
-              };
-              const onError = (e: Event) => {
-                audioRef.current?.removeEventListener('canplay', onCanPlay);
-                audioRef.current?.removeEventListener('error', onError);
-                reject(e);
-              };
-              audioRef.current?.addEventListener('canplay', onCanPlay);
-              audioRef.current?.addEventListener('error', onError);
-            });
-          }
-
-          await audioRef.current.play();
-          setIsVoicePlaying(true);
-        }
-      } catch (error) {
-        console.error('Voice playback error:', error);
-        setIsVoicePlaying(false);
-      }
-    };
-
-    const handleVoiceProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!audioRef.current) return;
-
-      // Get the waveform container
-      const waveformContainer = e.currentTarget;
-      const rect = waveformContainer.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(1, x / rect.width));
-
-      let duration = audioRef.current.duration;
-
-      // If audio duration is not available, try to get it from metadata
-      if (!duration || !isFinite(duration)) {
-        const metadataDuration = (file as any).metadata?.audioDurationSeconds;
-        if (metadataDuration) {
-          duration = metadataDuration;
-        }
-      }
-
-      if (duration && isFinite(duration) && duration > 0) {
-        audioRef.current.currentTime = duration * percentage;
-      }
-    };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.2 }}
-        className="group"
-      >
-        <div
-          className="flex items-center gap-3 p-3 bg-blue-500/10 hover:bg-blue-500/20 rounded-2xl cursor-pointer transition-all duration-200 max-w-xs"
-          onClick={toggleVoicePlay}
-        >
-          {/* Play button */}
-          <div className="relative min-w-[40px] h-[40px] bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
-            <Icon
-              icon={isVoicePlaying ? "ph:pause-fill" : "ph:play-fill"}
-              className="w-5 h-5 text-white ml-0.5"
-            />
-          </div>
-
-          {/* Waveform as progress visualization */}
-          <div
-            className="flex items-center gap-1 flex-1 min-w-0 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleVoiceProgressClick(e);
-            }}
-          >
-            {[...Array(20)].map((_, i) => {
-              const progress = voiceProgress / 100;
-              const barProgress = (i + 0.5) / 20; // Center the bar's progress point
-              const isPlayed = barProgress <= progress;
-
-              return (
-                <div
-                  key={i}
-                  className={`w-1 rounded-full transition-all duration-200 ${isPlayed
-                    ? 'bg-blue-500 shadow-sm'
-                    : 'bg-blue-300/60 hover:bg-blue-300/80'
-                    }`}
-                  style={{
-                    height: `${12 + Math.sin(i * 0.5) * 4}px`,
-                    animation: isVoicePlaying && isPlayed ? `pulse 1.5s ease-in-out infinite ${i * 50}ms` : 'none',
-                    transform: isPlayed ? 'scaleY(1.1)' : 'scaleY(1)'
-                  }}
-                />
-              );
-            })}
-          </div>
-
-          {/* Duration */}
-          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium min-w-[35px] text-right">
-            {isVoicePlaying && voiceCurrentTime > 0
-              ? formatTime(voiceCurrentTime)
-              : fileDuration || "0:00"
-            }
-          </div>
-
-          {/* Delete button for voice messages */}
-          {!preview && (
-            <DeleteIcon
-              files={files}
-              className="ml-1 group-hover:opacity-100 opacity-0 transition-opacity text-gray-400 hover:text-red-500"
-              file={file}
-            />
-          )}
-          {preview && (
-            <DownloadIcon
-              className="ml-1 text-gray-400 hover:text-blue-500"
-              file={file}
-            />
-          )}
-        </div>
-      </motion.div>
-    );
-  };
-
   const audioFiles = files?.filter(i => i.previewType === 'audio') || [];
 
   return (
@@ -458,6 +462,7 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
       {audioFiles.map((file, index) => {
         const metadata = audioMetadata[file.name];
         const isVoiceMessage = isUserVoiceRecording(file);
+        const fileDuration = getDuration(file);
 
         return (
           <AnimatePresence mode="wait" key={`${file.name}-${index}`}>
@@ -472,7 +477,12 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
                 }}
               >
                 {isVoiceMessage ? (
-                  <VoiceMessageRender file={file} />
+                  <VoiceMessageRender
+                    file={file}
+                    files={files}
+                    preview={preview}
+                    fileDuration={fileDuration}
+                  />
                 ) : (
                   <div className={`group relative flex items-center gap-3 p-2 md:p-3 cursor-pointer !transition-all rounded-xl ${getBackgroundStyle(metadata?.coverUrl)}`}>
                     {metadata?.coverUrl && (
