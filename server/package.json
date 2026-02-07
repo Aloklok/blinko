@@ -48,6 +48,7 @@
     "bowser": "^2.11.0",
     "busboy": "^1.6.0",
     "cookie-parser": "^1.4.7",
+    "compression": "^1.7.5",
     "cors": "^2.8.5",
     "dayjs": "^1.11.10",
     "dotenv": "^16.4.5",
