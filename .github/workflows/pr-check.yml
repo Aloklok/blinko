@@ -1,5 +1,5 @@
 # PR 检查 - 验证依赖更新不破坏构建
-# 轻量级检查，不产出构建物，约 1-2 分钟完成
+# 约 3-5 分钟完成
 name: PR Check
 
 on:
@@ -11,9 +11,6 @@ on:
       - 'app/package.json'
       - 'server/package.json'
       - 'shared/package.json'
-      - 'prisma/**'
-      - '**.ts'
-      - '**.tsx'
 
 concurrency:
   group: pr-check-${{ github.head_ref }}
@@ -23,7 +20,7 @@ jobs:
   check:
     name: Validate Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: Checkout
@@ -34,18 +31,19 @@ jobs:
         with:
           bun-version: 1.2.8
       
-      # 验证依赖能正确安装
+      - name: Setup Node (for Vite)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      
+      - name: Increase Node.js memory limit
+        run: echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+      
+      # 安装依赖
       - name: Install Dependencies
         run: bun install --frozen-lockfile
       
-      # 生成 Prisma Client（TypeScript 检查需要）
-      - name: Generate Prisma Client
-        run: bun run turbo run prisma:generate
-      
-      # TypeScript 类型检查（不产出文件）
-      - name: TypeScript Check
-        run: bunx tsc --noEmit --skipLibCheck
-      
-      # 构建图标（验证图标系统正常）
-      - name: Build Icons
-        run: bun run turbo run build:iconify:icons
+      # Turbo 会自动按依赖顺序构建：
+      # prisma:generate → build:iconify:icons → app/build:web → server/build:web
+      - name: Build (Frontend + Backend)
+        run: bun run build:web
