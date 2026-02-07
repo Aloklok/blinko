@@ -32,7 +32,7 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
         echo "Detected ARM architecture, installing sharp platform-specific dependencies..." && \
         mkdir -p /tmp/sharp-cache && \
         export SHARP_CACHE_DIRECTORY=/tmp/sharp-cache && \
-        bun install --platform=linux --arch=arm64 sharp@0.34.1 --no-save --unsafe-perm || \
+        bun install --platform=linux --arch=arm64 sharp@0.34.1 --ignore-scripts --no-save --unsafe-perm || \
         bun install --force @img/sharp-linux-arm64 --no-save; \
     fi
 
