@@ -46,7 +46,7 @@
     "busboy": "^1.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.2.4",
     "express": "^5.1.0",
     "express-list-endpoints": "^7.1.1",
     "express-mcp-handler": "^0.3.0",
