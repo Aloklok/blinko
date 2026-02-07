@@ -92,6 +92,7 @@ COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
 COPY --from=builder /app/plugins ./plugins
+COPY --from=builder /app/server/vditor ./server/vditor
 
 RUN chmod +x ./start.sh && \
     ls -la start.sh
