@@ -19,43 +19,40 @@ updates:
     open-pull-requests-limit: 10
     
     # ========================================
-    # 兼容性关键包 - 仅接受安全更新 (忽略 minor/patch)
+    # 全局策略 + 兼容性关键包保护
     # ========================================
     ignore:
+      # 🌍 全局：所有包只提示 major 更新，忽略 minor/patch
+      - dependency-name: "*"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      
+      # 🔒 兼容性关键包 - 完全锁定（连 major 也忽略）
       # Markdown 编辑器 - 固定版本，含 Lookbehind 正则问题
       - dependency-name: "vditor"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
       
       # CSS 降级核心 - Safari 15 color-mix 兼容
       - dependency-name: "postcss-preset-env"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
       
       # JS API Polyfills - Safari 15 必需
       - dependency-name: "abortcontroller-polyfill"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
       - dependency-name: "requestidlecallback-polyfill"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
       
       # CSS 构建链核心
       - dependency-name: "tailwindcss"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
       - dependency-name: "autoprefixer"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
     
     # ========================================
-    # 分组策略
+    # 分组策略 - 减少 PR 数量
     # ========================================
     groups:
-      # 核心框架 - 只合并大版本更新
+      # React 核心
       react-core:
         patterns:
           - "react"
           - "react-dom"
           - "react-router-dom"
-        update-types:
-          - "major"
       
-      # AI SDK 全家桶 - 独立分组
+      # AI SDK 全家桶
       ai-sdk:
         patterns:
           - "@ai-sdk/*"
@@ -64,20 +61,19 @@ updates:
           - "@mastra/*"
           - "openai"
           - "ollama-ai-provider"
-        update-types:
-          - "major"
+          - "voyage-ai-provider"
+          - "@openrouter/*"
       
-      # 数据库层 - 谨慎更新
+      # 数据库层
       database:
         patterns:
           - "@prisma/*"
           - "prisma"
           - "pgvector"
           - "@libsql/*"
-        update-types:
-          - "major"
+          - "pg-boss"
       
-      # 构建工具链 - 只提示大版本
+      # 构建工具链
       build-tools:
         patterns:
           - "vite"
@@ -85,8 +81,7 @@ updates:
           - "esbuild"
           - "turbo"
           - "tsup"
-        update-types:
-          - "major"
+          - "terser"
       
       # Tauri 桌面端
       tauri:
@@ -94,7 +89,16 @@ updates:
           - "@tauri-apps/*"
           - "tauri-*"
       
-      # UI 组件库 - 合并小更新
+      # tRPC 全家桶
+      trpc:
+        patterns:
+          - "@trpc/*"
+          - "superjson"
+          - "trpc-to-openapi"
+          - "zod"
+          - "zod-openapi"
+      
+      # UI 组件库
       ui-components:
         patterns:
           - "@heroui/*"
@@ -102,7 +106,30 @@ updates:
           - "framer-motion"
           - "motion"
           - "@react-spring/*"
+      
+      # 3D 渲染
+      three-3d:
+        patterns:
+          - "three"
+          - "@types/three"
           - "@react-three/*"
+          - "@shadergradient/*"
+      
+      # Markdown 渲染
+      markdown:
+        patterns:
+          - "react-markdown"
+          - "rehype-*"
+          - "remark-*"
+          - "katex"
+          - "markmap-*"
+          - "mermaid"
+      
+      # 图标系统
+      iconify:
+        patterns:
+          - "@iconify/*"
+          - "@lobehub/icons"
       
       # 国际化
       i18n:
@@ -117,25 +144,22 @@ updates:
           - "passport"
           - "passport-*"
           - "@auth/*"
+          - "jsonwebtoken"
+          - "otplib"
       
       # AWS S3
       aws:
         patterns:
           - "@aws-sdk/*"
       
-      # 开发依赖 - 批量处理
+      # 开发依赖 - 类型定义
       dev-types:
         patterns:
           - "@types/*"
-        update-types:
-          - "minor"
-          - "patch"
       
+      # 开发依赖 - Lint/Format
       dev-lint:
         patterns:
           - "eslint"
           - "eslint-*"
           - "prettier"
-        update-types:
-          - "minor"
-          - "patch"

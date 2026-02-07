@@ -1,0 +1,51 @@
+# PR 检查 - 验证依赖更新不破坏构建
+# 轻量级检查，不产出构建物，约 1-2 分钟完成
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'bun.lock'
+      - 'app/package.json'
+      - 'server/package.json'
+      - 'shared/package.json'
+      - 'prisma/**'
+      - '**.ts'
+      - '**.tsx'
+
+concurrency:
+  group: pr-check-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Validate Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.8
+      
+      # 验证依赖能正确安装
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      
+      # 生成 Prisma Client（TypeScript 检查需要）
+      - name: Generate Prisma Client
+        run: bun run turbo run prisma:generate
+      
+      # TypeScript 类型检查（不产出文件）
+      - name: TypeScript Check
+        run: bunx tsc --noEmit --skipLibCheck
+      
+      # 构建图标（验证图标系统正常）
+      - name: Build Icons
+        run: bun run turbo run build:iconify:icons
