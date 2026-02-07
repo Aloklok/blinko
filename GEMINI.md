@@ -40,11 +40,8 @@ blinko/
 │   ├── src-tauri/          # Tauri Rust 代码
 │   └── vite.config.ts      # Vite 配置
 ├── server/                 # 后端 (Express + tRPC)
-│   ├── routerTrpc/         # tRPC 路由
-│   ├── routerExpress/      # Express 路由 (文件上传等)
-│   ├── aiServer/           # AI 服务封装
-│   └── .blinko/plugins/    # 内置插件
 ├── prisma/                 # Prisma Schema + 迁移
+├── plugins/                # 内置插件 (已从 server 迁移至根目录)
 ├── shared/                 # 前后端共享类型
 ├── dockerfile              # Docker 构建
 ├── turbo.json              # Turborepo 配置
@@ -96,7 +93,7 @@ docker build -t blinko .
 
 1. **Safari 15 测试**：开发模式仅支持 Chrome/Firefox，生产构建后再测试 Safari 15
 2. **图标系统**：使用 Iconify，新增图标会自动扫描并打包到 `icons.tsx`
-3. **插件系统**：插件位于 `server/.blinko/plugins/`，支持热加载
+3. **插件系统**：插件位于根目录 `plugins/`，支持热加载
 4. **tRPC 调用**：前端使用 `api.xxx.yyy.query/mutate()`，流式使用 `streamApi`
 
 ---

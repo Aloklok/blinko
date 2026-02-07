@@ -22,7 +22,7 @@ const RETRY_DELAY = 1000; // 1 second
  * Ensures the plugin directory exists
  */
 const ensurePluginDir = async () => {
-  const dir = path.join(process.cwd(), '.blinko', 'plugins');
+  const dir = path.join(process.cwd(), 'plugins');
   await ensureDirectoryExists(dir);
 };
 
@@ -85,7 +85,7 @@ async function downloadWithRetry(url: string, filePath: string, retries = MAX_RE
 
 
 const getPluginDir = (pluginName: string) => {
-  return path.join('.blinko', 'plugins', pluginName);
+  return path.join('plugins', pluginName);
 };
 
 const cleanPluginDir = async (pluginName: string) => {
@@ -131,7 +131,7 @@ export const pluginRouter = router({
     })))
     .query(async ({ input }) => {
       try {
-        const pluginDir = path.join('.blinko', 'plugins', input.pluginName);
+        const pluginDir = path.join('plugins', input.pluginName);
         if (!existsSync(pluginDir)) {
           return [];
         }

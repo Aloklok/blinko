@@ -18,8 +18,8 @@ public/sitemap*
 public/assets
 **/.blinko/*
 # 允许提交内置插件
-!**/.blinko/plugins/
-!**/.blinko/plugins/**
+!/plugins/
+!/plugins/**
 dump.sql
 public/sw*
 public/plugins/*

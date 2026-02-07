@@ -17,6 +17,7 @@ ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
 # Copy Project Files
 COPY . .
+RUN mkdir -p /app/plugins
 
 # Configure Mirror Based on USE_MIRROR Parameter
 RUN if [ "$USE_MIRROR" = "true" ]; then \
@@ -90,7 +91,7 @@ COPY --from=builder /app/start.sh ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
-COPY --from=builder /app/server/.blinko/plugins ./.blinko/plugins
+COPY --from=builder /app/plugins ./plugins
 
 RUN chmod +x ./start.sh && \
     ls -la start.sh

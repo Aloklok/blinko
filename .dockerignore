@@ -13,6 +13,8 @@ build
 .cache
 **/.cache
 **/.blinko
+!/plugins/
+!/plugins/**
 
 *.log
 logs
@@ -46,7 +48,8 @@ LICENSE
 CHANGELOG.md
 README.md
 CONTRIBUTING.md
-.blinko
+!/plugins/
+# .blinko rules handled at the top
 
 **/target
 

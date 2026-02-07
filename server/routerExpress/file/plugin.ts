@@ -7,7 +7,7 @@ import sanitizeFilename from 'sanitize-filename';
 const router = express.Router();
 
 // Resolved base directory for plugins - prevents path traversal
-const PLUGIN_BASE_DIR = resolve(join('.blinko', 'plugins'));
+const PLUGIN_BASE_DIR = resolve('plugins');
 
 /**
  * @swagger
@@ -67,7 +67,7 @@ router.get(/(.*)/, (req, res) => {
       }
     }
 
-    const filePath = join('.blinko', 'plugins', ...pathArray);
+    const filePath = join('plugins', ...pathArray);
     const resolvedPath = resolve(filePath);
 
     // Security: Ensure the resolved path is inside the plugin directory
