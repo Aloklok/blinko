@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from 'path';
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import legacy from '@vitejs/plugin-legacy'
+
 
 const host = process.env.TAURI_DEV_HOST || '0.0.0.0';
 const EXPRESS_PORT = 1111;
@@ -16,13 +16,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // Legacy: Only enabled in production build for Safari 15 compatibility
-    ...(!isDev ? [
-      legacy({
-        targets: ['safari >= 15', 'ios >= 15'],
-        modernPolyfills: false
-      })
-    ] : []),
+
     // PWA: Only enabled in production, disabled in development to avoid caching issues
     ...(!isDev && !process.env.DISABLE_PWA ? [
       VitePWA({
@@ -136,7 +130,7 @@ export default defineConfig({
     }
   },
   build: {
-    target: 'esnext', // Modern browsers; Safari 15 handled by @vitejs/plugin-legacy
+    target: 'es2020', // Modern browsers, removed @vitejs/plugin-legacy to reduce size
     outDir: "../dist/public",
     emptyOutDir: true,
     sourcemap: false,
@@ -149,6 +143,18 @@ export default defineConfig({
             id.includes('node_modules/react-router-dom') ||
             id.includes('node_modules/@react-')) {
             return 'react-vendor';
+          }
+
+          if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
+            return 'three-vendor';
+          }
+
+          if (id.includes('node_modules/mermaid') || id.includes('node_modules/echarts') || id.includes('node_modules/vditor')) {
+            return 'viz-vendor';
+          }
+
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) {
+            return 'animation-vendor';
           }
 
           if (id.includes('node_modules/react-') ||

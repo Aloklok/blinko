@@ -83,16 +83,10 @@
     ```
 *   **结论**: **完全无损**。Babel 处理的转译是语义等价的，不会改变正则的匹配行为。
 
-> [!NOTE]
-> **2026-02-07 更新**: 
-> 移除了早期尝试的手动正则转换插件 `vite-plugin-safari-transform`。
-> 该方案存在转义层级复杂、边缘情况处理困难等问题。
-> 官方 `@vitejs/plugin-legacy` 是更可靠的解决方案，推荐使用。
->
-> **开发模式注意事项**:
-> `@vitejs/plugin-legacy` 仅在生产构建时生效。
-> 开发模式下请使用 Chrome 或 Firefox 测试应用。
-> 生产构建后再使用 Safari 15 进行最终验证。
+> [!IMPORTANT]
+> **2026-02-07 紧急更新**:
+> 由于该插件生成了大量 Legacy Chunks (冗余代码)，导致移动端首屏加载严重受阻（5MB+）。
+> **已暂时移除** 此插件以优先保障加载性能。Safari 15 兼容性修复已移至待办清单。
 
 ---
 
@@ -106,11 +100,9 @@
 *   **Safari 15 兼容性**: 由 `@vitejs/plugin-legacy` 自动处理（见第 3 节）。
 *   **结论**: 现代浏览器获得更小的包体积，旧浏览器通过 legacy chunk 获得兼容代码。
 
-> [!NOTE]
-> **2026-02-07 更新**: 
-> 移除了早期的 `target: ['es2020', 'safari15']` 配置。
-> `@vitejs/plugin-legacy` 会自动生成 Safari 15 兼容的 legacy chunk，
-> 因此 `build.target` 可以设为 `esnext` 以优化现代浏览器的输出。
+> [!IMPORTANT]
+> **2026-02-07 紧急更新**: 
+> 随 Legacy 插件一同移除。当前 `build.target` 为 `es2020`。
 
 ---
 

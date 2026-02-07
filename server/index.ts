@@ -151,44 +151,16 @@ async function setupApiRoutes(app: express.Application) {
 
   // Helper function to serve vditor dependencies with gzip compression
   const serveVditorFile = (routePath: string, filePath: string) => {
-    app.use(routePath, (req, res) => {
+    app.get(routePath, (req, res) => {
       const fullPath = path.resolve(__dirname, filePath);
-
-      // Check if file exists
       if (!fs.existsSync(fullPath)) {
         res.status(404).send('File not found');
         return;
       }
-
-      // Check if client accepts gzip encoding
-      const acceptEncoding = req.headers['accept-encoding'] || '';
-      const supportsGzip = acceptEncoding.includes('gzip');
-
-      // Determine content type based on file extension
-      const contentType = filePath.endsWith('.css')
-        ? 'text/css'
-        : filePath.endsWith('.js')
-          ? 'application/javascript'
-          : 'application/octet-stream';
-
-      res.set({
-        'Cache-Control': 'public, max-age=604800, immutable',
-        'Expires': new Date(Date.now() + 604800000).toUTCString(),
-        'Content-Type': contentType
+      res.sendFile(fullPath, {
+        maxAge: '7d',
+        immutable: true
       });
-
-      // CSS files should not be gzipped (they're already minified)
-      // Only gzip JS files
-      if (supportsGzip && !filePath.endsWith('.css')) {
-        // Send gzip compressed version for JS files
-        res.set('Content-Encoding', 'gzip');
-        const readStream = fs.createReadStream(fullPath);
-        const gzipStream = zlib.createGzip({ level: 6 });
-        readStream.pipe(gzipStream).pipe(res);
-      } else {
-        // Send uncompressed version (for CSS or when gzip not supported)
-        res.sendFile(fullPath);
-      }
     });
   };
 
@@ -289,6 +261,47 @@ async function bootstrap() {
         }
       }
     };
+
+    // Global Gzip Compression using native zlib
+    app.use((req, res, next) => {
+      const acceptEncoding = req.header('accept-encoding');
+      if (!acceptEncoding || !acceptEncoding.includes('gzip')) {
+        return next();
+      }
+
+      // Only compress potential text/script assets
+      const isCompressible = /\.(js|css|html|json|txt|wasm)$/.test(req.url) ||
+        req.url.endsWith('/') ||
+        req.path.startsWith('/api/trpc');
+
+      if (!isCompressible) {
+        return next();
+      }
+
+      const originalSend = res.send;
+      const originalJson = res.json;
+
+      // Intercept send to compress
+      res.send = function (body: any): any {
+        if (body instanceof Buffer || typeof body === 'string') {
+          res.set('Content-Encoding', 'gzip');
+          const compressed = zlib.gzipSync(body);
+          return originalSend.call(this, compressed);
+        }
+        return originalSend.call(this, body);
+      };
+
+      // Intercept json to compress
+      res.json = function (body: any): any {
+        res.set('Content-Encoding', 'gzip');
+        const jsonStr = JSON.stringify(body);
+        const compressed = zlib.gzipSync(jsonStr);
+        res.set('Content-Type', 'application/json');
+        return originalSend.call(this, compressed);
+      };
+
+      next();
+    });
 
     const publicPath = path.resolve(appRootProd, 'public');
     app.use(express.static(publicPath, staticOptions));
