@@ -149,8 +149,16 @@ export default defineConfig({
             return 'three-vendor';
           }
 
-          if (id.includes('node_modules/mermaid') || id.includes('node_modules/echarts') || id.includes('node_modules/vditor')) {
-            return 'viz-vendor';
+          if (id.includes('node_modules/echarts')) {
+            return 'echarts-vendor';
+          }
+
+          if (id.includes('node_modules/mermaid')) {
+            return 'mermaid-vendor';
+          }
+
+          if (id.includes('node_modules/vditor')) {
+            return 'vditor-vendor';
           }
 
           if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) {

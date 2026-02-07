@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import path from 'path';
 import zlib from 'zlib';
@@ -246,6 +247,8 @@ async function bootstrap() {
       credentials: true
     }));
 
+    app.use(compression());
+
     if (process.env.TRUST_PROXY === '1') {
       app.set('trust proxy', 1);
     }
@@ -262,46 +265,6 @@ async function bootstrap() {
       }
     };
 
-    // Global Gzip Compression using native zlib
-    app.use((req, res, next) => {
-      const acceptEncoding = req.header('accept-encoding');
-      if (!acceptEncoding || !acceptEncoding.includes('gzip')) {
-        return next();
-      }
-
-      // Only compress potential text/script assets
-      const isCompressible = /\.(js|css|html|json|txt|wasm)$/.test(req.url) ||
-        req.url.endsWith('/') ||
-        req.path.startsWith('/api/trpc');
-
-      if (!isCompressible) {
-        return next();
-      }
-
-      const originalSend = res.send;
-      const originalJson = res.json;
-
-      // Intercept send to compress
-      res.send = function (body: any): any {
-        if (body instanceof Buffer || typeof body === 'string') {
-          res.set('Content-Encoding', 'gzip');
-          const compressed = zlib.gzipSync(body);
-          return originalSend.call(this, compressed);
-        }
-        return originalSend.call(this, body);
-      };
-
-      // Intercept json to compress
-      res.json = function (body: any): any {
-        res.set('Content-Encoding', 'gzip');
-        const jsonStr = JSON.stringify(body);
-        const compressed = zlib.gzipSync(jsonStr);
-        res.set('Content-Type', 'application/json');
-        return originalSend.call(this, compressed);
-      };
-
-      next();
-    });
 
     const publicPath = path.resolve(appRootProd, 'public');
     app.use(express.static(publicPath, staticOptions));

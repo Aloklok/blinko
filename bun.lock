@@ -246,6 +246,7 @@
         "@types/adm-zip": "^0.5.7",
         "@types/archiver": "^6.0.3",
         "@types/bowser": "^1.1.5",
+        "@types/compression": "^1.8.1",
         "@types/cookie-parser": "^1.4.8",
         "@types/express-session": "^1.18.1",
         "@types/jsonwebtoken": "^9.0.5",
@@ -2069,6 +2070,8 @@
     "@types/bowser": ["@types/bowser@1.1.5", "https://registry.npmmirror.com/@types/bowser/-/bowser-1.1.5.tgz", { "dependencies": { "bowser": "*" } }, "sha512-7qUcVaL3NZ40tLPPlbk9fKL++vT/BBT0vbq+R97KH1lnZQmcZwvqa3rnAcCE48ai2dZm9ETr9TnQXhztGsvPIw=="],
 
     "@types/bunyan": ["@types/bunyan@1.8.11", "https://registry.npmmirror.com/@types/bunyan/-/bunyan-1.8.11.tgz", { "dependencies": { "@types/node": "*" } }, "sha512-758fRH7umIMk5qt5ELmRMff4mLDlN+xyYzC+dkPTdKwbSkJFvz6xwyScrytPU0QIBbRRwbiE8/BIg8bpajerNQ=="],
+
+    "@types/compression": ["@types/compression@1.8.1", "https://registry.npmmirror.com/@types/compression/-/compression-1.8.1.tgz", { "dependencies": { "@types/express": "*", "@types/node": "*" } }, "sha512-kCFuWS0ebDbmxs0AXYn6e2r2nrGAb5KwQhknjSPSPgJcGd8+HVSILlUyFhGqML2gk39HcG7D1ydW9/qpYkN00Q=="],
 
     "@types/connect": ["@types/connect@3.4.38", "https://registry.npmmirror.com/@types/connect/-/connect-3.4.38.tgz", { "dependencies": { "@types/node": "*" } }, "sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug=="],
 
