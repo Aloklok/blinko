@@ -16,10 +16,10 @@ yarn.lock
 public/robots.txt
 public/sitemap*
 public/assets
-.blinko/*
+**/.blinko/*
 # 允许提交内置插件
-!.blinko/plugins/
-!.blinko/plugins/**
+!**/.blinko/plugins/
+!**/.blinko/plugins/**
 dump.sql
 public/sw*
 public/plugins/*
@@ -30,9 +30,9 @@ dist
 keystore.properties
 !**/lute.min.js
 # .blinko 其他目录继续忽略
-.blinko/files/
-.blinko/pgdump/
-.blinko/vector/
+**/.blinko/files/
+**/.blinko/pgdump/
+**/.blinko/vector/
 dev-dist
 .claudeconfig
 .claude/*

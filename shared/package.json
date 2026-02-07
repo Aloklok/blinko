@@ -6,6 +6,8 @@
   "types": "index.ts",
   "dependencies": {
     "zod": "^4.1.12",
-    "superjson": "^2.2.3"
+    "superjson": "^2.2.3",
+    "dayjs": "^1.11.10",
+    "lodash": "^4.17.21"
   }
 }

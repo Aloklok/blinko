@@ -96,10 +96,8 @@ const appRootProd = path.resolve(__dirname, '../server');
 let server: any = null;
 
 ViteExpress.config({
+  root: appRootDev,
   viteConfigFile: path.resolve(appRootDev, 'vite.config.ts'),
-  inlineViteConfig: {
-    root: appRootDev,
-  },
 });
 
 if (process.env.NODE_ENV === 'production') {

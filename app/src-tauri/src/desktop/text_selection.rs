@@ -127,7 +127,7 @@ pub fn setup_text_selection_monitoring<R: Runtime>(
 
 // Helper function to get and validate mouse position
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
-fn get_mouse_position<R: Runtime>(app: &AppHandle<R>) -> (f64, f64) {
+fn get_mouse_position<R: Runtime>(_app: &AppHandle<R>) -> (f64, f64) {
     match Mouse::get_mouse_position() {
         Mouse::Position { x, y } => {
             println!("📍 Raw mouse position: ({}, {})", x, y);
