@@ -163,3 +163,15 @@ updates:
           - "eslint"
           - "eslint-*"
           - "prettier"
+
+  # ========================================
+  # Cargo (Rust) - 完全禁用
+  # tauri-plugin-blinko 是本地插件，不需要自动更新
+  # ========================================
+  - package-ecosystem: "cargo"
+    directory: "/app/src-tauri"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
