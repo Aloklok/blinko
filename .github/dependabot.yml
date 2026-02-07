@@ -1,11 +1,141 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
+# Dependabot 配置 - 针对 macOS Monterey (Safari 15) 兼容性优化
+# 详细策略说明: COMPATIBILITY_LOG.md
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    
+    # 提交消息格式
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    
+    # PR 数量限制
+    open-pull-requests-limit: 10
+    
+    # ========================================
+    # 兼容性关键包 - 仅接受安全更新 (忽略 minor/patch)
+    # ========================================
+    ignore:
+      # Markdown 编辑器 - 固定版本，含 Lookbehind 正则问题
+      - dependency-name: "vditor"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      
+      # CSS 降级核心 - Safari 15 color-mix 兼容
+      - dependency-name: "postcss-preset-env"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      
+      # JS API Polyfills - Safari 15 必需
+      - dependency-name: "abortcontroller-polyfill"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "requestidlecallback-polyfill"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      
+      # CSS 构建链核心
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "autoprefixer"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+    
+    # ========================================
+    # 分组策略
+    # ========================================
+    groups:
+      # 核心框架 - 只合并大版本更新
+      react-core:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router-dom"
+        update-types:
+          - "major"
+      
+      # AI SDK 全家桶 - 独立分组
+      ai-sdk:
+        patterns:
+          - "@ai-sdk/*"
+          - "ai"
+          - "@langchain/*"
+          - "@mastra/*"
+          - "openai"
+          - "ollama-ai-provider"
+        update-types:
+          - "major"
+      
+      # 数据库层 - 谨慎更新
+      database:
+        patterns:
+          - "@prisma/*"
+          - "prisma"
+          - "pgvector"
+          - "@libsql/*"
+        update-types:
+          - "major"
+      
+      # 构建工具链 - 只提示大版本
+      build-tools:
+        patterns:
+          - "vite"
+          - "typescript"
+          - "esbuild"
+          - "turbo"
+          - "tsup"
+        update-types:
+          - "major"
+      
+      # Tauri 桌面端
+      tauri:
+        patterns:
+          - "@tauri-apps/*"
+          - "tauri-*"
+      
+      # UI 组件库 - 合并小更新
+      ui-components:
+        patterns:
+          - "@heroui/*"
+          - "@dnd-kit/*"
+          - "framer-motion"
+          - "motion"
+          - "@react-spring/*"
+          - "@react-three/*"
+      
+      # 国际化
+      i18n:
+        patterns:
+          - "i18next"
+          - "i18next-*"
+          - "react-i18next"
+      
+      # 认证相关
+      auth:
+        patterns:
+          - "passport"
+          - "passport-*"
+          - "@auth/*"
+      
+      # AWS S3
+      aws:
+        patterns:
+          - "@aws-sdk/*"
+      
+      # 开发依赖 - 批量处理
+      dev-types:
+        patterns:
+          - "@types/*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      dev-lint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "prettier"
+        update-types:
+          - "minor"
+          - "patch"
