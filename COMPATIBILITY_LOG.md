@@ -287,3 +287,16 @@
     *   **零冗余**: 录音文件直接复用附件已有的 `metadata` 数据，不再发起 TRPC 请求。
     *   **后端减负**: 彻底消除了后端因解析录音元数据而产生的重复磁盘/S3 读取日志。
     *   **加载加速**: 录音消息的渲染不再受限于网络回调，大幅提升了首屏滚动流畅度。
+
+---
+
+## 📌 已知问题与待办项目 (Known Issues / TODO)
+
+### 15.1 Safari 15.x 正则解析错误
+*   **🔴 问题**: 在 Safari 15 (macOS Monterey) 环境下启动时报错 `SyntaxError: Invalid regular expression: invalid group specifier name`。
+*   **分析**: 
+    1.  Safari 15.0-16.3 不支持正则反向断言 (Lookbehind) `(?<=...)` 或某些具名捕获组语法。
+    2.  由于当前 `build.target` 为 `esnext`，现代构建包保留了库源码中的现代正则。
+*   **备选方案**: 将 `vite.config.ts` 中的 `build.target` 降低至 `es2018` 或更低，强制 esbuild 转译这些正则。
+*   **状态**: **待修复** (用户建议暂缓，担心引入新问题)。
+

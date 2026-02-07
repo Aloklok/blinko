@@ -7,7 +7,7 @@ import sanitizeFilename from 'sanitize-filename';
 const router = express.Router();
 
 // Resolved base directory for plugins - prevents path traversal
-const PLUGIN_BASE_DIR = resolve(__dirname, '../../../plugins');
+const PLUGIN_BASE_DIR = join(process.cwd(), 'plugins');
 
 /**
  * @swagger

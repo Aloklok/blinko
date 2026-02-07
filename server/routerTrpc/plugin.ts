@@ -18,11 +18,13 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
+const getPluginRootDir = () => path.join(process.cwd(), 'plugins');
+
 /**
  * Ensures the plugin directory exists
  */
 const ensurePluginDir = async () => {
-  const dir = path.resolve(__dirname, '../../plugins');
+  const dir = getPluginRootDir();
   await ensureDirectoryExists(dir);
 };
 
@@ -85,7 +87,7 @@ async function downloadWithRetry(url: string, filePath: string, retries = MAX_RE
 
 
 const getPluginDir = (pluginName: string) => {
-  return path.resolve(__dirname, '../../plugins', pluginName);
+  return path.join(getPluginRootDir(), pluginName);
 };
 
 const cleanPluginDir = async (pluginName: string) => {
@@ -131,7 +133,7 @@ export const pluginRouter = router({
     })))
     .query(async ({ input }) => {
       try {
-        const pluginDir = path.resolve(__dirname, '../../plugins', input.pluginName);
+        const pluginDir = path.join(getPluginDir(), input.pluginName);
         if (!existsSync(pluginDir)) {
           return [];
         }
