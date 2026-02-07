@@ -403,7 +403,7 @@ export class UserStore implements Store {
       eventBus.on('user:token', (tokenData) => {
         this.handleToken(tokenData, () => {
           this.initializeSettings(setTheme, i18n);
-          if (tokenData?.user?.id) {
+          if (tokenData?.user?.id && Number(tokenData.user.id) > 0) {
             this.userInfo.call(Number(tokenData.user.id));
           }
         });
@@ -448,7 +448,9 @@ export class UserStore implements Store {
     }, []);
 
     useEffect(() => {
-      this.userInfo.call(Number(this.id));
+      if (this.id && Number(this.id) > 0) {
+        this.userInfo.call(Number(this.id));
+      }
     }, [this.id]);
 
     useEffect(() => {

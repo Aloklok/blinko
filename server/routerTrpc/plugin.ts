@@ -133,7 +133,7 @@ export const pluginRouter = router({
     })))
     .query(async ({ input }) => {
       try {
-        const pluginDir = path.join(getPluginDir(), input.pluginName);
+        const pluginDir = getPluginDir(input.pluginName);
         if (!existsSync(pluginDir)) {
           return [];
         }

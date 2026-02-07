@@ -5,6 +5,10 @@
 import fs from 'fs';
 import path from 'path';
 import { iconToSVG } from '@iconify/utils';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Icons used in functions or conditional returns that might be hard to detect
 // Note: With the new robust scanning, this list can be minimal or empty
@@ -15,11 +19,37 @@ const ALWAYS_INCLUDE_ICONS = [
   'hugeicons:ai-chemistry-02'
 ];
 
-// Project paths
-const ROOT_DIR = process.cwd();
-const SRC_DIR = path.join(ROOT_DIR, 'src');
-const NODE_MODULES_DIR = path.join(ROOT_DIR, 'node_modules');
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// Project paths - calculation based on script location to be execution-dir independent
+const SRC_DIR = path.resolve(__dirname, '../../..');
+const APP_ROOT_DIR = path.resolve(SRC_DIR, '..');
 const OUTPUT_FILE = path.join(SRC_DIR, 'components', 'Common', 'Iconify', 'icons.tsx');
+
+// Function to find the Iconify JSON library directory
+function findIconifyJsonDir() {
+  try {
+    // Precise way to find the package directory regardless of installation structure
+    const packageJsonPath = require.resolve('@iconify/json/package.json');
+    return path.dirname(packageJsonPath);
+  } catch (err) {
+    console.warn('Warning: Could not resolve @iconify/json via require.resolve. Attempting local scan...');
+
+    const paths = [
+      path.join(APP_ROOT_DIR, 'node_modules', '@iconify', 'json'),
+      path.join(path.resolve(APP_ROOT_DIR, '..'), 'node_modules', '@iconify', 'json'),
+    ];
+
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p;
+    }
+
+    throw new Error('CRITICAL: @iconify/json not found. Please ensure @iconify/json is installed in the project.');
+  }
+}
+
+const ICONIFY_JSON_DIR = findIconifyJsonDir();
 
 // Recursively scan directories for files
 function scanDirectory(dir, fileExtensions, result = []) {
@@ -70,25 +100,32 @@ function scanProjectIcons() {
     ALWAYS_INCLUDE_ICONS.forEach(iconName => potentialIcons.add(iconName));
 
     const iconsByCollection = {};
+    let foundAnyCollection = false;
 
     for (const iconName of potentialIcons) {
       const [collection, name] = iconName.split(':');
       if (!collection || !name) continue;
 
-      const collectionPath = path.join(NODE_MODULES_DIR, '@iconify', 'json', 'json', `${collection}.json`);
+      const collectionPath = path.join(ICONIFY_JSON_DIR, 'json', `${collection}.json`);
 
       if (fs.existsSync(collectionPath)) {
         if (!iconsByCollection[collection]) {
           iconsByCollection[collection] = new Set();
         }
         iconsByCollection[collection].add(name);
+        foundAnyCollection = true;
       }
+    }
+
+    if (!foundAnyCollection) {
+      console.warn('Scan completed but no icons matching the collections in @iconify/json were found.');
     }
 
     return iconsByCollection;
   } catch (error) {
     console.error('Error scanning project icons:', error);
-    return {};
+    // Rethrow to fail build if it's a path/missing library issue
+    throw error;
   }
 }
 
@@ -128,7 +165,7 @@ export interface IconCollection {
 
   for (const [collection, icons] of Object.entries(iconsByCollection)) {
     try {
-      const collectionPath = path.join(NODE_MODULES_DIR, '@iconify', 'json', 'json', `${collection}.json`);
+      const collectionPath = path.join(ICONIFY_JSON_DIR, 'json', `${collection}.json`);
       if (!fs.existsSync(collectionPath)) continue;
 
       console.log(`Processing collection ${collection} (${icons.size} icons)...`);
