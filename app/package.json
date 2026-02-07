@@ -58,6 +58,7 @@
     "dayjs": "^1.11.18",
     "echarts": "^5.6.0",
     "emoji-picker-react": "^4.12.2",
+    "events": "^3.3.0",
     "filesize": "^8.0.7",
     "framer-motion": "^11.0.0",
     "i18next": "^25.6.0",
@@ -118,6 +119,7 @@
     "@types/react-dom": "^18.3.1",
     "@types/systemjs": "^6.15.3",
     "@types/three": "^0.174.0",
+    "@vitejs/plugin-legacy": "^7.2.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
@@ -125,7 +127,7 @@
     "postcss-preset-env": "^11.1.2",
     "tailwindcss": "^4.1.4",
     "tailwindcss-animate": "^1.0.7",
-    "terser": "^5.34.1",
+    "terser": "^5.46.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.3"
   }
