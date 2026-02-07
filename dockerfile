@@ -105,7 +105,7 @@ RUN echo "Installing additional dependencies..." && \
     npm install --legacy-peer-deps @node-rs/crc32 lightningcss sharp@0.34.1 prisma@5.22.0 @prisma/client@5.22.0 && \
     npm install -g prisma@5.22.0 && \
     npm install --legacy-peer-deps sqlite3@5.1.7 && \
-    npm install --legacy-peer-deps llamaindex @langchain/community@0.3.40 && \
+    npm install --legacy-peer-deps llamaindex @langchain/community@0.3.40 @langchain/core@0.3.40 && \
     npm install --legacy-peer-deps @libsql/client @libsql/core && \
     npx prisma generate && \
     # find / -type d -name "onnxruntime-*" -exec rm -rf {} + 2>/dev/null || true && \
