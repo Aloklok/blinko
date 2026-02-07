@@ -35,8 +35,10 @@ async function build() {
         'sharp',
         'esbuild',
         'sqlite3',
+        '@libsql/linux-x64-musl',
+        '@libsql/linux-x64-gnu',
         '@libsql/linux-arm64-musl',
-        '@libsql/linux-arm64-gnu',
+        '@libsql/linux-arm64-gnu'
       ],
       define: {
         'process.env.NODE_ENV': '"production"',
