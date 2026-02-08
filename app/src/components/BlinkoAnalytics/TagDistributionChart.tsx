@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
 import { useEffect, useRef } from "react"
-import * as echarts from 'echarts'
+// import * as echarts from 'echarts' // Removed static import
 import { useMediaQuery } from "usehooks-ts"
 
 interface TagDistributionChartProps {
@@ -17,95 +17,106 @@ export const TagDistributionChart = observer(({ tagStats }: TagDistributionChart
   const { t } = useTranslation()
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
-  let chart: echarts.ECharts | null = null
+
+  // Removed static chart variable
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   useEffect(() => {
-    if (!chartRef.current) return
+    let chartInstance: any = null;
+    let resizeHandler: (() => void) | null = null;
+    let isMounted = true;
 
-    if (!chart) {
-      chart = echarts.init(chartRef.current)
-    }
+    const initChart = async () => {
+      if (!chartRef.current) return;
 
-    const isDark = theme === 'dark'
+      const echarts = await import('echarts');
+      if (!isMounted) return;
 
-    const option = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c} ({d}%)'
-      },
-      legend: {
-        type: 'scroll',
-        orient: isMobile ? 'horizontal' : 'vertical',
-        right: isMobile ? 'center' : 10,
-        top: isMobile ? 'bottom' : 'center',
-        bottom: isMobile ? 0 : undefined,
-        textStyle: {
-          color: isDark ? '#fff' : '#000',
-          fontSize: isMobile ? 12 : 14
+      chartInstance = echarts.init(chartRef.current);
+
+      const isDark = theme === 'dark'
+
+      const option = {
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c} ({d}%)'
         },
-        pageTextStyle: {
-          color: isDark ? '#fff' : '#000'
-        },
-        pageIconColor: isDark ? '#fff' : '#000',
-        pageIconInactiveColor: isDark ? '#666' : '#aaa'
-      },
-      series: [
-        {
-          name: t('tag-distribution'),
-          type: 'pie',
-          radius: isMobile ? ['30%', '60%'] : ['40%', '70%'],
-          center: isMobile ? ['50%', '40%'] : ['40%', '50%'],
-          avoidLabelOverlap: true,
-          itemStyle: {
-            borderRadius: 10,
-            borderColor: isDark ? '#1f1f1f' : '#ffffff',
-            borderWidth: 2
+        legend: {
+          type: 'scroll',
+          orient: isMobile ? 'horizontal' : 'vertical',
+          right: isMobile ? 'center' : 10,
+          top: isMobile ? 'bottom' : 'center',
+          bottom: isMobile ? 0 : undefined,
+          textStyle: {
+            color: isDark ? '#fff' : '#000',
+            fontSize: isMobile ? 12 : 14
           },
-          label: {
-            show: !isMobile,
-            position: 'outer',
-            formatter: '{b}\n{d}%',
+          pageTextStyle: {
             color: isDark ? '#fff' : '#000'
           },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: isMobile ? 12 : 14,
-              fontWeight: 'bold'
-            },
+          pageIconColor: isDark ? '#fff' : '#000',
+          pageIconInactiveColor: isDark ? '#666' : '#aaa'
+        },
+        series: [
+          {
+            name: t('tag-distribution'),
+            type: 'pie',
+            radius: isMobile ? ['30%', '60%'] : ['40%', '70%'],
+            center: isMobile ? ['50%', '40%'] : ['40%', '50%'],
+            avoidLabelOverlap: true,
             itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          },
-          labelLine: {
-            show: !isMobile,
-            length: 15,
-            length2: 10,
-            smooth: true
-          },
-          data: tagStats.map(item => ({
-            value: item.count,
-            name: item.tagName === 'Others' ? t('other-tags') : item.tagName
-          }))
-        }
-      ],
-      color: [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#08AEEA', 
-        '#2AF598', '#4FACFE', '#FF9A8B', '#FF6A88',
-        '#A9C9FF', '#FEE140'
-      ]
-    }
+              borderRadius: 10,
+              borderColor: isDark ? '#1f1f1f' : '#ffffff',
+              borderWidth: 2
+            },
+            label: {
+              show: !isMobile,
+              position: 'outer',
+              formatter: '{b}\n{d}%',
+              color: isDark ? '#fff' : '#000'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: isMobile ? 12 : 14,
+                fontWeight: 'bold'
+              },
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            labelLine: {
+              show: !isMobile,
+              length: 15,
+              length2: 10,
+              smooth: true
+            },
+            data: tagStats.map(item => ({
+              value: item.count,
+              name: item.tagName === 'Others' ? t('other-tags') : item.tagName
+            }))
+          }
+        ],
+        color: [
+          '#FF6B6B', '#4ECDC4', '#45B7D1', '#08AEEA',
+          '#2AF598', '#4FACFE', '#FF9A8B', '#FF6A88',
+          '#A9C9FF', '#FEE140'
+        ]
+      };
 
-    chart.setOption(option)
+      chartInstance.setOption(option);
 
-    const handleResize = () => {
-      if (chart) {
-        chart.resize()
-        const newIsMobile = window.innerWidth < 768
-        chart.setOption({
+      resizeHandler = () => {
+        if (!chartInstance) return;
+        chartInstance.resize();
+
+        const newIsMobile = window.innerWidth < 768; // Use direct check or ref to isMobile
+        // Since isMobile from useMediaQuery might not update in this closure if not in deps, we rely on effect re-running
+        // But for resize event, we want to react.
+
+        chartInstance.setOption({
           legend: {
             orient: newIsMobile ? 'horizontal' : 'vertical',
             right: newIsMobile ? 'center' : 10,
@@ -125,18 +136,24 @@ export const TagDistributionChart = observer(({ tagStats }: TagDistributionChart
               show: !newIsMobile
             }
           }]
-        })
-      }
-    }
+        });
+      };
 
-    window.addEventListener('resize', handleResize)
+      window.addEventListener('resize', resizeHandler);
+    };
+
+    initChart();
 
     return () => {
-      window.removeEventListener('resize', handleResize)
-      chart?.dispose()
-      chart = null
-    }
-  }, [tagStats, theme, t])
+      isMounted = false;
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+      }
+      if (chartInstance) {
+        chartInstance.dispose();
+      }
+    };
+  }, [tagStats, theme, t, isMobile]);
 
   return (
     <Card className="bg-background col-span-full" shadow="none">

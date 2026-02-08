@@ -5,7 +5,7 @@
   "identifier": "com.blinko.app",
   "build": {
     "beforeDevCommand": "bun run dev",
-    "devUrl": "http://localhost:1111",
+    "devUrl": "http://127.0.0.1:1111",
     "beforeBuildCommand": "bun run build:no-pwa",
     "frontendDist": "../../dist/public"
   },

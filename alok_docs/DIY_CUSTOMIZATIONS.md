@@ -102,3 +102,15 @@
 ### 6.2 触控人体工学优化 (Touch Targets)
 *   **44px 标准**: 遵循 Apple/Google 规范，将所有底部按钮的点击容器提升至 **44px**（原 40px），图标放大至 **26px**。
 *   **发送按钮扁平化**: 为了优化垂直节奏，将发送按钮调整为 **56x36px** 的扁平椭圆状，既保留了大触控面积，又增加了与分割线之间的视觉呼吸感，防止上下按钮显得过于拥挤。
+
+---
+
+## 7. 首屏秒开与布局稳定性 (Instant Start & Layout Stability)
+
+### 7.1 快照化加载 (Snapshot Loading Pattern)
+*   **原理**: 为 `fonts.list` (字体列表) 和 `config.list` (全局配置) 引入了基于 `LocalStorage` 的**快照回显机制**。
+*   **体验**: 刷新页面后，UI 瞬间从快照恢复（零延迟），随后在后台异步发起 API 请求进行对比和静默更新，彻底解决了首屏渲染时的视觉跳变（FOUC）。
+
+### 7.2 CSS 变量驱动布局 (CSS-Driven Layout)
+*   **方案**: 将 SideBar 的动态宽度计算从 MobX 响应式 JS 直接驱动迁移为 **CSS 变量 (`--sidebar-width`)** 模式。
+*   **优势**: 缩放侧边栏时不再触发布局抖动 (Forced Reflow)，渲染更高效，消除了 Chrome 控制台中的性能警报。

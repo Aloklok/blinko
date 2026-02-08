@@ -1,12 +1,12 @@
 export default {
     plugins: {
         'postcss-preset-env': {
-            stage: 2, // 从 stage 3 改为 stage 2，包含更广泛的 polyfills
+            stage: 2,
             features: {
-                'color-mix': { preserve: false }, // 强制生成 fallback，不保留原始 color-mix
+                // 'color-mix': { preserve: false }, // [Disabled for Safari 17.6]
                 'nesting-rules': true,
             },
-            browsers: ['safari >= 15'], // 明确指定 Safari 15+
+            // browsers: ['safari >= 15'], // [Disabled for Safari 17.6]
             autoprefixer: {
                 grid: true,
                 flexbox: true

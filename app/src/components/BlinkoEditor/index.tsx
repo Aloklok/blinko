@@ -118,9 +118,13 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
   // Use Tauri hotkey hook
 
 
-  return <div className={`h-full flex flex-col ${withoutOutline ? '' : ''}`} ref={editorRef} id='global-editor' data-tauri-drag-region onClick={() => {
-    blinko.isCreateMode = mode == 'create'
-  }}>
+  return <div className={`h-full flex flex-col ${withoutOutline ? '' : ''}`}
+    ref={editorRef}
+    id={isInDialog ? undefined : 'global-editor'}
+    data-tauri-drag-region
+    onClick={() => {
+      blinko.isCreateMode = mode == 'create'
+    }}>
     <Editor
       mode={mode}
       originFiles={store.files}
@@ -135,13 +139,6 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
       isInDialog={isInDialog}
       onHeightChange={() => {
         onHeightChange?.(editorRef.current?.clientHeight ?? 75)
-        if (editorRef.current) {
-          const editorElement = document.getElementById('global-editor');
-          if (editorElement && editorElement.children[0]) {
-            //@ts-ignore
-            editorElement.__storeInstance = editorElement.children[0].__storeInstance;
-          }
-        }
       }}
       isSendLoading={blinko.upsertNote.loading.value}
       bottomSlot={
