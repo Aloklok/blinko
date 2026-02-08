@@ -78,7 +78,7 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
   return (
     <div ref={ref} className="w-full h-full">
       {loading && (
-        <div className="flex items-center justify-center w-full h-full min-h-[100px]">
+        <div className="flex items-center justify-center w-full h-full">
           <Icon icon="line-md:loading-twotone-loop" width="24" height="24" />
         </div>
       )}
@@ -92,7 +92,7 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
           onError={() => {
             setIsOriginalError(true);
           }}
-          className={`object-cover w-full ${className}`}
+          className={`object-fill w-full h-full ${className}`}
         />
       )}
     </div>
@@ -114,8 +114,7 @@ const ImageRender = observer((props: IProps) => {
     if (!preview) {
       return 'h-[160px] w-[160px]'
     }
-    // Fixed: md:w-[180px] is better for thumbnails; md:w-[1000px] was wrong.
-    return 'md:h-[180px] md:w-full h-[120px] w-full object-cover'
+    return 'h-[100px] w-[100px]'
   }, [preview, columns])
 
   const renderImage = (file: FileType) => (
@@ -130,7 +129,7 @@ const ImageRender = observer((props: IProps) => {
           <div className="w-full cursor-zoom-in">
             <ImageThumbnailRender
               src={file.preview}
-              className={`mb-4 w-full h-full min-h-[100px] !opacity-100 visibility-visible`}
+              className={`!opacity-100 visibility-visible`}
             />
           </div>
         </PhotoView>
