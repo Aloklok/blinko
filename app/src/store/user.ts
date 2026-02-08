@@ -278,18 +278,29 @@ export class UserStore implements Store {
     const darkElement = document.querySelector('.dark')
     const lightElement = document.querySelector('.light')
 
+    const hexToRgb = (hex: string) => {
+      if (!hex || !hex.startsWith('#')) return null;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `${r}, ${g}, ${b}`;
+    };
+
     if (config?.themeColor && config?.themeForegroundColor) {
+      const rgb = hexToRgb(config.themeColor);
       if (darkElement) {
         //@ts-ignore
         darkElement.style.setProperty('--primary', config.themeColor)
         //@ts-ignore
         darkElement.style.setProperty('--primary-foreground', config.themeForegroundColor)
+        if (rgb) darkElement.style.setProperty('--primary-rgb', rgb);
       }
       if (lightElement) {
         //@ts-ignore
         lightElement.style.setProperty('--primary', config.themeColor)
         //@ts-ignore
         lightElement.style.setProperty('--primary-foreground', config.themeForegroundColor)
+        if (rgb) lightElement.style.setProperty('--primary-rgb', rgb);
       }
     } else {
       if (darkElement) {
@@ -297,12 +308,14 @@ export class UserStore implements Store {
         darkElement.style.setProperty('--primary', '#f9f9f9')
         //@ts-ignore
         darkElement.style.setProperty('--primary-foreground', '#000000')
+        darkElement.style.setProperty('--primary-rgb', '249, 249, 249');
       }
       if (lightElement) {
         //@ts-ignore
         lightElement.style.setProperty('--primary', '#000000')
         //@ts-ignore
         lightElement.style.setProperty('--primary-foreground', 'hsl(210 40% 98%)')
+        lightElement.style.setProperty('--primary-rgb', '0, 0, 0');
       }
     }
 

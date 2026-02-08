@@ -63,12 +63,25 @@ export const PerferSetting = observer(() => {
             value: foreground
           }))
 
+          const hexToRgb = (hex: string) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `${r}, ${g}, ${b}`;
+          };
+
+          const rgb = background && background.startsWith('#') ? hexToRgb(background) : null;
+
           const darkElement = document.querySelector('.dark')
           if (darkElement) {
             //@ts-ignore
             darkElement.style.setProperty('--primary', background || "#f9f9f9")
             //@ts-ignore
             darkElement.style.setProperty('--primary-foreground', foreground || "#000000")
+            if (rgb) {
+              //@ts-ignore
+              darkElement.style.setProperty('--primary-rgb', rgb)
+            }
           }
 
           const lightElement = document.querySelector('.light')
@@ -77,6 +90,10 @@ export const PerferSetting = observer(() => {
             lightElement.style.setProperty('--primary', background || "black")
             //@ts-ignore
             lightElement.style.setProperty('--primary-foreground', foreground || "hsl(210 40% 98%)")
+            if (rgb) {
+              //@ts-ignore
+              lightElement.style.setProperty('--primary-rgb', rgb)
+            }
           }
         }}
       />} />
