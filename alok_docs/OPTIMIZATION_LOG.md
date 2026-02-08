@@ -76,8 +76,9 @@
 ## 11. 构建与环境兼容性修复 (Build Fix - Phase 39)
 
 *   **问题**: 在 Docker 干净环境下 `build:web` 模块解析失败 (Exit Code 1)。
-*   **原因**: `lodash.ts` 错误引用了尚未安装的 `lodash` 路径包。
-*   **修复**: 统一更正为 `lodash-es` 导入并推向远程。
+*   **修复**: 
+    - **Lodash**: 统一更正为 `lodash-es` 导入。
+    - **DND 残留 (Critical)**: 彻底移除了资源管理器 (`resources.tsx`) 对已卸载库 `@hello-pangea/dnd` 的残余引用，统一迁移至项目标准 `@dnd-kit/core`。此举解决了 Clean 环境下 Vite 无法解析模块导致的构建中断。
 
 ---
 > [!NOTE]
