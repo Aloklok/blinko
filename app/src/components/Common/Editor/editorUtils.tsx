@@ -33,18 +33,32 @@ export const HandleFileType = (originFiles: Attachment[]): FileType[] => {
   const res = originFiles?.map(file => {
     const extension = helper.getFileExtension(file.name)
     const previewType = helper.getFileType(file.type, file.name)
+
+    // For existing files (path exists), we initialize PromiseState with the value 
+    // to avoid triggering an unnecessary loading state in the UI.
+    const uploadPromise = new PromiseState({
+      function: async () => file.path,
+      value: file.path || null,
+      loadingLock: false
+    })
+
     return {
       name: file.name,
       size: file.size,
       previewType,
       extension: extension ?? '',
       preview: file.path,
-      uploadPromise: new PromiseState({ function: async () => file.path }),
+      uploadPromise,
       type: file.type,
       metadata: (file as any).metadata
     }
   })
-  res?.map(i => i.uploadPromise.call())
+  // We only call() if it's not already resolved to prevent state flicker
+  res?.forEach(i => {
+    if (!i.uploadPromise.value && i.preview) {
+      i.uploadPromise.call()
+    }
+  })
   return res
 }
 

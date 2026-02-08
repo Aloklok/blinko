@@ -114,7 +114,8 @@ const ImageRender = observer((props: IProps) => {
     if (!preview) {
       return 'h-[160px] w-[160px]'
     }
-    return 'md:h-[180px] md:w-[180px] h-[100px] w-[100px] object-cover'
+    // Fixed: md:w-[180px] is better for thumbnails; md:w-[1000px] was wrong.
+    return 'md:h-[180px] md:w-full h-[120px] w-full object-cover'
   }, [preview, columns])
 
   const renderImage = (file: FileType) => (
@@ -126,10 +127,10 @@ const ImageRender = observer((props: IProps) => {
       )}
       <div className='w-full'>
         <PhotoView src={getBlinkoEndpoint(`${file.preview}?token=${RootStore.Get(UserStore).tokenData.value?.token}`)}>
-          <div>
+          <div className="w-full cursor-zoom-in">
             <ImageThumbnailRender
               src={file.preview}
-              className={`mb-4 ${imageHeight} object-cover md:w-[1000px]`}
+              className={`mb-4 w-full h-full min-h-[100px] !opacity-100 visibility-visible`}
             />
           </div>
         </PhotoView>
