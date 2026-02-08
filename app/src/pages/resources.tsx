@@ -5,7 +5,15 @@ import { useMemo, useCallback } from "react";
 import { ScrollArea } from "@/components/Common/ScrollArea";
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useTranslation } from "react-i18next";
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { toJS } from "mobx";
 import { MemoizedResourceItem } from "@/components/BlinkoResource/ResourceItem";
 import { ResourceContextMenu } from "@/components/BlinkoResource/ResourceContextMenu";
@@ -15,10 +23,23 @@ import { AnimatePresence, motion } from "framer-motion";
 import { LoadingAndEmpty } from "@/components/Common/LoadingAndEmpty";
 import { PhotoProvider } from "react-photo-view";
 import { useNavigate } from "react-router-dom";
+
 const Page = observer(() => {
   const navigate = useNavigate();
   const resourceStore = RootStore.Get(ResourceStore);
   const { t } = useTranslation();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const resources = useMemo(() => {
     const allResources = toJS(resourceStore.blinko.resourceList.value) || [];
     // Filter out .folder placeholder files
@@ -47,7 +68,11 @@ const Page = observer(() => {
 
   return (
     <>
-      <DragDropContext onDragEnd={resourceStore.handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={resourceStore.handleDragEnd}
+      >
         <ScrollArea
           fixMobileTopBar
           onBottom={resourceStore.loadNextPage}
@@ -182,33 +207,22 @@ const Page = observer(() => {
           />
           <PhotoProvider>
             {resources.length > 0 && (
-              <Droppable droppableId="resources">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="py-2 min-h-[200px]"
-                  >
-                    {resources.map((item, index) => (
-                      <MemoizedResourceItem
-                        key={item.isFolder ? `folder-${item.folderName}` : `file-${item.id}`}
-                        item={item}
-                        index={index}
-                        isSelected={selectedItems.has(item.id!)}
-                        onSelect={resourceStore.toggleSelect}
-                        onFolderClick={(folder) => resourceStore.navigateToFolder(folder, navigate)}
-                      />
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+              <div className="py-2 min-h-[200px]">
+                {resources.map((item, index) => (
+                  <MemoizedResourceItem
+                    key={item.isFolder ? `folder-${item.folderName}` : `file-${item.id}`}
+                    item={item}
+                    index={index}
+                    isSelected={selectedItems.has(item.id!)}
+                    onSelect={resourceStore.toggleSelect}
+                    onFolderClick={(folder) => resourceStore.navigateToFolder(folder, navigate)}
+                  />
+                ))}
+              </div>
             )}
-
           </PhotoProvider>
-
         </ScrollArea>
-      </DragDropContext>
+      </DndContext>
       <ResourceMultiSelectPop />
       <ResourceContextMenu id="resource-item-menu" />
     </>

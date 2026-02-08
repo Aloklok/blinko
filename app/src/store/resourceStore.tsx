@@ -68,27 +68,35 @@ export class ResourceStore implements Store {
     });
   }
 
-  handleDragEnd = async (result: any) => {
-    if (!result.destination) return;
+  handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+    if (!over) return;
 
-    const { source, destination } = result;
+    // Over ID will be folder-${folderName} or 'resources' (void)
+    const overId = String(over.id);
+    if (!overId.startsWith('folder-')) return;
 
-    const destItem = this.blinko.resourceList.value?.[destination.index];
-    if (!destItem?.isFolder) return;
+    const targetFolderName = overId.replace('folder-', '');
 
-    const itemsToMove = Array.from(this.selectedItems).map(id =>
-      this.blinko.resourceList.value?.find(item => item.id === Number(id))
-    ).filter((item): item is NonNullable<typeof item> => item != null);
+    const itemsToMove: ResourceType[] = [];
 
-    if (itemsToMove.length === 0) {
-      const draggedItem = this.blinko.resourceList.value?.[source.index];
-      if (!draggedItem) return;
-      itemsToMove.push(draggedItem);
+    // Check if we are dragging a single item or have a selection
+    if (this.selectedItems.size > 0) {
+      this.selectedItems.forEach(id => {
+        const item = this.blinko.resourceList.value?.find(r => r.id === Number(id));
+        if (item) itemsToMove.push(item);
+      });
+    } else {
+      // If no selection, use the active item from data
+      const activeItem = active.data.current?.item;
+      if (activeItem) itemsToMove.push(activeItem);
     }
 
+    if (itemsToMove.length === 0) return;
+
     const targetPath = this.currentFolder
-      ? `${this.currentFolder}/${destItem.folderName}`
-      : destItem.folderName;
+      ? `${this.currentFolder}/${targetFolderName}`
+      : targetFolderName;
 
     await RootStore.Get(ToastPlugin).promise(
       PromiseCall(api.attachments.move.mutate({
@@ -197,7 +205,7 @@ export class ResourceStore implements Store {
                 parentFolder: this.currentFolder || undefined
               })
             );
-            
+
             // Refresh the resource list
             this.refreshTicker++;
             RootStore.Get(DialogStore).close();
