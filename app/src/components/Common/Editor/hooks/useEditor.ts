@@ -384,18 +384,22 @@ export const useEditorInit = (
     // This is key: load CSS before vditor initialization to ensure styles are available when code highlighting renders
     updateHighlightCSS(theme, cdn);
 
+    let canceled = false;
     let debouncedRender: any = null;
 
     Promise.all([
       import('vditor'),
       import('echarts')
     ]).then(([module, echarts]) => {
+      if (canceled) return;
+
       const Vditor = module.default;
       if (typeof window !== 'undefined' && !(window as any).echarts) {
         (window as any).echarts = echarts;
       }
 
       debouncedRender = debounce(() => {
+        if (canceled) return;
         const inputTheme = currentTheme || RootStore.Get(UserStore).theme || 'light';
         renderAllVditorContent(null, store.instanceId, inputTheme, vditor);
         // Apply theme class to editor for ABCJS and mindmap dark mode support
@@ -480,6 +484,7 @@ export const useEditorInit = (
           }
         },
         after: () => {
+          if (canceled) return;
           vditor.setValue(content);
           store.init({
             onChange,
@@ -509,6 +514,7 @@ export const useEditorInit = (
     });
     // Clear the effect
     return () => {
+      canceled = true;
       debouncedRender?.cancel();
       store.vditor?.destroy();
       store.vditor = null;

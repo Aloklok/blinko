@@ -12,7 +12,7 @@ interface ListItemProps {
 const getNodeAsText = (node: any): string => {
   if (!node) return '';
   if (typeof node === 'string') return node;
-  
+
   const { type, props } = node;
   switch (type) {
     case 'strong':
@@ -56,7 +56,7 @@ const replaceTaskMark = (
 
   const start = index - 4;
   if (start < 0) return newContent;
-  if (isChecked === (content.charAt(index - 1) === ' ')) return newContent;  
+  if (isChecked === (content.charAt(index - 1) === ' ')) return newContent;
 
   const oldMark = content.slice(start, index + key.length);
   const targetMark = `${oldMark.charAt(0)} [${targetState ? 'x' : ' '}]${taskText}`;
@@ -113,7 +113,7 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
   const handleToggle = (e: React.MouseEvent) => {
     if (!onChange) return;
     e.stopPropagation();
-    
+
     const targetState = hasChildren ? !allChildrenChecked : !isChecked;
 
     let newContent = replaceTaskMark(content, isChecked, taskText, content, targetState);
@@ -148,16 +148,16 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
 
   return (
     <li className={`${className} !list-none`}>
-      <div 
-        className='flex items-start gap-1 -ml-[15px] cursor-pointer justify-center'
+      <div
+        className='flex items-start gap-1 cursor-pointer justify-center'
         onClick={handleToggle}
       >
         <div className='w-[20px] h-[20px] flex-shrink-0 mt-[3px] hover:opacity-80 !transition-all'>
-          <Icon 
-            className='text-[#EAB308]' 
-            icon={getIcon()} 
-            width="20" 
-            height="20" 
+          <Icon
+            className='text-[#EAB308]'
+            icon={getIcon()}
+            width="20"
+            height="20"
           />
         </div>
         <div
