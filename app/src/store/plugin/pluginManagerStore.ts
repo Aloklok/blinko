@@ -37,6 +37,7 @@ export class PluginManagerStore implements Store {
   });
   private loadedCssFiles: Map<string, HTMLStyleElement[]> = new Map();
   private pluginRetryCount: Map<string, number> = new Map();
+  private initializationPayloads: Map<string, { cssContents: any[], config: any }> = new Map();
 
   constructor() {
     makeAutoObservable(this);
@@ -55,7 +56,7 @@ export class PluginManagerStore implements Store {
 
   marketplacePlugins = new PromiseState({
     function: async () => {
-      const plugins = await api.plugin.getAllPlugins.query();
+      const plugins = await api.plugin.list.query();
       return plugins
     }
   })
@@ -72,8 +73,10 @@ export class PluginManagerStore implements Store {
   }
 
   async loadAllPlugins() {
-    this.marketplacePlugins.call();
-    this.installedPlugins.call();
+    return Promise.all([
+      this.marketplacePlugins.call(),
+      this.installedPlugins.call()
+    ]);
   }
 
   /**
@@ -84,8 +87,11 @@ export class PluginManagerStore implements Store {
       // Remove previously loaded CSS files
       this.removeCssFiles(pluginName);
 
-      // Use API to get CSS content
-      const cssContents = await api.plugin.getPluginCssContents.query({ pluginName });
+      // Use cached payload if available, otherwise fetch from API
+      let cssContents = this.initializationPayloads.get(pluginName)?.cssContents;
+      if (!cssContents) {
+        cssContents = await api.plugin.getPluginCssContents.query({ pluginName });
+      }
 
       if (cssContents.length > 0) {
         const styleElements: HTMLStyleElement[] = [];
@@ -123,12 +129,34 @@ export class PluginManagerStore implements Store {
   }
 
   async initInstalledPlugins() {
+    const userStore = RootStore.Get(UserStore);
+    if (!userStore.isLogin) {
+      return;
+    }
+
     const plugins = await this.installedPlugins.getOrCall();
-    if (plugins) {
-      for (const plugin of plugins) {
-        console.log('initInstalledPlugins', plugin.path);
-        this.loadPlugin(plugin.path);
+    if (plugins && plugins.length > 0) {
+      console.log(`Initializing ${plugins.length} plugins in parallel...`);
+      // 并行获取所有插件配置以减少往返
+      const pluginNames = plugins.map(p => {
+        const pathSegments = p.path.split('/');
+        return pathSegments[pathSegments.indexOf('plugins') + 1] || '';
+      });
+
+      // 批量预取 Payload (CSS + Config)
+      try {
+        const payload = await api.plugin.getPluginsInitializePayload.query({ pluginNames });
+        Object.keys(payload).forEach(name => {
+          this.initializationPayloads.set(name, payload[name]);
+        });
+      } catch (error) {
+        console.warn('Failed to pre-fetch plugin initialize payloads:', error);
       }
+
+      await Promise.all(plugins.map(plugin => this.loadPlugin(plugin.path)));
+
+      // 清空预取缓存以释放内存
+      this.initializationPayloads.clear();
     }
   }
 
@@ -578,8 +606,11 @@ export class PluginManagerStore implements Store {
     try {
       const plugin = new PluginClass();
 
-      // Load plugin config before initialization
-      const config = await api.config.getPluginConfig.query({ pluginName });
+      // Load plugin config: Prioritize pre-fetched payload
+      let config = this.initializationPayloads.get(pluginName)?.config;
+      if (!config) {
+        config = await api.config.getPluginConfig.query({ pluginName });
+      }
       plugin.config = config || {};
 
       // Inject updateConfig method

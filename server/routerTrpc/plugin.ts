@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { prisma } from '../prisma';
 import fs from 'fs/promises';
 import path from 'path';
-import axios from 'axios';
+// import axios from 'axios'; // Removed
+import { ServerFetch } from '@server/lib/fetch';
 import yauzl from 'yauzl-promise';
 import { createWriteStream } from 'fs';
 import { pluginInfoSchema, installPluginSchema } from '../../shared/lib/types';
@@ -75,14 +76,15 @@ const scanCssFiles = async (dirPath: string): Promise<string[]> => {
 
 async function downloadWithRetry(url: string, filePath: string, retries = MAX_RETRIES): Promise<void> {
   try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
+    const data = await ServerFetch.get<ArrayBuffer>(url, {
+      responseType: 'arrayBuffer',
       timeout: 30000, // 30 seconds timeout
-      maxContentLength: 50 * 1024 * 1024, // 50MB max
     });
-    await fs.writeFile(filePath, response.data);
-  } catch (error) {
-    if (retries > 0 && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT')) {
+    // Convert ArrayBuffer to Buffer for file writing
+    await fs.writeFile(filePath, Buffer.from(data));
+  } catch (error: any) {
+    if (retries > 0) {
+      // Retry on any error since we don't have fine-grained error codes from fetch yet
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
       return downloadWithRetry(url, filePath, retries - 1);
     }
@@ -101,12 +103,98 @@ const cleanPluginDir = async (pluginName: string) => {
     await fs.rm(pluginDir, { recursive: true, force: true });
   } catch (error) {
     // Directory might not exist, ignore error
-    console.debug(`Failed to clean plugin directory, might not exist: ${pluginName}`);
   }
 };
 
+const getPluginCssContentsInternal = async (pluginName: string) => {
+  const pluginDir = getPluginDir(pluginName);
+  if (!existsSync(pluginDir)) {
+    return [];
+  }
+
+  const cssFiles = await scanCssFiles(pluginDir);
+  const cssContents = await Promise.all(
+    cssFiles.map(async (file) => {
+      const filePath = path.join(pluginDir, file);
+      const content = await fs.readFile(filePath, 'utf-8');
+      return {
+        fileName: file,
+        content,
+      };
+    })
+  );
+
+  return cssContents;
+};
+
 export const pluginRouter = router({
-  getAllPlugins: authProcedure
+  // Get CSS file contents for a plugin
+  getPluginCssContents: authProcedure
+    .input(
+      z.object({
+        pluginName: z.string(),
+      }),
+    )
+    .output(z.array(z.object({
+      fileName: z.string(),
+      content: z.string()
+    })))
+    .query(async ({ input }) => {
+      return await getPluginCssContentsInternal(input.pluginName);
+    }),
+
+  // Batch get CSS and configs for multiple plugins
+  getPluginsInitializePayload: authProcedure
+    .input(
+      z.object({
+        pluginNames: z.array(z.string()),
+      }),
+    )
+    .output(z.any())
+    .query(async ({ input, ctx }) => {
+      const userId = Number(ctx.id);
+      const { pluginNames } = input;
+      const result: Record<string, any> = {};
+
+      for (const pluginName of pluginNames) {
+        // 1. Get CSS
+        const cssContents = await getPluginCssContentsInternal(pluginName);
+
+        // 2. Get Config (Re-implementation to avoid router circular dependency)
+        const configs = await prisma.config.findMany({
+          where: {
+            userId,
+            key: {
+              contains: `plugin_config_${pluginName}_`
+            }
+          }
+        });
+
+        const configMap = configs.reduce((acc, item) => {
+          const key = item.key.replace(`plugin_config_${pluginName}_`, '');
+          // Debug log for each config item
+          // console.log(`[getPluginsInitializePayload] Config item for ${pluginName}: key=${key}, type=${typeof item.config}, value=${JSON.stringify(item.config)}`);
+
+          if (typeof item.config === 'object' && item.config !== null && 'value' in item.config) {
+            acc[key] = (item.config as { value: any }).value;
+          } else {
+            // Fallback for unexpected structure
+            acc[key] = item.config;
+          }
+          return acc;
+        }, {} as Record<string, any>);
+
+        result[pluginName] = {
+          cssContents,
+          config: configMap
+        };
+      }
+
+      console.log('[getPluginsInitializePayload] Final result keys:', Object.keys(result));
+      return result;
+    }),
+
+  list: publicProcedure
     .query(async () => {
       return cache.wrap(
         `plugin-list-${await getHttpCacheKey()}`,
@@ -123,47 +211,6 @@ export const pluginRouter = router({
           ttl: 5 * 60 * 1000,
         },
       );
-    }),
-
-  // Get CSS file contents for a plugin
-  getPluginCssContents: authProcedure
-    .input(
-      z.object({
-        pluginName: z.string(),
-      }),
-    )
-    .output(z.array(z.object({
-      fileName: z.string(),
-      content: z.string()
-    })))
-    .query(async ({ input }) => {
-      try {
-        const pluginDir = getPluginDir(input.pluginName);
-        if (!existsSync(pluginDir)) {
-          return [];
-        }
-
-        const cssFiles = await scanCssFiles(pluginDir);
-        const result: Array<{ fileName: string, content: string }> = [];
-
-        for (const cssFile of cssFiles) {
-          try {
-            const filePath = path.join(pluginDir, cssFile);
-            const content = await fs.readFile(filePath, 'utf-8');
-            result.push({
-              fileName: cssFile,
-              content
-            });
-          } catch (error) {
-            console.error(`Failed to read CSS file ${cssFile}:`, error);
-          }
-        }
-
-        return result;
-      } catch (error) {
-        console.error(`Failed to get CSS contents for plugin ${input.pluginName}:`, error);
-        return [];
-      }
     }),
 
   saveDevPlugin: authProcedure

@@ -78,11 +78,29 @@ export class PluginApiStore implements Store {
   }
 
   getActiveEditorStore(): EditorStore | null {
-    const editorElement = document.getElementById('global-editor');
-    if (!editorElement) return null;
-    //@ts-ignore
-    const editorInstance = editorElement.__storeInstance;
-    return editorInstance;
+    // 1. Try to find the focused editor first (most accurate for "Active")
+    const focusedVditor = document.querySelector('.vditor-content:focus-within');
+    if (focusedVditor) {
+      let cur: any = focusedVditor;
+      while (cur && cur !== document.body) {
+        if (cur.__storeInstance) return cur.__storeInstance;
+        cur = cur.parentElement;
+      }
+    }
+
+    // 2. Try the global-editor ID (legacy/homepage editor)
+    const globalEditor = document.getElementById('global-editor');
+    if (globalEditor && (globalEditor as any).__storeInstance) {
+      return (globalEditor as any).__storeInstance;
+    }
+
+    // 3. Fallback: Find the first available blinko-editor-container that has a store
+    const anyEditor = document.querySelector('.blinko-editor-container');
+    if (anyEditor && (anyEditor as any).__storeInstance) {
+      return (anyEditor as any).__storeInstance;
+    }
+
+    return null;
   }
 
   getEditorMetadata() {

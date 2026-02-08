@@ -1,45 +1,84 @@
 import { observer } from "mobx-react-lite";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button, Input } from '@heroui/react';
+import { Button, Input } from '@heroui/react';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useTranslation } from 'react-i18next';
 import { RootStore } from "@/store";
 import { ResourceStore } from "@/store/resourceStore";
 import { api } from "@/lib/trpc";
 import { DialogStore } from "@/store/module/Dialog";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { showTipsDialog } from "../Common/TipsDialog";
 import { PromiseCall } from "@/store/standard/PromiseState";
 import { ToastPlugin } from "@/store/module/Toast/Toast";
 import { DialogStandaloneStore } from "@/store/module/DialogStandalone";
 import { downloadFromLink } from "@/lib/tauriHelper";
-import { getBlinkoEndpoint} from "@/lib/blinkoEndpoint";
+import { getBlinkoEndpoint } from "@/lib/blinkoEndpoint";
+import {
+  Menu,
+  MenuItem,
+  ControlledMenu,
+  useMenuState,
+} from '@szhsin/react-menu';
+import '@szhsin/react-menu/dist/index.css';
+import '@szhsin/react-menu/dist/transitions/zoom.css';
 
-const MenuItem = ({ icon, label, className = '' }: { icon: string; label: string; className?: string }) => (
+const MenuIconItem = ({ icon, label, className = '' }: { icon: string; label: string; className?: string }) => (
   <div className={`flex items-center gap-2 ${className} `}>
     <Icon icon={icon} className="w-5 h-5" />
     <span>{label}</span>
   </div>
 );
 
-interface ResourceContextMenuProps {
-  onTrigger: () => void;
-}
+// 全局监听器存储
+const resourceContextMenuListeners: Record<string, (e: React.MouseEvent) => void> = {};
 
-export const ResourceContextMenu = observer(({ onTrigger }: ResourceContextMenuProps) => {
+export const ResourceContextMenuTrigger = ({
+  id,
+  children
+}: {
+  id: string,
+  children: React.ReactNode
+}) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    if (resourceContextMenuListeners[id]) {
+      resourceContextMenuListeners[id](e);
+    }
+  }, [id]);
+
+  return (
+    <div onContextMenu={handleContextMenu} className="w-full h-full">
+      {children}
+    </div>
+  );
+};
+
+export const ResourceContextMenu = observer(({ id }: { id: string }) => {
   const { t } = useTranslation();
   const resourceStore = RootStore.Get(ResourceStore);
   const resource = resourceStore.contextMenuResource;
+  const [menuProps, toggleMenu] = useMenuState({ transition: true });
+  const [anchorPoint, setAnchorPoint] = useState({ x: 0, y: 0 });
 
-  const handleDownload = (() => {
-    if (!resource) return;
-    if (!resource.path) return;
+  useEffect(() => {
+    const listener = (e: React.MouseEvent) => {
+      setAnchorPoint({ x: e.clientX, y: e.clientY });
+      toggleMenu(true);
+    };
+    resourceContextMenuListeners[id] = listener;
+    return () => {
+      delete resourceContextMenuListeners[id];
+    };
+  }, [id, toggleMenu]);
+
+  const handleDownload = () => {
+    if (!resource?.path) return;
     downloadFromLink(getBlinkoEndpoint(resource.path));
-  });
+  };
 
   const handleRename = async () => {
     if (!resource) return;
     const currentName = resource.isFolder ? resource.folderName : resource.name;
-    const resourceStore = RootStore.Get(ResourceStore);
 
     RootStore.Get(DialogStore).setData({
       isOpen: true,
@@ -87,10 +126,10 @@ export const ResourceContextMenu = observer(({ onTrigger }: ResourceContextMenuP
                     isFolder: resource.isFolder,
                     oldFolderPath: oldPath?.split('/').join(',')
                   }), { autoAlert: false }), {
-                    loading: t("operation-in-progress"),
-                    success: t("operation-success"),
-                    error: t("operation-failed")
-                  }
+                  loading: t("operation-in-progress"),
+                  success: t("operation-success"),
+                  error: t("operation-failed")
+                }
                 );
                 RootStore.Get(DialogStore).close();
                 resourceStore.refreshTicker++;
@@ -117,16 +156,16 @@ export const ResourceContextMenu = observer(({ onTrigger }: ResourceContextMenuP
             ? `${resourceStore.currentFolder}/${resource.folderName}`
             : resource.folderName;
 
-         await RootStore.Get(ToastPlugin).promise(
+          await RootStore.Get(ToastPlugin).promise(
             PromiseCall(api.attachments.delete.mutate({
               id: resource.id!,
               isFolder: resource.isFolder,
               folderPath: folderPath?.split('/').join(',')
             }), { autoAlert: false }), {
-              loading: t("operation-in-progress"),
-              success: t("operation-success"),
-              error: t("operation-failed")
-            }
+            loading: t("operation-in-progress"),
+            success: t("operation-success"),
+            error: t("operation-failed")
+          }
           );
         } else {
           await PromiseCall(api.attachments.delete.mutate({
@@ -141,44 +180,34 @@ export const ResourceContextMenu = observer(({ onTrigger }: ResourceContextMenuP
   };
 
   const handleCut = () => {
-    if (!resource) return;
-    resourceStore.setCutItems([resource]);
+    if (resource) resourceStore.setCutItems([resource]);
   };
 
   const handlePaste = async () => {
-    if (!resource) return;
-    if (!resourceStore.clipboard || !resource.isFolder) return;
+    if (!resource || !resourceStore.clipboard || !resource.isFolder) return;
 
     const { items } = resourceStore.clipboard;
-    if (resourceStore.clipboard.type === 'cut') {
-      const targetPath = resourceStore.currentFolder
-        ? `${resourceStore.currentFolder}/${resource.folderName}`
-        : resource.folderName;
-      await RootStore.Get(ToastPlugin).promise(PromiseCall(api.attachments.move.mutate({
-        sourceIds: items.map(item => item.id!),
-        targetFolder: targetPath!.split('/').join(',')
-      }), { autoAlert: false }), {
-        loading: t("operation-in-progress"),
-        success: t("operation-success"),
-        error: t("operation-failed")
-      });
+    const targetPath = resourceStore.currentFolder
+      ? `${resourceStore.currentFolder}/${resource.folderName}`
+      : resource.folderName;
 
-      resourceStore.clearClipboard();
-      resourceStore.refreshTicker++;
-    }
-  };
+    await RootStore.Get(ToastPlugin).promise(PromiseCall(api.attachments.move.mutate({
+      sourceIds: items.map(item => item.id!),
+      targetFolder: targetPath!.split('/').join(',')
+    }), { autoAlert: false }), {
+      loading: t("operation-in-progress"),
+      success: t("operation-success"),
+      error: t("operation-failed")
+    });
 
-  const canPaste = () => {
-    if (!resource) return;
-    return resource.isFolder &&
-      resourceStore.clipboard !== null &&
-      resourceStore.clipboard.items.length > 0;
+    resourceStore.clearClipboard();
+    resourceStore.refreshTicker++;
   };
 
   const handleMoveToParent = async () => {
     if (!resource || !resourceStore.currentFolder) return;
     await RootStore.Get(ToastPlugin).promise(
-      resourceStore.moveToParentFolder([resource]), 
+      resourceStore.moveToParentFolder([resource]),
       {
         loading: t("operation-in-progress"),
         success: t("operation-success"),
@@ -187,64 +216,54 @@ export const ResourceContextMenu = observer(({ onTrigger }: ResourceContextMenuP
     );
   };
 
+  const canPaste = resource?.isFolder && resourceStore.clipboard && resourceStore.clipboard.items.length > 0;
+
   return (
-    <Dropdown onOpenChange={e => onTrigger()}>
-      <DropdownTrigger>
-        <Button
-          isIconOnly
-          variant="light"
-        >
-          <Icon icon="mdi:dots-vertical" width="20" height="20" />
-        </Button>
-      </DropdownTrigger>
-      <DropdownMenu aria-label="Resource Actions">
-        {
-          resource?.isFolder ? null : (
-            <DropdownItem key="download" onPress={handleDownload}>
-              <MenuItem icon="material-symbols:download" label={t('download')} />
-            </DropdownItem>
-          )
-        }
+    <ControlledMenu
+      {...menuProps}
+      anchorPoint={anchorPoint}
+      onClose={() => toggleMenu(false)}
+      transition
+      className="szh-menu"
+    >
+      {!resource?.isFolder && (
+        <MenuItem onClick={handleDownload}>
+          <MenuIconItem icon="material-symbols:download" label={t('download')} />
+        </MenuItem>
+      )}
 
-        <DropdownItem key="rename" onPress={handleRename}>
-          <MenuItem icon="gg:rename" label={t('rename')} />
-        </DropdownItem>
+      <MenuItem onClick={handleRename}>
+        <MenuIconItem icon="gg:rename" label={t('rename')} />
+      </MenuItem>
 
-        {resourceStore.currentFolder ? (
-          <DropdownItem key="moveToParent" onPress={handleMoveToParent}>
-            <MenuItem
-              icon="material-symbols:drive-file-move-outline"
-              label={t('move-up')}
-            />
-          </DropdownItem>
-        ) : null}
-
-        {
-          resource?.isFolder ? null : (
-            <DropdownItem key="cut" onPress={handleCut}>
-              <MenuItem icon="material-symbols:content-cut" label={t('cut')} />
-            </DropdownItem>
-          )
-        }
-
-        {canPaste() ? (
-          <DropdownItem key="paste" onPress={handlePaste}>
-            <MenuItem icon="material-symbols:content-paste" label={t('paste')} />
-          </DropdownItem>
-        ) : null}
-
-        <DropdownItem
-          key="delete"
-          className="text-danger"
-          onPress={handleDelete}
-        >
-          <MenuItem
-            icon="material-symbols:delete-outline"
-            label={t('delete')}
-            className="text-danger"
+      {resourceStore.currentFolder && (
+        <MenuItem onClick={handleMoveToParent}>
+          <MenuIconItem
+            icon="material-symbols:drive-file-move-outline"
+            label={t('move-up')}
           />
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
+        </MenuItem>
+      )}
+
+      {!resource?.isFolder && (
+        <MenuItem onClick={handleCut}>
+          <MenuIconItem icon="material-symbols:content-cut" label={t('cut')} />
+        </MenuItem>
+      )}
+
+      {canPaste && (
+        <MenuItem onClick={handlePaste}>
+          <MenuIconItem icon="material-symbols:content-paste" label={t('paste')} />
+        </MenuItem>
+      )}
+
+      <MenuItem onClick={handleDelete} className="text-danger">
+        <MenuIconItem
+          icon="material-symbols:delete-outline"
+          label={t('delete')}
+          className="text-danger"
+        />
+      </MenuItem>
+    </ControlledMenu>
   );
-}); 
+});

@@ -75,15 +75,27 @@ System.register([], function (exports) {
 
                     console.log('✨ Blinko 美化插件 (Decoupled Official Stream Mode) 已启动');
 
-                    const findActiveEditor = () => {
-                        const vditor = document.querySelector('.vditor');
-                        if (vditor) {
+                    const findActiveEditor = (triggerEl) => {
+                        // 1. If we have a trigger element, search upwards for the editor store instance
+                        if (triggerEl) {
+                            let cur = triggerEl;
+                            while (cur && cur !== document.body) {
+                                if (cur.__storeInstance) return cur.__storeInstance;
+                                cur = cur.parentElement;
+                            }
+                        }
+
+                        // 2. Fallback to original logic but be careful about multiple editors
+                        // Find all vditor instances and try to find the one associated with a visible/active container
+                        const vditors = document.querySelectorAll('.vditor');
+                        for (const vditor of vditors) {
                             let cur = vditor;
                             while (cur && cur !== document.body) {
                                 if (cur.__storeInstance) return cur.__storeInstance;
                                 cur = cur.parentElement;
                             }
                         }
+
                         return Blinko.getActiveEditorStore ? Blinko.getActiveEditorStore() : null;
                     };
 
@@ -155,12 +167,17 @@ System.register([], function (exports) {
                         name: 'beautify-toolbar',
                         icon: 'hugeicons:ai-beautify',
                         tooltip: '一键美化',
-                        onClick: () => {
-                            const editor = findActiveEditor();
+                        onClick: (e) => {
+                            const editor = findActiveEditor(e?.currentTarget || e?.target);
                             if (editor) {
                                 const currentContent = editor.vditor ? editor.vditor.getValue() : (editor.content || '');
                                 runBeautify(currentContent, (newContent) => {
-                                    Blinko.eventBus.emit('editor:replace', newContent);
+                                    // Use the editor instance specifically if available for direct replacement
+                                    if (editor.vditor) {
+                                        editor.vditor.setValue(newContent);
+                                    } else {
+                                        Blinko.eventBus.emit('editor:replace', newContent);
+                                    }
                                     Blinko.toast.success('美化完成 ✨');
                                 });
                             } else {
