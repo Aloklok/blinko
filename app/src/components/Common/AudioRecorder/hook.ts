@@ -71,9 +71,12 @@ const useAudioRecorder: (
     const cleanupResources = useCallback(() => {
       // Stop all audio tracks
       if (mediaStreamRef.current) {
+        console.log("Cleaning up MediaStream resources...");
         mediaStreamRef.current.getTracks().forEach(track => {
           if (track.readyState === 'live') {
+            track.enabled = false; // Explicitly disable track to help Safari release hardware
             track.stop();
+            console.log(`Track ${track.kind} stopped`);
           }
         });
         mediaStreamRef.current = null;

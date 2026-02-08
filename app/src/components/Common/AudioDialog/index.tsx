@@ -15,9 +15,11 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [lastRecordingBlob, setLastRecordingBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState<number>(0);
-  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
+  const recordingTimeRef = useRef<number>(0);
+  const timerIdRef = useRef<NodeJS.Timeout | null>(null);
   const [milliseconds, setMilliseconds] = useState<number>(0);
   const millisecondTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
   const [audioPermissionGranted, setAudioPermissionGranted] = useState<boolean>(() => {
     // Initialize with cached permission status
     return localStorage.getItem('microphone_permission_granted') === 'true';
@@ -108,7 +110,7 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
   }, []);
 
   // Cleanup audio analyzer resources
-  const cleanupAudioAnalyser = useCallback(() => {
+  const cleanupAudioAnalyser = useCallback(async () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -121,7 +123,11 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
 
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       try {
-        audioContextRef.current.close();
+        // Suspend before closing - helpful for Safari to release hardware
+        if (audioContextRef.current.state === 'running') {
+          await audioContextRef.current.suspend();
+        }
+        await audioContextRef.current.close();
       } catch (error) {
         console.error("Failed to close AudioContext:", error);
       }
@@ -133,6 +139,7 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
 
   // Start recording automatically when component mounts
   useEffect(() => {
+    isMountedRef.current = true;
     const initRecording = async () => {
       try {
         // If we already have cached permission, skip permission check
@@ -144,49 +151,62 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
           if (!hasPermission) {
             const granted = await requestMicrophonePermission();
             if (!granted) {
-              setAudioPermissionGranted(false);
+              if (isMountedRef.current) setAudioPermissionGranted(false);
               console.error('Microphone permission denied');
               return;
             }
           }
           // Permission granted, update state
-          setAudioPermissionGranted(true);
+          if (isMountedRef.current) setAudioPermissionGranted(true);
         }
+
+        if (!isMountedRef.current) return;
 
         const stream = await startRecording();
-        if (stream) {
+        if (stream && isMountedRef.current) {
           setupAudioAnalyser(stream);
         } else {
-          console.error('Failed to start recording');
+          console.error('Failed to start recording or component unmounted');
           return;
         }
-        setIsRecording(true);
+
+        if (isMountedRef.current) setIsRecording(true);
 
         // Start timer for recording duration
-        const timer = setInterval(() => {
-          setRecordingTime(prev => prev + 1);
+        if (timerIdRef.current) clearInterval(timerIdRef.current);
+        timerIdRef.current = setInterval(() => {
+          recordingTimeRef.current += 1;
+          setRecordingTime(recordingTimeRef.current);
         }, 1000);
-        setTimerId(timer);
 
         // Start milliseconds timer for smoother UI updates
-        const msTimer = setInterval(() => {
+        if (millisecondTimerRef.current) clearInterval(millisecondTimerRef.current);
+        millisecondTimerRef.current = setInterval(() => {
           setMilliseconds(prev => (prev + 1) % 100);
         }, 10);
-        millisecondTimerRef.current = msTimer;
       } catch (error) {
         console.error("Failed to start recording:", error);
         // Clear cached permission on error
         localStorage.removeItem('microphone_permission_granted');
-        setAudioPermissionGranted(false);
+        if (isMountedRef.current) setAudioPermissionGranted(false);
       }
     };
 
     initRecording();
 
     return () => {
-      if (timerId) clearInterval(timerId);
-      if (millisecondTimerRef.current) clearInterval(millisecondTimerRef.current);
+      isMountedRef.current = false;
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+      if (millisecondTimerRef.current) {
+        clearInterval(millisecondTimerRef.current);
+        millisecondTimerRef.current = null;
+      }
       cleanupAudioAnalyser();
+      // Ensure recording is stopped if still active
+      stopRecording();
     };
   }, []);
 
@@ -231,9 +251,9 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
         console.error("Stop recording error:", error);
       }
 
-      if (timerId) {
-        clearInterval(timerId);
-        setTimerId(null);
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
       }
 
       if (millisecondTimerRef.current) {
@@ -243,7 +263,7 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
 
       cleanupAudioAnalyser();
     }
-  }, [isRecording, stopRecording, mediaRecorder, timerId, cleanupAudioAnalyser]);
+  }, [isRecording, stopRecording, mediaRecorder, cleanupAudioAnalyser]);
 
   const handleComplete = useCallback(() => {
     if (recordingBlob) {
@@ -279,16 +299,22 @@ export const MyAudioRecorder = ({ onComplete }: MyAudioRecorderProps) => {
   }, [recordingBlob, onComplete, recordingTime]);
 
   const handleDelete = useCallback(() => {
-    // Stop current recording
+    // Stop current recording which will trigger cleanup
     stopRecording();
 
-    // Clean up timers
-    if (timerId) clearInterval(timerId);
-    if (millisecondTimerRef.current) clearInterval(millisecondTimerRef.current);
+    // Clean up timers immediately
+    if (timerIdRef.current) {
+      clearInterval(timerIdRef.current);
+      timerIdRef.current = null;
+    }
+    if (millisecondTimerRef.current) {
+      clearInterval(millisecondTimerRef.current);
+      millisecondTimerRef.current = null;
+    }
 
     // Close the dialog
     RootStore.Get(DialogStandaloneStore).close();
-  }, [stopRecording, timerId]);
+  }, [stopRecording]);
 
   // Format time display as MM:SS.XX
   const formattedTime = useMemo(() => {
