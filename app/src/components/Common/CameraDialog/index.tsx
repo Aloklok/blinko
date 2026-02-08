@@ -110,7 +110,7 @@ export const MyCamera = ({ onComplete }: MyCameraProps) => {
           setTimeout(() => {
             setShowBlackScreen(false);
           }, 300);
-          const url = URL.createObjectURL(blob);
+          // const url = URL.createObjectURL(blob);
         }
       };
 

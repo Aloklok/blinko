@@ -1,5 +1,5 @@
 import { api } from "@/lib/trpc";
-import axios from "axios";
+import { apiClient } from "@/lib/api-client";
 import { Store } from "./standard/base";
 import { StorageState } from "./standard/StorageState";
 import { PromisePageState, PromiseState } from "./standard/PromiseState";
@@ -26,8 +26,8 @@ export class HubStore implements Store {
         return recommandList
       } else if (this.currentListType == 'site') {
         if (this.currentSiteURL) {
-          const res = await axios.post(this.currentSiteURL + '/api/v1/note/public-list', { page, size, searchText })
-          return res.data.map(i => {
+          const { data } = await apiClient.post(this.currentSiteURL + '/api/v1/note/public-list', { page, size, searchText })
+          return data.map(i => {
             i.attachments = i.attachments.map(j => {
               j.path = this.currentSiteURL + j.path
               return j

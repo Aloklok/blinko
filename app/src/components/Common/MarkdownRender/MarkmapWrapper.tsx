@@ -24,3 +24,5 @@ export const MarkmapWrapper = ({ content }: { content: string }) => {
     </div>
   );
 };
+
+export default MarkmapWrapper;

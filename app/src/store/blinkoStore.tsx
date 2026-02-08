@@ -15,7 +15,9 @@ import { makeAutoObservable } from 'mobx';
 import { UserStore } from './user';
 import { BaseStore } from './baseStore';
 import { StorageState } from './standard/StorageState';
+import _ from '@/lib/lodash';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { db } from '@/lib/db';
 
 type filterType = {
   label: string;
@@ -110,6 +112,11 @@ export class BlinkoStore implements Store {
   updateTicker = 0
   fullNoteList: Note[] = []
 
+  size = new StorageState<number>({
+    key: 'pageSize',
+    default: 20
+  });
+
   // For global search
   globalSearchTerm!: '';
   // Will be set to true when the global search modal is opened
@@ -152,18 +159,28 @@ export class BlinkoStore implements Store {
     let notes: Note[] = [];
 
     if (this.isOnline) {
-      const queryParams = { 
-        ...this.noteListFilterConfig, 
+      const queryParams = {
+        ...this.noteListFilterConfig,
         ...filterConfig,
-        searchText: this.searchText, 
-        page, 
-        size 
+        searchText: this.searchText,
+        page,
+        size
       };
-      notes = await api.notes.list.mutate(queryParams);
+      notes = await api.notes.list.mutate(queryParams, { context: { skipBatch: true } });
 
-      
+      // 异步持久化到本地，但不阻塞主线程渲染
+      if (page === 1 && notes.length > 0) {
+        db.putNotes(notes).catch(err => console.error('Failed to cache notes:', err));
+      }
+
       if (this.offlineNotes.length > 0) {
         await this.syncOfflineNotes();
+      }
+    } else {
+      // 离线模式：优先从 IndexedDB 获取
+      const cachedNotes = await db.getAllNotes();
+      if (cachedNotes.length > 0) {
+        notes = cachedNotes;
       }
     }
 
@@ -241,6 +258,12 @@ export class BlinkoStore implements Store {
       });
       eventBus.emit('editor:clear')
       showToast && RootStore.Get(ToastPlugin).success(id ? i18n.t("update-successfully") : i18n.t("create-successfully"))
+
+      // 写透缓存 (Write-through)
+      if (res) {
+        db.putNotes([res]).catch(err => console.error('Failed to update local cache:', err));
+      }
+
       refresh && this.updateTicker++
       return res
     }
@@ -252,6 +275,21 @@ export class BlinkoStore implements Store {
       RootStore.Get(ToastPlugin).success(i18n.t("operation-success"))
       this.updateTicker++
       return res
+    }
+  })
+
+  deleteNotes = new PromiseState({
+    function: async (ids: number[]) => {
+      const res = await api.notes.deleteMany.mutate({ ids });
+      RootStore.Get(ToastPlugin).success(i18n.t("operation-success"));
+
+      // 同步从本地缓存中移除
+      for (const id of ids) {
+        db.deleteNote(id).catch(err => console.error('Failed to delete note from cache:', err));
+      }
+
+      this.updateTicker++;
+      return res;
     }
   })
 
@@ -396,7 +434,7 @@ export class BlinkoStore implements Store {
     function: async ({ page, size, searchText }) => {
       return await api.notes.list.mutate({
         searchText
-      })
+      }, { context: { skipBatch: true } })
     }
   })
 
@@ -408,7 +446,7 @@ export class BlinkoStore implements Store {
 
   noteDetail = new PromiseState({
     function: async ({ id }) => {
-      return await api.notes.detail.mutate({ id })
+      return await api.notes.detail.mutate({ id }, { context: { skipBatch: true } })
     }
   })
 
@@ -432,7 +470,7 @@ export class BlinkoStore implements Store {
 
   tagList = new PromiseState({
     function: async () => {
-      const falttenTags = await api.tags.list.query(undefined, { context: { skipBatch: true } });
+      const falttenTags = await api.tags.list.query();
       const listTags = helper.buildHashTagTreeFromDb(falttenTags)
       console.log(falttenTags, 'listTags')
       let pathTags: string[] = [];
@@ -450,7 +488,15 @@ export class BlinkoStore implements Store {
   config = new PromiseState({
     loadingLock: false,
     function: async () => {
+      // 尝试从缓存获取快照以便立即回显
+      const cachedConfig = localStorage.getItem('blinko_config_snapshot');
+      if (cachedConfig && !this.config.value) {
+        this.config.value = JSON.parse(cachedConfig);
+      }
+
       const res = await api.config.list.query()
+      // 更新快照
+      localStorage.setItem('blinko_config_snapshot', JSON.stringify(res));
       return res
     }
   })
@@ -501,7 +547,7 @@ export class BlinkoStore implements Store {
 
   async onBottom() {
     const currentPath = new URLSearchParams(window.location.search).get('path');
-    
+
     if (currentPath === 'notes') {
       await this.noteOnlyList.callNextPage({});
     } else if (currentPath === 'todo') {
@@ -540,10 +586,55 @@ export class BlinkoStore implements Store {
     this.config.call()
     this.dailyReviewNoteList.call()
     this.task.call()
+
+    // 尝试预加载缓存数据以实现秒开
+    this.loadFromCache()
+  }
+
+  async loadFromCache() {
+    try {
+      const cachedNotes = await db.getAllNotes();
+      if (cachedNotes && cachedNotes.length > 0) {
+        const sorted = _.orderBy(cachedNotes, [(n: any) => new Date(n.updatedAt)], ['desc']);
+        const size = Number(this.size.value);
+
+        // 注入 Blinko 列表
+        if (this.blinkoList.value?.length === 0) {
+          const blinkos = sorted.filter(n => n.type === NoteType.BLINKO && !n.isArchived && !n.isRecycle);
+          this.blinkoList.setValue(blinkos.slice(0, size));
+        }
+
+        // 注入笔记列表
+        if (this.noteOnlyList.value?.length === 0) {
+          const notes = sorted.filter(n => n.type === NoteType.NOTE && !n.isArchived && !n.isRecycle);
+          this.noteOnlyList.setValue(notes.slice(0, size));
+        }
+
+        // 注入待办列表
+        if (this.todoList.value?.length === 0) {
+          const todos = sorted.filter(n => n.type === NoteType.TODO && !n.isArchived && !n.isRecycle);
+          this.todoList.setValue(todos.slice(0, size));
+        }
+
+        // 注入归档列表
+        if (this.archivedList.value?.length === 0) {
+          const archived = sorted.filter(n => n.isArchived && !n.isRecycle);
+          this.archivedList.setValue(archived.slice(0, size));
+        }
+
+        // 注入全部列表 (All Notes)
+        if (this.noteList.value?.length === 0) {
+          const all = sorted.filter(n => !n.isArchived && !n.isRecycle);
+          this.noteList.setValue(all.slice(0, size));
+        }
+      }
+    } catch (err) {
+      console.warn('Load from cache failed:', err);
+    }
   }
 
 
-  async refreshData() {
+  refreshData = _.debounce(async () => {
     // Fix: Clear multi-select state when refreshing data to avoid stale selections
     this.curMultiSelectIds = [];
     this.isMultiSelectMode = false;
@@ -551,7 +642,7 @@ export class BlinkoStore implements Store {
     this.tagList.call()
 
     const currentPath = new URLSearchParams(window.location.search).get('path');
-    
+
     if (currentPath === 'notes') {
       this.noteOnlyList.resetAndCall({});
     } else if (currentPath === 'todo') {
@@ -565,10 +656,10 @@ export class BlinkoStore implements Store {
     } else {
       this.blinkoList.resetAndCall({});
     }
-    
+
     this.config.call()
     this.dailyReviewNoteList.call()
-  }
+  }, 300)
 
   private clear() {
     this.createContentStorage.clear()
@@ -598,7 +689,7 @@ export class BlinkoStore implements Store {
       if (tagId && Number(tagId) === this.noteListFilterConfig.tagId) {
         return;
       }
-      
+
       const withoutTag = searchParams.get('withoutTag');
       const withFile = searchParams.get('withFile');
       const withLink = searchParams.get('withLink');

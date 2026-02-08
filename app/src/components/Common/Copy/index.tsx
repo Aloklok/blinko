@@ -1,5 +1,4 @@
 import { Icon } from '@/components/Common/Iconify/icons';
-import copy from "copy-to-clipboard";
 import { useState } from "react";
 type IProps = { content: string, size: number, className?: string }
 
@@ -9,7 +8,7 @@ export const Copy = ({ content, size = 20, className }: IProps) => {
     {
       !isCopy ? <Icon className="text-desc cursor-pointer" icon="si:copy-duotone" width={size} height={size} onClick={(e) => {
         e.stopPropagation()
-        copy(content)
+        navigator.clipboard.writeText(content)
         setCopy(true)
         setTimeout(() => { setCopy(false) }, 1000)
       }} />

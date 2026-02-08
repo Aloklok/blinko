@@ -3,13 +3,12 @@ import { Button } from "@heroui/react";
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { RootStore } from "@/store";
 import { ToastPlugin } from "@/store/module/Toast/Toast";
 import { BlinkoStore } from "@/store/blinkoStore";
 import { observer } from "mobx-react-lite";
 import { getBlinkoEndpoint } from "@/lib/blinkoEndpoint";
-import axiosInstance from "@/lib/axios";
+import { apiClient } from "@/lib/api-client";
 type IProps = {
   onUpload?: ({ filePath, fileName }) => void
   children?: React.ReactNode
@@ -41,11 +40,13 @@ export const UploadFileWrapper = observer(({ onUpload, children, acceptImage = f
           .setSizeThreshold(40)
           .uploadProgress(file);
 
-        const response = await axiosInstance.post(getBlinkoEndpoint('/api/file/upload'), formData, {
-          onUploadProgress
+        const { data } = await apiClient.upload(getBlinkoEndpoint('/api/file/upload'), formData, {
+          onUploadProgress: (progressEvent) => {
+            onUploadProgress({ ...progressEvent, loaded: progressEvent.loaded, total: progressEvent.total });
+          }
         });
 
-        onUpload?.(response.data)
+        onUpload?.(data)
       } catch (error) {
         console.error('Upload failed:', error);
       } finally {

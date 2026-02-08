@@ -58,7 +58,7 @@ export const BlinkoMultiSelectPop = observer(() => {
           content: t('this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'),
           onConfirm: async () => {
             await RootStore.Get(ToastPlugin).promise(
-              api.notes.deleteMany.mutate({ ids: blinko.curMultiSelectIds }),
+              blinko.deleteNotes.call(blinko.curMultiSelectIds),
               {
                 loading: t('in-progress'),
                 success: <b>{t('your-changes-have-been-saved')}</b>,

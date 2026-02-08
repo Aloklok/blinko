@@ -78,7 +78,7 @@ const App = observer(() => {
         >
           {t('random-mode')}
         </Button>
-        
+
         {store.isRandomReviewMode && (
           <Button
             className="ml-2 text-sm"
@@ -174,7 +174,7 @@ const App = observer(() => {
             <Tooltip content={t('edit')} >
               <Button onPress={async e => {
                 if (!store.currentNote) return
-                const note = await api.notes.detail.mutate({ id:  store.currentNote.id! })
+                const note = await api.notes.detail.mutate({ id: store.currentNote.id! })
                 RootStore.Get(DialogStandaloneStore).setData({
                   isOpen: true,
                   onlyContent: true,
@@ -201,8 +201,7 @@ const App = observer(() => {
                   title: t('confirm-to-delete'),
                   content: t('this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'),
                   onConfirm: async () => {
-                    await api.notes.deleteMany.mutate({ ids: [store.currentNote!.id!] })
-                    await blinko.dailyReviewNoteList.call()
+                    await blinko.deleteNotes.call([store.currentNote!.id!])
                     RootStore.Get(DialogStandaloneStore).close()
                   }
                 })

@@ -6,7 +6,7 @@ import { ScrollArea } from '../ScrollArea';
 import { IconButton } from '../Editor/Toolbar/IconButton';
 import { useState, useCallback } from 'react';
 import { getDisplayTime } from '@/lib/helper';
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import { useTranslation } from 'react-i18next';
 
 interface Props {

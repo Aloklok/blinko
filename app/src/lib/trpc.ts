@@ -55,6 +55,7 @@ const getLinks = (useStream = false) => {
         url: getBlinkoEndpoint('/api/trpc'),
         transformer: superjson,
         headers,
+        maxBatchSize: 10,
         // Increase timeout for large file uploads (5 minutes)
         fetch(url, options) {
           return fetch(url, {
@@ -87,6 +88,7 @@ const getLinks = (useStream = false) => {
         url: ('/api/trpc'),
         transformer: superjson,
         headers,
+        maxBatchSize: 10,
         // Increase timeout for large file uploads (5 minutes)
         fetch(url, options) {
           return fetch(url, {

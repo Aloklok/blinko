@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
+// import mermaid from 'mermaid'; // Removed static import
 import { PhotoProvider, PhotoView } from 'react-photo-view';
 
 interface MermaidWrapperProps {
@@ -11,30 +11,39 @@ export const MermaidWrapper: React.FC<MermaidWrapperProps> = ({ content }) => {
   const [svgUrl, setSvgUrl] = useState<string>('');
 
   useEffect(() => {
-    if (elementRef.current) {
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: 'neutral',
-        securityLevel: 'loose',
-      });
+    let isMounted = true;
+    const renderMermaid = async () => {
+      if (elementRef.current) {
+        try {
+          const mermaid = (await import('mermaid')).default;
+          mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            securityLevel: 'loose',
+          });
 
-      try {
-        mermaid.render('mermaid-svg', content).then(({ svg }) => {
-          const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
-          const url = URL.createObjectURL(svgBlob);
-          setSvgUrl(url);
-        });
-      } catch (e) {
-        console.error('Mermaid render error:', e);
+          const { svg } = await mermaid.render('mermaid-svg', content);
+          if (isMounted) {
+            const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(svgBlob);
+            setSvgUrl(url);
+          }
+        } catch (e) {
+          console.error('Mermaid render error:', e);
+        }
       }
-    }
+    };
+
+    renderMermaid();
 
     return () => {
+      isMounted = false;
       if (svgUrl) {
         URL.revokeObjectURL(svgUrl);
       }
     };
   }, [content]);
+
 
   return (
     <div className="mermaid-wrapper">
@@ -51,4 +60,6 @@ export const MermaidWrapper: React.FC<MermaidWrapperProps> = ({ content }) => {
       </div>
     </div >
   );
-}; 
+};
+
+export default MermaidWrapper;

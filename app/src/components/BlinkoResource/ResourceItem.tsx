@@ -1,23 +1,33 @@
 import { Card, Checkbox, Tooltip } from '@heroui/react';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
-import filesize  from 'filesize';
 import dayjs from '@/lib/dayjs';
 import { FileIcons } from '@/components/Common/AttachmentRender/FileIcon';
 import { memo, useCallback, useMemo } from 'react';
-import { Draggable, Droppable } from 'react-beautiful-dnd-next';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type ResourceType } from '@shared/lib/types';
-import { ResourceContextMenu } from './ResourceContextMenu';
+import { ResourceContextMenu, ResourceContextMenuTrigger } from './ResourceContextMenu';
 import { RootStore } from '@/store';
 import { ResourceStore } from '@/store/resourceStore';
 import { _ } from '@/lib/lodash';
 import { observer } from 'mobx-react-lite';
 import { toJS } from 'mobx';
-import { motion } from 'framer-motion';
 import { ImageThumbnailRender } from '../Common/AttachmentRender/imageRender';
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
 import { UserStore } from '@/store/user';
+
+
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
 
 
 // Reusable component for rendering resource preview
@@ -81,7 +91,7 @@ export const ResourceItemPreview = ({
         {showExtraInfo && (
           <div className="text-xs text-gray-500 flex items-center gap-2 my-1">
             <span className="rounded-md px-1.5 py-0.5 bg-default-100 text-default-600">{fileNameAndExt.ext}</span>
-            {filesize(Number(item.size))} · {dayjs(item.createdAt).format('YYYY-MM-DD HH:mm')}
+            {formatBytes(Number(item.size))} · {dayjs(item.createdAt).format('YYYY-MM-DD HH:mm')}
           </div>
         )}
         {!showExtraInfo && <div className="text-xs text-gray-500">{dayjs(item.createdAt).format('YYYY-MM-DD HH:mm')}</div>}
@@ -147,7 +157,8 @@ const ResourceCard = observer(({ item, isSelected, onSelect, isDragging, isDragg
 
   const isS3File = useMemo(() => item.path?.includes('s3file'), [item.path]);
 
-  const handleContextMenu = useCallback(() => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     resourceStore.setContextMenuResource(_.cloneDeep(item));
   }, [item, resourceStore]);
 
@@ -158,26 +169,28 @@ const ResourceCard = observer(({ item, isSelected, onSelect, isDragging, isDragg
   if (item.isFolder) {
     return (
       <Card {...cardProps} shadow="none">
-        <div className="flex items-center gap-4 ml-[45px]">
-          <div className="w-[36px] h-[36px] ml-[-7px] flex items-center justify-center">
-            <Icon icon="material-symbols:folder" className="w-full h-full text-yellow-500" />
+        <ResourceContextMenuTrigger id="resource-item-menu">
+          <div onContextMenu={handleContextMenu} className="flex items-center gap-4 ml-[45px]">
+            <div className="w-[36px] h-[36px] ml-[-7px] flex items-center justify-center">
+              <Icon icon="material-symbols:folder" className="w-full h-full text-yellow-500" />
+            </div>
+            <div className="flex-1">
+              <div className="font-medium">{item.folderName}</div>
+            </div>
           </div>
-          <div className="flex-1">
-            <div className="font-medium">{item.folderName}</div>
-          </div>
-          <ResourceContextMenu onTrigger={handleContextMenu} />
-        </div>
+        </ResourceContextMenuTrigger>
       </Card>
     );
   }
 
   return (
     <Card {...cardProps} shadow="none">
-      <div className="flex items-center gap-4">
-        <Checkbox isSelected={isSelected} onChange={() => onSelect(item.id!)} className="z-10" />
-        <ResourceItemPreview item={item} />
-        <ResourceContextMenu onTrigger={handleContextMenu} />
-      </div>
+      <ResourceContextMenuTrigger id="resource-item-menu">
+        <div onContextMenu={handleContextMenu} className="flex items-center gap-4">
+          <Checkbox isSelected={isSelected} onChange={() => onSelect(item.id!)} className="z-10" />
+          <ResourceItemPreview item={item} />
+        </div>
+      </ResourceContextMenuTrigger>
     </Card>
   );
 });
@@ -196,46 +209,51 @@ const ResourceItem = observer(({ item, index, onSelect, isSelected, onFolderClic
   );
 
   const draggableId = useMemo(() => (item.isFolder ? `folder-${item.folderName}` : String(item.id)), [item.isFolder, item.folderName, item.id]);
+  const droppableId = useMemo(() => (item.isFolder ? `folder-${item.folderName}` : 'void'), [item.isFolder, item.folderName]);
 
-  const droppableId = useMemo(() => (item.isFolder ? `folder-${item.folderName}` : undefined), [item.isFolder, item.folderName]);
+  const { attributes, listeners, setNodeRef: setDraggableRef, transform, isDragging } = useDraggable({
+    id: draggableId,
+    data: { index, item },
+    disabled: item.isFolder
+  });
+
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: droppableId,
+    disabled: !item.isFolder
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    cursor: item.isFolder ? 'pointer' : 'default',
+  };
 
   return (
-    <Draggable draggableId={draggableId} index={index} isDragDisabled={item.isFolder}>
-      {(provided: any, snapshot: any) => {
-        const draggableStyle = {
-          cursor: item.isFolder ? 'pointer' : 'default',
-          ...provided.draggableProps.style,
-          transform: item.isFolder ? 'none' : provided.draggableProps.style?.transform,
-        };
-
-        return (
-          <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`relative group`} onClick={handleClick} style={draggableStyle}>
-            <motion.div
-              // initial={{ opacity: 0, y: 20 }}
-              // animate={{ opacity: 1, y: 0 }}
-              // transition={{
-              //   duration: 0.2,
-              //   delay: index * 0.05,
-              //   ease: 'easeOut',
-              // }}
-            >
-              {item.isFolder ? (
-                <Droppable droppableId={droppableId!}>
-                  {(dropProvided, dropSnapshot) => (
-                    <div ref={dropProvided.innerRef} {...dropProvided.droppableProps} className="w-full h-full relative">
-                      <ResourceCard item={item} isSelected={isSelected} onSelect={onSelect} isDraggingOver={dropSnapshot.isDraggingOver} />
-                      {dropProvided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              ) : (
-                <ResourceCard item={item} isSelected={isSelected} onSelect={onSelect} isDragging={snapshot.isDragging} />
-              )}
-            </motion.div>
+    <div
+      ref={setDraggableRef}
+      {...attributes}
+      {...listeners}
+      className={`relative group`}
+      onClick={handleClick}
+      style={style}
+    >
+      <motion.div
+      // initial={{ opacity: 0, y: 20 }}
+      // animate={{ opacity: 1, y: 0 }}
+      // transition={{
+      //   duration: 0.2,
+      //   delay: index * 0.05,
+      //   ease: 'easeOut',
+      // }}
+      >
+        {item.isFolder ? (
+          <div ref={setDroppableRef} className="w-full h-full relative">
+            <ResourceCard item={item} isSelected={isSelected} onSelect={onSelect} isDraggingOver={isOver} />
           </div>
-        );
-      }}
-    </Draggable>
+        ) : (
+          <ResourceCard item={item} isSelected={isSelected} onSelect={onSelect} isDragging={isDragging} />
+        )}
+      </motion.div>
+    </div>
   );
 });
 

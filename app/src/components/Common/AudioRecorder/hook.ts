@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 export interface recorderControls {
   startRecording: () => Promise<MediaStream | undefined>;
@@ -79,6 +79,13 @@ const useAudioRecorder: (
         mediaStreamRef.current = null;
       }
     }, []);
+
+    // Cleanup function to ensure tracks are stopped when the component/hook unmounts
+    useEffect(() => {
+      return () => {
+        cleanupResources();
+      };
+    }, [cleanupResources]);
 
     /**
      * Calling this method would result in the recording to start. Sets `isRecording` to true

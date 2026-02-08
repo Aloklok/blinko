@@ -5,9 +5,10 @@ import { useMemo, useCallback } from "react";
 import { ScrollArea } from "@/components/Common/ScrollArea";
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useTranslation } from "react-i18next";
-import { DragDropContext, Droppable } from 'react-beautiful-dnd-next';
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { toJS } from "mobx";
 import { MemoizedResourceItem } from "@/components/BlinkoResource/ResourceItem";
+import { ResourceContextMenu } from "@/components/BlinkoResource/ResourceContextMenu";
 import { ResourceMultiSelectPop } from "@/components/BlinkoResource/ResourceMultiSelectpop";
 import { Breadcrumbs, BreadcrumbItem, Button } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -209,6 +210,7 @@ const Page = observer(() => {
         </ScrollArea>
       </DragDropContext>
       <ResourceMultiSelectPop />
+      <ResourceContextMenu id="resource-item-menu" />
     </>
   );
 });

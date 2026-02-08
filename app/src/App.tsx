@@ -50,7 +50,7 @@ const HomeRedirect = () => {
   const blinko = RootStore.Get(BlinkoStore);
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const redirectToDefaultPage = async () => {
       await blinko.config.call();
@@ -61,17 +61,17 @@ const HomeRedirect = () => {
         setLoading(false);
         return;
       }
-      
+
       navigate(`/?path=${defaultHomePage}`, { replace: true });
     };
-    
+
     redirectToDefaultPage();
   }, [navigate, searchParams, location]);
-  
+
   if (loading) {
     return <LoadingPage />;
   }
-  
+
   return <HomePage />;
 };
 
@@ -257,12 +257,13 @@ function AppRoutes() {
 
 function App() {
   initStore();
-  
+
   // Initialize Android shortcuts handler
   useAndroidShortcuts();
 
-  // Initialize hotkey setup for desktop app only
-  if (isDesktop()) {
+  // Initialize hotkey setup for desktop app only (and strictly for main window)
+  const windowType = getWindowType();
+  if (isDesktop() && windowType === 'main') {
     useInitialHotkeySetup();
   }
 
