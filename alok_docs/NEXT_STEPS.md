@@ -9,7 +9,7 @@
 *   **优化方案**:
     *   **限制批处理规模**: 在 `trpc.ts` 的 `httpBatchLink` 中设置 `maxBatchSize: 10`，避免生成超大 HTTP 数据包。
     *   **请求分级**: 为 `notes.list` 和 `noteDetail` 添加 `skipBatch: true` 标记，确保核心数据走独立、即时的 `httpLink`。
-    *   **注入 `AbortSignal`**: 全面应用超时中断（目前已在 `getLinks` 中部分实现），防止僵尸请求挂起。
+    *   **注入 `AbortSignal`**: 全量应用超时中断（目前已在 `getLinks` 中部分实现），防止僵尸请求挂起。
 
 ## 2. 插件管理器“爆炸式”初始化改良 (Plugin Startup Optimization)
 *   **痛点**: `PluginManagerStore` 启动时并行发起 2 * N 个请求（CSS + Config），虽然是并发，但由于 tRPC Batch 机制，它们被挤在了一起，造成瞬时网络拥塞。
@@ -29,7 +29,24 @@
     *   **内容可见性 (Content-Visibility)**: 对长列表卡片使用 CSS `content-visibility: auto`，跳过视口外元素的渲染计算。
     *   **骨架屏渲染锁**: 在 `BlinkoStore` 数据流转过程中，增加微任务级别的防抖，避免数据分批到达导致的界面多次重排。
 
+## 5. 2026 依赖体系现代化与维护建议 (Maintenance & Modernization)
+*   **背景**: 针对 2026 年初的技术环境，项目需处理 React 19 迁移、ESLint Flat Config 适配及冗余 Polyfill 清理。
+*   **核心升级清单**:
+    *   **React 19+**: 迁移并利用 `use` Hook 及原生 Ref 传递，简化代码逻辑。
+    *   **ESLint 9/10**: 切换至 Flat Config 模式，废弃旧版配置文件格式。
+    *   **Prisma 6**: 提升数据库引擎启动速度及 Edge 环境支持。
+*   **冗余清理**:
+    *   移除 `abortcontroller-polyfill`, `requestidlecallback-polyfill` (现代环境原生支持)。
+    *   评估并移除 `systemjs` (现代 ESM 已足够强大)。
+    *   使用 Bun 原生能力替换 `ncp` 等旧式工具。
+*   **AI 栈优化**:
+    *   **去重**: 如果核心逻辑已迁移至 Mastra，建议减少对原版 `langchain` 的直接依赖。
+    *   **聚合**: 使用统一的 Provider 接口（如 Vercel AI SDK 或 OpenRouter）管理过多的 AI 模型供应商。
+*   **一致性治理**:
+    *   **Lodash**: 继续推行原生替代方案，减少 `lodash-es` 与 `lodash` 的混用。
+    *   **Prisma**: 统一 Monorepo 内所有模块的 Prisma 版本（目前存在 5.22 与 6.x 引擎混用风险）。
+
 ---
 
 > [!TIP]
-> **结论**: 当前的性能表现已能满足普通用户需求。上述优化属于从“好用”到“极致”的进阶，建议优先实施 **tRPC 请求分级 (环节 1)**，因为它成本最低且对响应感的提升最直接。
+> **结论**: 当前的性能表现已能满足普通用户需求。上述优化属于从“好用”到“极致”的进阶。在 **2026 维护建议 (环节 5)** 中，优先建议实施 **Polyfill 清理**，因为它对减包、提效且风险极低。
