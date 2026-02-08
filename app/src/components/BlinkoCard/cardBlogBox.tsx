@@ -66,7 +66,7 @@ export const CardBlogBox = ({ blinkoItem, isExpanded }: BlogContentProps) => {
         </div>
         <div className={`text-desc flex-1 ${isExpanded ? 'text-sm' : 'text-sm'} line-clamp-4`}
         >
-          {blinkoItem.content?.replace(blinkoItem.title ?? '', '').replace(/#/g, '').replace(/\*/g, '').replace(/>/g, '')}
+          {blinkoItem.content?.replace(blinkoItem.title ?? '', '').replace(/#/g, '').replace(/\*/g, '').replace(/>/g, '').replace(/-{3,}/g, '')}
         </div>
         {
           !!blinkoItem?.tags?.length && blinkoItem?.tags?.length > 0 && (

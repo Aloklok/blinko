@@ -64,7 +64,9 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
 
   if (!isClient) return <></>;
 
-  if (
+  if (!isClient) return <></>;
+
+  const isPurePage =
     location.pathname == '/signin' ||
     location.pathname == '/quicknote' ||
     location.pathname == '/quickai' ||
@@ -74,20 +76,40 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
     location.pathname.includes('/share') ||
     location.pathname == '/editor' ||
     location.pathname == '/oauth-callback' ||
-    location.pathname.includes('/ai-share')
-  ) {
-    return <>{children}</>;
+    location.pathname.includes('/ai-share');
+
+  // If pure page, return with the wrapper IDs to satisfy burger-menu cleanup but without sidebar/nav
+  if (isPurePage) {
+    return (
+      <div className="flex w-full h-mobile-full overflow-x-hidden" id="outer-container">
+        <main id="page-wrap" className="w-full h-full flex flex-col">
+          {children}
+        </main>
+      </div>
+    );
   }
 
   return (
-    <div className={`flex w-full h-mobile-full overflow-x-hidden`} id="outer-container">
+    <div
+      className={`flex w-full h-mobile-full overflow-x-hidden`}
+      id="outer-container"
+      style={{ '--sidebar-width': `${base.sideBarWidth}px` } as React.CSSProperties}
+    >
       <AiWritePop />
 
-      <Menu style={{
-        bmMenuWrap: {
-          transition: 'all .3s'
-        }
-      }} disableAutoFocus onClose={() => setisOpen(false)} onOpen={setisOpen} isOpen={isOpen} pageWrapId={'page-wrap'} outerContainerId={'outer-container'}>
+      <Menu
+        style={{
+          bmMenuWrap: {
+            transition: 'all .3s',
+          },
+        }}
+        disableAutoFocus
+        onClose={() => setisOpen(false)}
+        onOpen={setisOpen}
+        isOpen={isOpen}
+        pageWrapId={'page-wrap'}
+        outerContainerId={'outer-container'}
+      >
         <Sidebar onItemClick={() => setisOpen(false)} />
       </Menu>
 
@@ -95,22 +117,27 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
 
       <main
         id="page-wrap"
-        style={{ width: isPc ? `calc(100% - ${base.sideBarWidth}px)` : '100%' }}
-        className={`flex !transition-all duration-300 overflow-y-hidden w-full flex-col gap-y-1 bg-secondbackground`}
+        className={`flex flex-1 min-w-0 !transition-all duration-300 overflow-y-hidden flex-col gap-y-1 bg-secondbackground`}
       >
         {/* nav bar  */}
         <header
           className="blinko-mobile-header relative flex md:h-16 md:min-h-16 h-14 min-h-14 items-center justify-between gap-2 px-2 md:px:4 pt-2 md:pb-2 overflow-hidden"
-          style={!isPc ? {
-            position: 'fixed',
-            top: 0,
-            borderRadius: '0 0 12px 12px',
-            zIndex: 11,
-            width: '100%',
-            background: getFixedHeaderBackground(),
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)'
-          } : undefined}
+          style={
+            {
+              ...(!isPc
+                ? {
+                  position: 'fixed',
+                  top: 0,
+                  borderRadius: '0 0 12px 12px',
+                  zIndex: 11,
+                  width: '100%',
+                  background: getFixedHeaderBackground(),
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                }
+                : {}),
+            } as React.CSSProperties
+          }
         >
           {/* <div className="hidden md:block absolute bottom-[20%] right-[5%] z-[0] h-[350px] w-[350px] overflow-hidden blur-3xl ">
             <div className="w-full h-[100%] bg-[#9936e6] opacity-20" style={{ clipPath: 'circle(50% at 50% 50%)' }} />
@@ -137,7 +164,6 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
                       className="cursor-pointer hover:rotate-180 !transition-all hidden md:block"
                       onClick={() => {
                         blinkoStore.refreshData();
-                        blinkoStore.updateTicker++;
                       }}
                       icon="fluent:arrow-sync-12-filled"
                       width="20"
@@ -150,7 +176,9 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
                         showTipsDialog({
                           size: 'sm',
                           title: t('confirm-to-delete'),
-                          content: t('this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'),
+                          content: t(
+                            'this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'
+                          ),
                           onConfirm: async () => {
                             await RootStore.Get(ToastPlugin).promise(api.notes.clearRecycleBin.mutate(), {
                               loading: t('in-progress'),
@@ -179,18 +207,20 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
               <div className="flex items-center justify-center gap-2 md:gap-4 w-auto ">
                 <BarSearchInput isPc={isPc} />
                 <FilterPop />
-                {!blinkoStore.config.value?.isCloseDailyReview && <Badge size="sm" className="shrink-0" content={blinkoStore.dailyReviewNoteList.value?.length} color="warning">
-                  <Link to="/review">
-                    <Button
-                      className="mt-[2px]"
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                    >
-                      <Icon className="cursor-pointer text-default-600" icon="tabler:bulb" width="24" height="24" />
-                    </Button>
-                  </Link>
-                </Badge>}
+                {!blinkoStore.config.value?.isCloseDailyReview && (
+                  <Badge
+                    size="sm"
+                    className="shrink-0"
+                    content={blinkoStore.dailyReviewNoteList.value?.length}
+                    color="warning"
+                  >
+                    <Link to="/review">
+                      <Button className="mt-[2px]" isIconOnly size="sm" variant="light">
+                        <Icon className="cursor-pointer text-default-600" icon="tabler:bulb" width="24" height="24" />
+                      </Button>
+                    </Link>
+                  </Badge>
+                )}
                 <BlinkoNotification />
               </div>
             </div>
@@ -198,13 +228,17 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
           {header}
         </header>
 
-
-
         {/* backdrop  pt-6 -mt-6 to fix the editor tooltip position */}
-        <ScrollArea onBottom={() => { }} className={`${isPc ? 'h-[calc(100%_-_70px)]' : 'h-full'} !overflow-y-auto overflow-x-hidden mt-[-4px]`}>
+        <ScrollArea
+          onBottom={() => { }}
+          className={`${isPc ? 'h-[calc(100%_-_70px)]' : 'h-full'} !overflow-y-auto overflow-x-hidden mt-[-4px]`}
+        >
           <div className="relative flex h-full w-full flex-col rounded-medium layout-container">
             <div className="hidden md:block absolute top-[-37%] right-[5%] z-[0] h-[350px] w-[350px] overflow-hidden blur-3xl ">
-              <div className="w-full h-[356px] bg-[#9936e6] opacity-20" style={{ clipPath: 'circle(50% at 50% 50%)' }} />
+              <div
+                className="w-full h-[356px] bg-[#9936e6] opacity-20"
+                style={{ clipPath: 'circle(50% at 50% 50%)' }}
+              />
             </div>
             {children}
           </div>

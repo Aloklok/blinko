@@ -12,14 +12,16 @@ import { showTipsDialog } from '../TipsDialog';
 import i18n from '@/lib/i18n';
 import { DialogStandaloneStore } from '@/store/module/DialogStandalone';
 import { Button } from '@heroui/react';
-import axios from 'axios';
+import { apiClient } from '@/lib/api-client';
+// import axios from 'axios'; // Removed
 import { ToastPlugin } from '@/store/module/Toast/Toast';
 import { NoteType } from '@shared/lib/types';
 import { eventBus } from '@/lib/event';
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
-import axiosInstance from '@/lib/axios';
+// import axiosInstance from '@/lib/axios'; // Removed
 
 export class EditorStore {
+  instanceId = Math.random().toString(36).substring(2, 11)
   files: FileType[] = []
   lastRange: Range | null = null
   lastStartOffset: number = 0
@@ -264,7 +266,7 @@ export class EditorStore {
               .setSizeThreshold(40)
               .uploadProgress(file);
 
-            const response = await axiosInstance.post(getBlinkoEndpoint('/api/file/upload'), formData, {
+            const response = await apiClient.post(getBlinkoEndpoint('/api/file/upload'), formData, {
               onUploadProgress
             });
             const data = response.data;

@@ -535,7 +535,7 @@ ol {
 .markdown-body ol {
   margin-top: 0;
   margin-bottom: 0;
-  padding-left: 1em;
+  padding-left: 2em;
 }
 
 
@@ -1365,7 +1365,8 @@ ol {
   list-style-type: decimal !important;
 }
 
-.markdown-body ol ol, .markdown-body ol {
+.markdown-body ol ol,
+.markdown-body ol {
   list-style-type: decimal !important;
 }
 

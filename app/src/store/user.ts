@@ -169,8 +169,17 @@ export class UserStore implements Store {
 
   async initializeFonts(savedFontStyle: string) {
     try {
+      // 从缓存恢复快照
+      const cachedFonts = localStorage.getItem('blinko_fonts_snapshot');
+      if (cachedFonts) {
+        FontManager.initializeRegistry(JSON.parse(cachedFonts));
+        await FontManager.applyFont(savedFontStyle);
+      }
+
       if (api.fonts) {
         const fonts = await api.fonts.list.query();
+        // 更新快照
+        localStorage.setItem('blinko_fonts_snapshot', JSON.stringify(fonts));
         FontManager.initializeRegistry(fonts);
       }
       await FontManager.applyFont(savedFontStyle);

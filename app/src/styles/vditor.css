@@ -33,7 +33,7 @@
 
 .vditor-reset ul,
 .vditor-reset ol {
-  padding-left: 1em;
+  padding-left: 2em;
 }
 
 .vditor-toolbar {
@@ -124,7 +124,7 @@
   margin-bottom: 16px;
 }
 
-.editor-long-text .attachment-container{
+.editor-long-text .attachment-container {
   padding-left: 15px !important;
   padding-right: 15px !important;
 }
@@ -220,10 +220,12 @@
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
+
   .vditor-toolbar__item .vditor-tooltipped {
     width: 34px !important;
     height: 34px !important;
   }
+
   .vditor-toolbar__item svg {
     width: 24px !important;
     height: 24px !important;
@@ -340,16 +342,16 @@
   color: var(--foreground);
 }
 
-.vditor-outline li > span > span {
+.vditor-outline li>span>span {
   color: var(--foreground);
 }
 
-.vditor-outline li > span > span:hover {
+.vditor-outline li>span>span:hover {
   color: var(--primary);
   transition: all 0.3s;
 }
 
-.vditor-outline li > span > svg {
+.vditor-outline li>span>svg {
   fill: var(--foreground);
 }
 

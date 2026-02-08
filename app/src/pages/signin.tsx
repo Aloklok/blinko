@@ -136,9 +136,9 @@ export default function Component() {
     <GradientBackground>
       <div className="flex h-full w-screen items-center justify-center p-2 sm:p-4 lg:p-8">
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-large glass-effect px-8 pb-10 pt-6 shadow-large">
-          <p className="pb-2 text-xl font-medium flex gap-2 items-center justiy-center">
+          <div className="pb-2 text-xl font-medium flex gap-2 items-center justiy-center">
             Login With <Image src={theme === 'light' ? '/logo-light-title.png' : '/logo-dark-title.png'} width={100} radius="none"></Image>
-          </p>
+          </div>
 
           {providers.length > 0 && (
             <>
@@ -176,6 +176,7 @@ export default function Component() {
                 name="endpoint"
                 placeholder={t('enter-blinko-endpoint')}
                 type="text"
+                autoComplete="url"
                 variant="bordered"
                 value={endpoint.replace(/"/g, '')}
                 onChange={e => {
@@ -189,6 +190,7 @@ export default function Component() {
               name={t('username')}
               placeholder={t('enter-your-name')}
               type="text"
+              autoComplete="username"
               variant="bordered"
               value={user}
               onChange={e => setUser(e.target.value?.trim())}
@@ -213,6 +215,7 @@ export default function Component() {
               name="password"
               placeholder={t('enter-your-password')}
               type={isVisible ? "text" : "password"}
+              autoComplete="current-password"
               variant="bordered"
               value={password}
               onKeyDown={(e) => {
@@ -244,31 +247,31 @@ export default function Component() {
             </p>
           )}
           {blinko.config.value?.signinFooterEnabled &&
-           blinko.config.value?.signinFooterText?.trim() && (
-            <div className="mt-2 text-center max-w-full">
-              <div className="text-xs text-default-400 break-words px-4">
-                <ReactMarkdown
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    p: ({node, ...props}) => <span {...props} />,
-                    a: ({node, ...props}) => (
-                      <a
-                        {...props}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-default-400 hover:text-default-600 underline"
-                      />
-                    ),
-                    strong: ({node, ...props}) => <strong {...props} />,
-                    em: ({node, ...props}) => <em {...props} />,
-                    br: ({node, ...props}) => <br {...props} />
-                  }}
-                >
-                  {blinko.config.value.signinFooterText}
-                </ReactMarkdown>
+            blinko.config.value?.signinFooterText?.trim() && (
+              <div className="mt-2 text-center max-w-full">
+                <div className="text-xs text-default-400 break-words px-4">
+                  <ReactMarkdown
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      p: ({ node, ...props }) => <span {...props} />,
+                      a: ({ node, ...props }) => (
+                        <a
+                          {...props}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-default-400 hover:text-default-600 underline"
+                        />
+                      ),
+                      strong: ({ node, ...props }) => <strong {...props} />,
+                      em: ({ node, ...props }) => <em {...props} />,
+                      br: ({ node, ...props }) => <br {...props} />
+                    }}
+                  >
+                    {blinko.config.value.signinFooterText}
+                  </ReactMarkdown>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </GradientBackground>

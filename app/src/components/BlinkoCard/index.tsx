@@ -111,60 +111,62 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
         const cardContent = (
           <div
             {...(!isShareMode && {
-              onContextMenu: handleContextMenu,
               onDoubleClick: handleDoubleClick
             })}
             onClick={handleClick}
           >
-            <Card
-              onContextMenu={e => !isPc && e.stopPropagation()}
-              shadow='none'
-              className={`
-                flex flex-col py-4 px-5 ${glassEffect ? 'bg-transparent' : 'bg-background'} !transition-all group/card
-                ${blinkoItem.isBlog ? 'cursor-pointer' : ''}
-                ${blinko.curMultiSelectIds?.includes(blinkoItem.id!) ? 'border-2 border-primary' : ''}
-                ${className}
-              `}
-            >
-              <div className="w-full">
-                <CardHeader blinkoItem={blinkoItem} blinko={blinko} isShareMode={isShareMode} isExpanded={defaultExpanded} account={account} />
+            <ContextMenuTrigger id="blink-item-context-menu">
+              <div onContextMenu={handleContextMenu}>
+                <Card
+                  shadow='none'
+                  className={`
+                    flex flex-col py-4 px-5 ${glassEffect ? 'bg-transparent' : 'bg-background'} !transition-all group/card
+                    ${blinkoItem.isBlog ? 'cursor-pointer' : ''}
+                    ${blinko.curMultiSelectIds?.includes(blinkoItem.id!) ? 'border-2 border-primary' : ''}
+                    ${className}
+                  `}
+                >
+                  <div className="w-full">
+                    <CardHeader blinkoItem={blinkoItem} blinko={blinko} isShareMode={isShareMode} isExpanded={defaultExpanded} account={account} />
 
-                {blinkoItem.isBlog && (
-                  <CardBlogBox blinkoItem={blinkoItem} isExpanded={defaultExpanded} />
-                )}
+                    {blinkoItem.isBlog && (
+                      <CardBlogBox blinkoItem={blinkoItem} isExpanded={defaultExpanded} />
+                    )}
 
-                {!blinkoItem.isBlog && <NoteContent blinkoItem={blinkoItem} blinko={blinko} isExpanded={defaultExpanded} isShareMode={isShareMode} />}
+                    {!blinkoItem.isBlog && <NoteContent blinkoItem={blinkoItem} blinko={blinko} isExpanded={defaultExpanded} isShareMode={isShareMode} />}
 
-                {/* Custom Footer Slots */}
-                {pluginApi.customCardFooterSlots
-                  .filter(slot => {
-                    if (slot.isHidden) return false;
-                    if (slot.showCondition && !slot.showCondition(blinkoItem)) return false;
-                    if (slot.hideCondition && slot.hideCondition(blinkoItem)) return false;
-                    return true;
-                  })
-                  .sort((a, b) => (a.order || 0) - (b.order || 0))
-                  .map((slot) => (
-                    <div
-                      key={slot.name}
-                      className={`mt-4 ${slot.className || ''}`}
-                      style={slot.style}
-                      onClick={slot.onClick}
-                      onMouseEnter={slot.onHover}
-                      onMouseLeave={slot.onLeave}
-                    >
-                      <div style={{ maxWidth: slot.maxWidth }}>
-                        <PluginRender content={slot.content} data={blinkoItem} />
-                      </div>
-                    </div>
-                  ))}
+                    {/* Custom Footer Slots */}
+                    {pluginApi.customCardFooterSlots
+                      .filter(slot => {
+                        if (slot.isHidden) return false;
+                        if (slot.showCondition && !slot.showCondition(blinkoItem)) return false;
+                        if (slot.hideCondition && slot.hideCondition(blinkoItem)) return false;
+                        return true;
+                      })
+                      .sort((a, b) => (a.order || 0) - (b.order || 0))
+                      .map((slot) => (
+                        <div
+                          key={slot.name}
+                          className={`mt-4 ${slot.className || ''}`}
+                          style={slot.style}
+                          onClick={slot.onClick}
+                          onMouseEnter={slot.onHover}
+                          onMouseLeave={slot.onLeave}
+                        >
+                          <div style={{ maxWidth: slot.maxWidth }}>
+                            <PluginRender content={slot.content} data={blinkoItem} />
+                          </div>
+                        </div>
+                      ))}
 
-                <CardFooter blinkoItem={blinkoItem} blinko={blinko} isShareMode={isShareMode} />
-                {!blinko.config.value?.isHideCommentInCard && blinkoItem.comments && blinkoItem.comments.length > 0 && (
-                  <SimpleCommentList blinkoItem={blinkoItem} />
-                )}
+                    <CardFooter blinkoItem={blinkoItem} blinko={blinko} isShareMode={isShareMode} />
+                    {!blinko.config.value?.isHideCommentInCard && blinkoItem.comments && blinkoItem.comments.length > 0 && (
+                      <SimpleCommentList blinkoItem={blinkoItem} />
+                    )}
+                  </div>
+                </Card>
               </div>
-            </Card>
+            </ContextMenuTrigger>
           </div>
         );
 

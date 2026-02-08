@@ -1,5 +1,21 @@
 import React from 'react';
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd-next';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FileType } from '../Editor/type';
 import { api } from '@/lib/trpc';
 
@@ -13,6 +29,30 @@ type DraggableFileGridProps = {
   renderItem?: (file: FileType) => React.ReactNode;
 };
 
+const SortableFileItem = ({ file, renderItem, disabled }: { file: FileType, renderItem: any, disabled: boolean }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: file.name, disabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {renderItem?.(file)}
+    </div>
+  );
+};
+
 export const DraggableFileGrid = ({
   files,
   preview = false,
@@ -21,20 +61,34 @@ export const DraggableFileGrid = ({
   className,
   renderItem
 }: DraggableFileGridProps) => {
-  const handleDragEnd = async (result: any) => {
-    if (!result.destination) return;
-    
-    const { source, destination } = result;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
     const filteredFiles = files.filter(i => i.previewType === type);
     const allFiles = Array.from(files);
-    
-    const [reorderedItem] = filteredFiles.splice(source.index, 1);
-    if (reorderedItem) {
-      filteredFiles.splice(destination.index, 0, reorderedItem);
-      
+
+    const oldIndex = filteredFiles.findIndex(f => f.name === active.id);
+    const newIndex = filteredFiles.findIndex(f => f.name === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedFiltered = arrayMove(filteredFiles, oldIndex, newIndex);
+
+      let filteredIdx = 0;
       const newFiles = allFiles.map(file => {
         if (file.previewType === type) {
-          return filteredFiles.shift() || file;
+          return reorderedFiltered[filteredIdx++] || file;
         }
         return file;
       });
@@ -54,41 +108,29 @@ export const DraggableFileGrid = ({
     }
   };
 
+  const currentFiles = files.filter(i => i.previewType === type);
+
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <Droppable droppableId={type} direction="horizontal">
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={`${className} ${snapshot.isDraggingOver ? 'bg-hover/50' : ''}`}
-          >
-            {files.filter(i => i.previewType === type).map((file, index) => (
-              <Draggable
-                key={`${file.name}-${index}`}
-                draggableId={`${file.name}-${index}`}
-                index={index}
-                isDragDisabled={preview}
-              >
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    style={{
-                      ...provided.draggableProps.style,
-                      opacity: snapshot.isDragging ? 0.5 : 1,
-                    }}
-                  >
-                    {renderItem?.(file)}
-                  </div>
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-    </DragDropContext>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={currentFiles.map(f => f.name)}
+        strategy={rectSortingStrategy}
+      >
+        <div className={className}>
+          {currentFiles.map((file) => (
+            <SortableFileItem
+              key={file.name}
+              file={file}
+              disabled={preview}
+              renderItem={renderItem}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
-}; 
+};

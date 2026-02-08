@@ -1,27 +1,28 @@
-import { ReactNode, Component, ErrorInfo } from 'react';
+import { ReactNode, Component, ErrorInfo, Suspense } from 'react';
 import React from 'react'
-import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react';
-import * as reactSpring from '@react-spring/three'
 import { RootStore } from '@/store/root';
 import { BlinkoStore } from '@/store/blinkoStore';
 import { cn } from '@heroui/react';
 
+const ShaderGradientCanvas = React.lazy(() => import('@shadergradient/react').then(module => ({ default: module.ShaderGradientCanvas })));
+const ShaderGradient = React.lazy(() => import('@shadergradient/react').then(module => ({ default: module.ShaderGradient })));
+
 class GradientErrorBoundary extends Component<{ children: ReactNode }> {
   state = { hasError: false };
-  
+
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.log('ShaderGradient error caught:', error, errorInfo);
   }
-  
+
   render() {
     if (this.state.hasError) {
       return <div className="w-full h-full absolute top-0 left-0 bg-gradient-to-br from-blue-500 to-purple-600" />;
     }
-    
+
     return this.props.children;
   }
 }
@@ -34,9 +35,9 @@ interface GradientBackgroundProps {
 export const GradientBackground = ({ children, className }: GradientBackgroundProps) => {
   const blinko = RootStore.Get(BlinkoStore)
 
-  return (
-    <div className={cn("relative w-full h-[100vh]", className)}>
-      <GradientErrorBoundary>
+  const background = React.useMemo(() => (
+    <GradientErrorBoundary>
+      <Suspense fallback={<div className="w-full h-full absolute top-0 left-0 bg-transparent" />}>
         <ShaderGradientCanvas
           style={{
             position: 'absolute',
@@ -80,10 +81,16 @@ export const GradientBackground = ({ children, className }: GradientBackgroundPr
               />
           }
         </ShaderGradientCanvas>
-      </GradientErrorBoundary>
+      </Suspense>
+    </GradientErrorBoundary>
+  ), [blinko.config.value?.customBackgroundUrl, blinko.config.value?.isCloseBackgroundAnimation]);
+
+  return (
+    <div className={cn("relative w-full h-[100vh]", className)}>
+      {background}
       <div className="relative z-10 w-full h-full">
         {children}
       </div>
     </div>
   );
-}; 
+};

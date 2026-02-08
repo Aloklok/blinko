@@ -7,10 +7,11 @@ import { DeleteIcon, DownloadIcon, InsertConextButton, CopyIcon } from './icons'
 import { observer } from 'mobx-react-lite';
 import { useMediaQuery } from 'usehooks-ts';
 import { DraggableFileGrid } from './DraggableFileGrid';
-import axiosInstance from '@/lib/axios';
+import { apiClient } from "@/lib/api-client";
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
 import { RootStore } from '@/store';
 import { UserStore } from '@/store/user';
+import { useIntersectionObserver } from 'usehooks-ts';
 
 type IProps = {
   files: FileType[]
@@ -23,30 +24,35 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
   const [currentSrc, setCurrentSrc] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const { isIntersecting, ref } = useIntersectionObserver({
+    threshold: 0,
+    rootMargin: '200px',
+    freezeOnceVisible: true,
+  })
+
   useEffect(() => {
     let objectUrl = '';
 
     const fetchImage = async () => {
+      if (!isIntersecting) return;
+
       setLoading(true);
       try {
-        // Try to get thumbnail first
-        const response = await axiosInstance.get(getBlinkoEndpoint(`${src}?thumbnail=true`), {
+        const { data } = await apiClient.get(getBlinkoEndpoint(`${src}?thumbnail=true`), {
           responseType: 'blob'
         });
 
-        objectUrl = URL.createObjectURL(response.data);
+        objectUrl = URL.createObjectURL(data as Blob);
         setCurrentSrc(objectUrl);
       } catch (error) {
         try {
-          // If thumbnail fails, try original image
-          const response = await axiosInstance.get(src, {
+          const { data } = await apiClient.get(src, {
             responseType: 'blob'
           });
 
-          objectUrl = URL.createObjectURL(response.data);
+          objectUrl = URL.createObjectURL(data as Blob);
           setCurrentSrc(objectUrl);
         } catch (error) {
-          // If both fail, use fallback
           setIsOriginalError(true);
         }
       } finally {
@@ -56,13 +62,12 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
 
     fetchImage();
 
-    // Clean up created object URLs when component unmounts
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [src]);
+  }, [src, isIntersecting]);
 
   useEffect(() => {
     if (isOriginalError) {
@@ -71,9 +76,9 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
   }, [isOriginalError])
 
   return (
-    <>
+    <div ref={ref} className="w-full h-full">
       {loading && (
-        <div className="flex items-center justify-center w-full h-full">
+        <div className="flex items-center justify-center w-full h-full min-h-[100px]">
           <Icon icon="line-md:loading-twotone-loop" width="24" height="24" />
         </div>
       )}
@@ -90,7 +95,7 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
           className={`object-cover w-full ${className}`}
         />
       )}
-    </>
+    </div>
   );
 }
 

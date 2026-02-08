@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { debounce } from 'lodash-es';
 import { eventBus } from '@/lib/event';
 import { EditorStore } from '../editorStore';
 import { FocusEditorFixMobile, HandleFileType } from '../editorUtils';
@@ -17,12 +18,7 @@ import { NoteType, toNoteTypeEnum } from '@shared/lib/types';
 import { api } from '@/lib/trpc';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
-import * as echarts from 'echarts';
 import { FontManager } from '@/lib/fontManager';
-// Expose echarts globally for vditor chartRender
-if (typeof window !== 'undefined' && !(window as any).echarts) {
-  (window as any).echarts = echarts;
-}
 
 /**
  * Get code highlight style name based on theme
@@ -78,8 +74,8 @@ const updateVditorHighlightConfig = (vditorInstance: Vditor, theme: string): voi
 /**
  * Apply theme class to editor element for CSS-based theme support (ABCJS, mindmap)
  */
-const applyThemeToEditor = (mode: string, theme: string): void => {
-  const editorElement = document.querySelector(`#vditor-${mode}`) as HTMLElement;
+const applyThemeToEditor = (instanceId: string, theme: string): void => {
+  const editorElement = document.querySelector(`#vditor-${instanceId}`) as HTMLElement;
   if (editorElement) {
     if (theme === 'dark') {
       editorElement.classList.add('vditor-theme-dark');
@@ -100,81 +96,89 @@ const applyThemeToEditor = (mode: string, theme: string): void => {
  */
 const renderAllVditorContent = (
   editorElement: HTMLElement | null,
-  mode: string,
+  instanceId: string,
   theme: string,
-  vditorInstance?: Vditor
+  vditorInstance?: any
 ) => {
-  if (!editorElement) {
-    const element = document.querySelector(`#vditor-${mode}`);
-    if (!element) return;
-    editorElement = element as HTMLElement;
-  }
-
-  const cdn = getBlinkoEndpoint('').replace(/\/$/, "");
-  const styleName = getHighlightStyle(theme);
-
-  // Update CSS link (ensure it's loaded before rendering)
-  updateHighlightCSS(theme, cdn);
-
-  // Update vditor instance configuration (if instance is provided)
-  if (vditorInstance) {
-    updateVditorHighlightConfig(vditorInstance, theme);
-  }
-
-  // Render code blocks with copy button
-  Vditor.codeRender(editorElement);
-
-  // Render code syntax highlighting
-  // Try to find preview element first, fallback to editor element
-  const previewElement = editorElement.querySelector('.vditor-preview') as HTMLElement;
-  const targetElement = previewElement || editorElement;
-
-  Vditor.highlightRender({
-    enable: true,
-    style: styleName,
-    lineNumber: true,
-  }, targetElement, cdn);
-
-  // Render math formulas (use MathJax as configured in vditor options)
-  Vditor.mathRender(editorElement, {
-    cdn,
-    math: {
-      engine: 'MathJax'
+  Promise.all([
+    import('vditor'),
+    import('echarts')
+  ]).then(([module, echarts]) => {
+    const Vditor = module.default;
+    if (typeof window !== 'undefined' && !(window as any).echarts) {
+      (window as any).echarts = echarts;
     }
+    if (!editorElement) {
+      const element = document.querySelector(`#vditor-${instanceId}`);
+      if (!element) return;
+      editorElement = element as HTMLElement;
+    }
+
+    const cdn = getBlinkoEndpoint('').replace(/\/$/, "");
+
+    // Update CSS link (ensure it's loaded before rendering)
+    updateHighlightCSS(theme, cdn);
+
+    // Update vditor instance configuration (if instance is provided)
+    if (vditorInstance) {
+      updateVditorHighlightConfig(vditorInstance, theme);
+    }
+
+    // Render code blocks with copy button
+    Vditor.codeRender(editorElement);
+
+    // Render code syntax highlighting
+    // Try to find preview element first, fallback to editor element
+    const previewElement = editorElement.querySelector('.vditor-preview') as HTMLElement;
+    const targetElement = previewElement || editorElement;
+
+    Vditor.highlightRender({
+      enable: true,
+      style: getHighlightStyle(theme),
+      lineNumber: true,
+    }, targetElement, cdn);
+
+    // Render math formulas (use MathJax as configured in vditor options)
+    Vditor.mathRender(editorElement, {
+      cdn,
+      math: {
+        engine: 'MathJax'
+      }
+    });
+
+    // Render Mermaid diagrams (flowchart, sequence diagram, gantt chart, etc.)
+    Vditor.mermaidRender(editorElement, cdn, theme);
+
+    // Render Graphviz diagrams
+    Vditor.graphvizRender(editorElement, cdn);
+
+    // Render PlantUML diagrams
+    Vditor.plantumlRender(editorElement, cdn);
+
+    // Render ECharts charts
+    Vditor.chartRender(editorElement, cdn, theme);
+
+    // Render flowchart.js
+    Vditor.flowchartRender(editorElement, cdn);
+
+    // Render mindmap
+    Vditor.mindmapRender(editorElement, cdn, theme);
+
+    // Render markmap (markdown mindmap)
+    Vditor.markmapRender(editorElement, cdn);
+
+    // Render SMILES (chemical structures)
+    Vditor.SMILESRender(editorElement, cdn, theme);
+
+    // Render ABC notation (musical staves)
+    Vditor.abcRender(editorElement, cdn);
+
+    // Render media (video, audio, iframe)
+    Vditor.mediaRender(editorElement);
+
+    // Lazy load images
+    Vditor.lazyLoadImageRender(editorElement);
   });
-
-  // Render Mermaid diagrams (flowchart, sequence diagram, gantt chart, etc.)
-  Vditor.mermaidRender(editorElement, cdn, theme);
-
-  // Render Graphviz diagrams
-  Vditor.graphvizRender(editorElement, cdn);
-
-  // Render PlantUML diagrams
-  Vditor.plantumlRender(editorElement, cdn);
-
-  // Render ECharts charts
-  Vditor.chartRender(editorElement, cdn, theme);
-
-  // Render flowchart.js
-  Vditor.flowchartRender(editorElement, cdn);
-
-  // Render mindmap
-  Vditor.mindmapRender(editorElement, cdn, theme);
-
-  // Render markmap (markdown mindmap)
-  Vditor.markmapRender(editorElement, cdn);
-
-  // Render SMILES (chemical structures)
-  Vditor.SMILESRender(editorElement, cdn, theme);
-
-  // Render ABC notation (musical staves)
-  Vditor.abcRender(editorElement, cdn);
-
-  // Render media (video, audio, iframe)
-  Vditor.mediaRender(editorElement);
-
-  // Lazy load images
-  Vditor.lazyLoadImageRender(editorElement);
 };
 
 export const useEditorInit = (
@@ -380,117 +384,132 @@ export const useEditorInit = (
     // This is key: load CSS before vditor initialization to ensure styles are available when code highlighting renders
     updateHighlightCSS(theme, cdn);
 
-    const vditor = new Vditor("vditor" + "-" + mode, {
-      width: '100%',
-      "toolbar": isPc ? ToolbarPC : ToolbarMobile,
-      mode: store.viewMode === 'raw' ? 'sv' : store.viewMode,
-      theme,
-      hint: {
-        extend: mode != 'comment' ? Extend : AIExtend
-      },
-      // Use local server for vditor dependencies (downloaded to server/dist/js/)
-      cdn,
-      async ctrlEnter(md) {
-        await store.handleSend()
-      },
-      customWysiwygToolbar: (type: TWYSISYGToolbar, element: HTMLElement) => {
-        console.log(type, element)
-      },
-      placeholder: t('i-have-a-new-idea'),
-      i18n: {
-        ...i18nEditor(t)
-      },
-      input: (value) => {
-        onChange?.(value)
-        // Re-render all content when content changes (for preview mode)
-        if (store.viewMode !== 'raw') {
-          setTimeout(() => {
-            const inputTheme = currentTheme || RootStore.Get(UserStore).theme || 'light';
-            renderAllVditorContent(null, mode, inputTheme, vditor);
-            // Apply theme class to editor for ABCJS and mindmap dark mode support
-            applyThemeToEditor(mode, inputTheme);
-          }, 100);
-        }
-      },
-      upload: {
-        url: getBlinkoEndpoint('/api/file/upload'),
-        success: (editor, res) => {
-          const { fileName, filePath, type, size } = JSON.parse(res)
-          store.handlePasteFile({
-            fileName,
-            filePath,
-            type,
-            size
-          })
+    let debouncedRender: any = null;
+
+    Promise.all([
+      import('vditor'),
+      import('echarts')
+    ]).then(([module, echarts]) => {
+      const Vditor = module.default;
+      if (typeof window !== 'undefined' && !(window as any).echarts) {
+        (window as any).echarts = echarts;
+      }
+
+      debouncedRender = debounce(() => {
+        const inputTheme = currentTheme || RootStore.Get(UserStore).theme || 'light';
+        renderAllVditorContent(null, store.instanceId, inputTheme, vditor);
+        // Apply theme class to editor for ABCJS and mindmap dark mode support
+        applyThemeToEditor(store.instanceId, inputTheme);
+      }, 800);
+
+      const vditor = new Vditor(`vditor-${store.instanceId}`, {
+        width: '100%',
+        "toolbar": isPc ? ToolbarPC : ToolbarMobile,
+        mode: store.viewMode === 'raw' ? 'sv' : store.viewMode,
+        theme,
+        hint: {
+          extend: mode != 'comment' ? Extend : AIExtend
         },
-        headers: {
-          'Authorization': `Bearer ${RootStore.Get(UserStore).token}`
+        // Use local server for vditor dependencies (downloaded to server/dist/js/)
+        cdn,
+        async ctrlEnter(md) {
+          await store.handleSend()
         },
-        withCredentials: true,
-        max: 1024 * 1024 * 1000,
-        fieldName: 'file',
-        multiple: false,
-        linkToImgUrl: getBlinkoEndpoint('/api/file/upload-by-url'),
-        linkToImgFormat(res) {
-          const data = JSON.parse(res)
-          const result = {
-            msg: '',
-            code: 0,
-            data: {
-              originalURL: data.originalURL,
-              url: data.filePath,
+        customWysiwygToolbar: (type: any, element: HTMLElement) => {
+          console.log(type, element)
+        },
+        placeholder: t('i-have-a-new-idea'),
+        i18n: {
+          ...i18nEditor(t)
+        },
+        input: (value) => {
+          onChange?.(value)
+          // Re-render all content when content changes (for preview mode)
+          if (store.viewMode !== 'raw') {
+            debouncedRender?.();
+          }
+        },
+        upload: {
+          url: getBlinkoEndpoint('/api/file/upload'),
+          success: (editor, res) => {
+            const { fileName, filePath, type, size } = JSON.parse(res)
+            store.handlePasteFile({
+              fileName,
+              filePath,
+              type,
+              size
+            })
+          },
+          headers: {
+            'Authorization': `Bearer ${RootStore.Get(UserStore).token}`
+          },
+          withCredentials: true,
+          max: 1024 * 1024 * 1000,
+          fieldName: 'file',
+          multiple: false,
+          linkToImgUrl: getBlinkoEndpoint('/api/file/upload-by-url'),
+          linkToImgFormat(res) {
+            const data = JSON.parse(res)
+            const result = {
+              msg: '',
+              code: 0,
+              data: {
+                originalURL: data.originalURL,
+                url: data.filePath,
+              }
+            }
+            return JSON.stringify(result)
+          }
+        },
+        tab: '\t',
+        undoDelay: 20,
+        value: content,
+        toolbarConfig: {
+          hide: !showToolbar,
+        },
+        preview: {
+          hljs: {
+            enable: true,
+            style: getHighlightStyle(theme),
+            lineNumber: true,
+          },
+          theme,
+          delay: 20,
+          math: {
+            engine: 'MathJax',
+          }
+        },
+        after: () => {
+          vditor.setValue(content);
+          store.init({
+            onChange,
+            onSend,
+            mode,
+            vditor
+          });
+
+          // Handle raw markdown mode (hide preview)
+          if (store.viewMode === 'raw') {
+            const previewElement = document.querySelector(`#vditor-${store.instanceId} .vditor-preview`);
+            if (previewElement) {
+              (previewElement as HTMLElement).style.display = 'none';
             }
           }
-          return JSON.stringify(result)
-        }
-      },
-      tab: '\t',
-      undoDelay: 20,
-      value: content,
-      toolbarConfig: {
-        hide: !showToolbar,
-      },
-      preview: {
-        hljs: {
-          enable: true,
-          style: getHighlightStyle(theme),
-          lineNumber: true,
+
+          // Render all supported content types in preview
+          // Use currentTheme to ensure correct theme is used
+          const finalTheme = currentTheme || theme;
+          renderAllVditorContent(null, store.instanceId, finalTheme, vditor);
+          // Apply theme class to editor for ABCJS and mindmap dark mode support
+          applyThemeToEditor(store.instanceId, finalTheme);
+
+          isPc ? store.focus() : FocusEditorFixMobile()
         },
-        theme,
-        delay: 20,
-        math: {
-          engine: 'MathJax',
-        }
-      },
-      after: () => {
-        vditor.setValue(content);
-        store.init({
-          onChange,
-          onSend,
-          mode,
-          vditor
-        });
-
-        // Handle raw markdown mode (hide preview)
-        if (store.viewMode === 'raw') {
-          const previewElement = document.querySelector(`#vditor-${mode} .vditor-preview`);
-          if (previewElement) {
-            (previewElement as HTMLElement).style.display = 'none';
-          }
-        }
-
-        // Render all supported content types in preview
-        // Use currentTheme to ensure correct theme is used
-        const finalTheme = currentTheme || theme;
-        renderAllVditorContent(null, mode, finalTheme, vditor);
-        // Apply theme class to editor for ABCJS and mindmap dark mode support
-        applyThemeToEditor(mode, finalTheme);
-
-        isPc ? store.focus() : FocusEditorFixMobile()
-      },
+      });
     });
     // Clear the effect
     return () => {
+      debouncedRender?.cancel();
       store.vditor?.destroy();
       store.vditor = null;
     };
@@ -509,7 +528,7 @@ export const useEditorInit = (
       updateVditorHighlightConfig(store.vditor, currentTheme);
 
       // Re-render code highlighting
-      const editorElement = document.querySelector(`#vditor-${mode}`) as HTMLElement;
+      const editorElement = document.querySelector(`#vditor-${store.instanceId}`) as HTMLElement;
       if (editorElement) {
         const previewElement = editorElement.querySelector('.vditor-preview') as HTMLElement;
         const targetElement = previewElement || editorElement;
@@ -520,7 +539,7 @@ export const useEditorInit = (
         }, targetElement, cdn);
 
         // Apply theme class for ABCJS and mindmap dark mode support
-        applyThemeToEditor(mode, currentTheme);
+        applyThemeToEditor(store.instanceId, currentTheme);
       }
     }
   }, [currentTheme, store.vditor, mode]);
@@ -687,7 +706,7 @@ export const useEditorEvents = (store: EditorStore) => {
       store.viewMode = mode;
 
       // Handle preview visibility for raw mode
-      const editorId = `vditor-${store.mode}`;
+      const editorId = `vditor-${store.instanceId}`;
       const previewElement = document.querySelector(`#${editorId} .vditor-preview`);
       if (previewElement) {
         if (mode === 'raw') {
@@ -697,9 +716,9 @@ export const useEditorEvents = (store: EditorStore) => {
           // Re-render all content when switching to preview mode
           setTimeout(() => {
             const currentTheme = RootStore.Get(UserStore).theme;
-            renderAllVditorContent(null, store.mode, currentTheme, store.vditor || undefined);
+            renderAllVditorContent(null, store.instanceId, currentTheme, store.vditor || undefined);
             // Apply theme class for ABCJS and mindmap dark mode support
-            applyThemeToEditor(store.mode, currentTheme);
+            applyThemeToEditor(store.instanceId, currentTheme);
           }, 100);
         }
       }

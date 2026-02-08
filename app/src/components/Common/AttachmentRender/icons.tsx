@@ -12,7 +12,7 @@ import { DialogStandaloneStore } from '@/store/module/DialogStandalone';
 import { Tooltip } from '@heroui/react';
 import { eventBus } from '@/lib/event';
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
-import axiosInstance from '@/lib/axios';
+import { apiClient } from "@/lib/api-client";
 import { downloadFromLink } from '@/lib/tauriHelper';
 export const DeleteIcon = observer(({ className, file, files, size = 20 }: { className: string, file: FileType, files: FileType[], size?: number }) => {
   const store = RootStore.Local(() => ({
@@ -20,7 +20,7 @@ export const DeleteIcon = observer(({ className, file, files, size = 20 }: { cla
       function: async (file) => {
         const path = file.uploadPromise?.value;
         if (path) {
-          await axiosInstance.post(getBlinkoEndpoint('/api/file/delete'), {
+          await apiClient.post(getBlinkoEndpoint('/api/file/delete'), {
             attachment_path: path,
           });
         }
@@ -77,17 +77,20 @@ export const CopyIcon = observer(({ className, file, size = 20 }: { className?: 
       if (!src) return;
 
       // Get the image as a blob
-      const response = await axiosInstance.get(getBlinkoEndpoint(src), {
+      const { data } = await apiClient.get(getBlinkoEndpoint(src), {
         responseType: 'blob'
       });
+      const response = { data };
 
       // Convert to canvas and then to PNG format for better clipboard support
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
+      const objectUrl = URL.createObjectURL(response.data);
 
       return new Promise((resolve, reject) => {
         img.onload = async () => {
+          URL.revokeObjectURL(objectUrl);
           canvas.width = img.width;
           canvas.height = img.height;
           ctx?.drawImage(img, 0, 0);
@@ -126,10 +129,11 @@ export const CopyIcon = observer(({ className, file, size = 20 }: { className?: 
         };
 
         img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
           reject(new Error('Failed to load image'));
         };
 
-        img.src = URL.createObjectURL(response.data);
+        img.src = objectUrl;
       });
     } catch (error) {
       console.error('Failed to copy image to clipboard:', error);

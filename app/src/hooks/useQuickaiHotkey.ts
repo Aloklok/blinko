@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isInTauri, isDesktop } from '@/lib/tauriHelper';
 import { RootStore } from '@/store';
@@ -7,9 +7,13 @@ import { AiStore } from '@/store/aiStore';
 export const useQuickaiHotkey = () => {
   const navigate = useNavigate();
   const aiStore = RootStore.Get(AiStore);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
     if (!isInTauri() || !isDesktop()) return;
+    if (isInitialized.current) return;
+
+    isInitialized.current = true;
 
     let isMounted = true;
     const unlisteners: (() => void)[] = [];
@@ -82,6 +86,7 @@ export const useQuickaiHotkey = () => {
     // Cleanup function
     return () => {
       isMounted = false;
+      isInitialized.current = false; // Reset on unmount to allow re-initialization
 
       // Clean up all listeners
       unlisteners.forEach(unlisten => {

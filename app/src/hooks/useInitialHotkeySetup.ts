@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { isInTauri, isDesktop } from '@/lib/tauriHelper';
 import { invoke } from '@tauri-apps/api/core';
 import { RootStore } from '@/store';
@@ -23,15 +23,23 @@ const DEFAULT_HOTKEY_CONFIG = {
   }
 };
 
+let globalInit = false;
+
 export const useInitialHotkeySetup = () => {
+  const isInitialized = useRef(false);
+
   useEffect(() => {
     if (!isInTauri() || !isDesktop()) return;
+    if (globalInit) return; // Global check to prevent running across StrictMode remounts
+
+    globalInit = true;
+    isInitialized.current = true;
 
     const setupInitialHotkeys = async () => {
       try {
         const blinko = RootStore.Get(BlinkoStore);
         await blinko.config.call(); // Ensure config is loaded
-        
+
         const config = await blinko.config.value?.desktopHotkeys;
         const finalConfig = {
           ...DEFAULT_HOTKEY_CONFIG,
@@ -39,9 +47,9 @@ export const useInitialHotkeySetup = () => {
           systemTrayEnabled: true,
           windowBehavior: 'show' as const
         };
-        
+
         console.log('Setting up initial hotkeys with config:', finalConfig);
-        
+
         // Register quicknote shortcut if enabled
         if (finalConfig.enabled) {
           try {
@@ -54,7 +62,7 @@ export const useInitialHotkeySetup = () => {
             console.warn('Failed to register initial quicknote shortcut:', error);
           }
         }
-        
+
         // Register quickai shortcut if enabled
         if (finalConfig.aiEnabled) {
           try {
@@ -67,7 +75,7 @@ export const useInitialHotkeySetup = () => {
             console.warn('Failed to register initial quickai shortcut:', error);
           }
         }
-        
+
         // Setup text selection monitoring if enabled
         if (finalConfig.textSelectionToolbar.enabled) {
           try {

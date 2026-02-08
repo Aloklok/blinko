@@ -291,19 +291,21 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
         topToolbarElement
       )}
 
-      <div {...getRootProps()} className={`${isDragAccept ? 'border-2 border-green-500 border-dashed' : ''} ${showTopToolbar ? 'h-full flex flex-col' : ''}`}>
+      <div {...getRootProps()}
+        ref={el => {
+          if (el) {
+            //@ts-ignore
+            el.__storeInstance = store;
+          }
+        }}
+        className={`blinko-editor-container ${isDragAccept ? 'border-2 border-green-500 border-dashed' : ''} ${showTopToolbar ? 'h-full flex flex-col' : ''}`}>
         <Card
           shadow='none'
           className={`${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex flex-col flex-1 min-h-0' : 'p-2'} 
           ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? (isInDialog && !isPc ? 'h-[85vh]' : 'h-full') : ''}
           relative ${withoutOutline ? '' : 'border-2 border-border'} !transition-all ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'overflow-hidden' : 'overflow-visible'} 
         ${store.isFullscreen ? 'fixed inset-0 z-[9999] m-0 rounded-none border-none bg-background' : ''}`}
-          ref={el => {
-            if (el) {
-              //@ts-ignore
-              el.__storeInstance = store;
-            }
-          }}>
+        >
 
           <div ref={cardRef}
             className={`overflow-visible relative ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex-1 flex flex-col min-h-0' : ''}`}
@@ -313,7 +315,7 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
               store.adjustMobileEditorHeight()
             }}>
 
-            <div id={`vditor-${mode}`} className={`vditor ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
+            <div id={`vditor-${store.instanceId}`} className={`vditor ${(showTopToolbar || store.isFullscreen || (isInDialog && !isPc)) ? 'flex-1 overflow-hidden flex flex-col fullscreen-editor' : ''}`} />
 
             {store.files.length > 0 && (
               <div className='w-full my-2 attachment-container'>

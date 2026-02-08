@@ -43,7 +43,7 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
   return (
     <div
       style={{ width: isPc ? `${base.sideBarWidth}px` : '100%' }}
-      className={`flex h-full flex-1 flex-col p-4 relative bg-background 
+      className={`flex h-full shrink-0 flex-col p-4 relative bg-background 
         ${!base.isDragging ? '!transition-all duration-300' : 'transition-none'} 
         group/sidebar`}
       onMouseEnter={() => setIsHovering(true)}

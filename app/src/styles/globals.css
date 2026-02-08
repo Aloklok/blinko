@@ -62,6 +62,12 @@
 }
 
 /* Fix card height  */
+.layout-container {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 5000px;
+  /* 给一个预估高度防止滚动条跳动 */
+}
+
 .layout-container>div {
   height: 100%;
   z-index: 10;
@@ -123,24 +129,41 @@ html:not(.dark) {
 }
 
 
-.contextmenu {
-  padding: 2px !important;
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
+/* SzHsin React Menu Custom Styles */
+.szh-menu-container {
+  z-index: 10000 !important;
+}
+
+.szh-menu {
+  padding: 4px !important;
   box-shadow: var(--shadow) !important;
-  border-radius: 17px !important;
-  border: 2px solid var(--desc) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
   background-color: var(--background) !important;
+  min-width: 160px !important;
+  font-size: 14px !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
-.contextmenu .contextmenu__item {
-  border-radius: 12px;
-  margin-left: 3px;
-  margin-right: 3px;
+.dark .szh-menu {
+  background-color: rgba(11, 11, 12, 0.9) !important;
+  border-color: #333 !important;
 }
 
-.contextmenu .contextmenu__item:hover {
-  background-color: var(--secondbackground) !important;
+.szh-menu__item {
+  border-radius: 8px !important;
+  margin: 2px 4px !important;
+  padding: 8px 12px !important;
+}
+
+.szh-menu__item--hover {
+  background-color: var(--hover) !important;
+  color: var(--primary) !important;
+}
+
+.szh-menu__item--disabled {
+  opacity: 0.5 !important;
 }
 
 .PhotoView-Portal {

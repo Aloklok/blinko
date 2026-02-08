@@ -25,6 +25,9 @@ export class StorageState<T> {
       if (typeof window == 'undefined') return
       const value = window?.localStorage?.getItem(this.key);
       this.value = StorageState.safeParse(value);
+      if (this.value !== null && this.validate) {
+        this.value = this.validate(this.value);
+      }
       if (this.value == null) {
         this.value = this.default;
       }

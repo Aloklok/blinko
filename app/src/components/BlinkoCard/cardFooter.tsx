@@ -171,15 +171,19 @@ export const ConvertTypeButton = ({
   );
 };
 
-const RightContent = ({ blinkoItem, t }: { blinkoItem: Note; t: any }) => {
+import { forwardRef } from 'react';
+
+const RightContent = forwardRef<HTMLDivElement, { blinkoItem: Note; t: any }>(({ blinkoItem, t }, ref) => {
   return (
-    <div className="ml-auto flex items-center gap-2">
+    <div ref={ref} className="ml-auto flex items-center gap-2">
       {<CommentCount blinkoItem={blinkoItem} />}
       {blinkoItem?.metadata?.isIndexed && (
         <Tooltip content={'Indexed'} delay={1500}>
-          <Icon className="!text-ignore opacity-50" icon="hugeicons:file-search" width="16" height="16" />
+          <div>
+            <Icon className="!text-ignore opacity-50" icon="hugeicons:file-search" width="16" height="16" />
+          </div>
         </Tooltip>
       )}
     </div>
   );
-};
+});

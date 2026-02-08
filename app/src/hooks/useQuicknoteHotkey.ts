@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isInTauri } from '@/lib/tauriHelper';
 import { RootStore } from '@/store';
@@ -7,10 +7,13 @@ import { BlinkoStore } from '@/store/blinkoStore';
 export const useQuicknoteHotkey = (isCreateMode: boolean) => {
   const navigate = useNavigate();
   const blinko = RootStore.Get(BlinkoStore);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
     if (!isInTauri() || !isCreateMode) return;
+    if (isInitialized.current) return;
 
+    isInitialized.current = true;
     let isMounted = true;
     const unlisteners: (() => void)[] = [];
 
@@ -88,6 +91,7 @@ export const useQuicknoteHotkey = (isCreateMode: boolean) => {
     // Cleanup function
     return () => {
       isMounted = false;
+      isInitialized.current = false; // Reset on unmount to allow re-initialization
 
       // Clean up all listeners
       unlisteners.forEach(unlisten => {
