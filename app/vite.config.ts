@@ -172,8 +172,7 @@ export default defineConfig({
             return 'ui-components';
           }
 
-          if (id.includes('node_modules/lodash') ||
-            id.includes('node_modules/axios') ||
+          if (id.includes('node_modules/lodash-es') ||
             id.includes('node_modules/date-fns')) {
             return 'utils';
           }

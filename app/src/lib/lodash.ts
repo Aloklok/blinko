@@ -1,12 +1,14 @@
-import debounce from "lodash/debounce";
-import throttle from "lodash/throttle";
-import cloneDeep from "lodash/cloneDeep";
-import merge from "lodash/merge";
-import isEqual from "lodash/isEqual";
-import orderBy from "lodash/orderBy";
-import groupBy from "lodash/groupBy";
-import mergeWith from "lodash/mergeWith";
-import uniqBy from "lodash/uniqBy";
+import {
+  debounce,
+  throttle,
+  cloneDeep,
+  merge,
+  isEqual,
+  orderBy,
+  groupBy,
+  mergeWith,
+  uniqBy
+} from "lodash-es";
 
 // Native implementation for simple utilities
 export const _ = {
