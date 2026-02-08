@@ -57,6 +57,8 @@ model attachments {
 
   note    notes?    @relation(fields: [noteId], references: [id])
   account accounts? @relation(fields: [accountId], references: [id])
+
+  @@index([noteId])
 }
 
 model config {
@@ -94,6 +96,8 @@ model notes {
   comments          comments[]      @relation("NoteComments")
   histories         noteHistory[]
   internalShares    noteInternalShare[]
+
+  @@index([accountId, isRecycle, isArchived])
 }
 
 model comments {
@@ -125,6 +129,8 @@ model tag {
   tagsToNote tagsToNote[]
   sortOrder  Int          @default(0)
   account    accounts?    @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
 }
 
 model tagsToNote {

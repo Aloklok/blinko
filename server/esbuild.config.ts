@@ -7,8 +7,47 @@ if (!existsSync(distDir)) {
   mkdirSync(distDir, { recursive: true });
 }
 
+// Copy Vditor static assets
+import { cpSync } from 'fs';
+const publicDir = path.resolve(process.cwd(), 'public');
+
+// Manually copy specific Vditor files if they exist in source
+// Note: We need to locate where vditor assets are actually stored in source.
+// Based on server/index.ts, they seem to be in ./lute.min.js and ./vditor/
+// We should check if they need to be copied to ../dist/js/ or similar.
+// Looking at server/index.ts: serveVditorFile('/dist/js/lute/lute.min.js', './lute.min.js');
+// This implies the route /dist/js/lute/lute.min.js serves local ./lute.min.js
+// But for production build, we might need to copy them to ../dist/ if we want them served statically?
+// Actually, server/index.ts serves them from local CWD relative path even in production?
+// "res.sendFile(path.resolve(__dirname, filePath))"
+// In prod, __dirname is where index.js is (dist folder).
+// So we need to copy ./lute.min.js -> ../dist/lute.min.js
+// And ./vditor -> ../dist/vditor
+function copyAssets() {
+  console.log('Copying static assets...');
+  try {
+    const assets = [
+      { src: 'lute.min.js', dest: 'lute.min.js' },
+      { src: 'vditor', dest: 'vditor' }
+    ];
+    assets.forEach(asset => {
+      const srcPath = path.resolve(process.cwd(), asset.src);
+      const destPath = path.resolve(distDir, asset.dest);
+      if (existsSync(srcPath)) {
+        cpSync(srcPath, destPath, { recursive: true });
+        console.log(`Copied ${asset.src} to ${destPath}`);
+      } else {
+        console.warn(`Asset not found: ${srcPath}`);
+      }
+    });
+  } catch (e) {
+    console.error('Error copying assets:', e);
+  }
+}
+
 async function build() {
   try {
+    copyAssets();
     const result = await esbuild.build({
       entryPoints: ['index.ts'],
       bundle: true,
@@ -39,7 +78,8 @@ async function build() {
         '@libsql/linux-x64-musl',
         '@libsql/linux-x64-gnu',
         '@libsql/linux-arm64-musl',
-        '@libsql/linux-arm64-gnu'
+        '@libsql/linux-arm64-gnu',
+        'fsevents'
       ],
       define: {
         'process.env.NODE_ENV': '"production"',

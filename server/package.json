@@ -44,11 +44,10 @@
     "adm-zip": "^0.5.16",
     "ai": "4.3.16",
     "archiver": "^7.0.1",
-    "axios": "^1.6.7",
     "bowser": "^2.11.0",
     "busboy": "^1.6.0",
-    "cookie-parser": "^1.4.7",
     "compression": "^1.7.5",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.10",
     "dotenv": "^16.4.5",
@@ -88,7 +87,6 @@
     "pg-boss": "^12.5.4",
     "pgvector": "^0.2.0",
     "pino-pretty": "^10.3.1",
-    "proxy-agent": "^6.5.0",
     "request-ip": "^3.3.0",
     "sanitize-filename": "^1.6.3",
     "sharp": "0.34.1",
@@ -97,7 +95,6 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "trpc-to-openapi": "3.0.0",
-    "undici": "^7.16.0",
     "unfurl.js": "^6.4.0",
     "vite-express": "^0.20.0",
     "voyage-ai-provider": "^1.1.1",
@@ -136,6 +133,6 @@
     "prettier": "^3.2.5",
     "prisma": "5.22.0",
     "tsup": "^8.4.0",
-    "typescript": "^5.1.6"
+    "typescript": "~5.6.2"
   }
 }

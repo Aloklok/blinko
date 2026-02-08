@@ -3,8 +3,8 @@ const { heroui } = require('@heroui/react');
 module.exports = {
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
-    '../node_modules/@tremor/**/*.{js,ts,jsx,tsx}',
-    '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}', // NextUI theme
+    './node_modules/@tremor/**/*.{js,ts,jsx,tsx}',
+    './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}', // NextUI theme
   ],
   darkMode: 'class',
   theme: {
@@ -122,7 +122,6 @@ module.exports = {
     require('@headlessui/tailwindcss'),
     require('@tailwindcss/typography'),
     heroui({
-      prefix: 'heroui',
       addCommonColors: false,
       defaultTheme: 'light',
       defaultExtendTheme: 'light',
