@@ -4,7 +4,7 @@ import { RECOMMAND_TASK_NAME } from "@shared/lib/sharedConstant";
 import { BaseScheduleJob } from "./baseScheduleJob";
 import { attachmentsSchema, tagSchema, tagsToNoteSchema, notesSchema } from "@shared/lib/prismaZodType";
 import { z } from "zod";
-import axios from "axios";
+import { ServerFetch } from "@server/lib/fetch";
 
 export const recommandListSchema = z.array(notesSchema.merge(
   z.object({
@@ -47,10 +47,10 @@ export class RecommandJob extends BaseScheduleJob {
 
       if (followCount > 0) {
         console.log(`[${this.taskName}] Found ${followCount} followings, scheduling job`);
-        
+
         // Register worker
         await this.registerWorker();
-        
+
         // Check if task is already scheduled via pg-boss
         const isAlreadyScheduled = await this.isScheduled();
 
@@ -110,20 +110,20 @@ export class RecommandJob extends BaseScheduleJob {
         console.log(`[${this.taskName}] No follows found, skipping task`);
         await prisma.cache.delete({
           where: { key: 'recommand_list' },
-        }).catch(() => {}); // Ignore if doesn't exist
+        }).catch(() => { }); // Ignore if doesn't exist
         return { message: 'No follows found' };
       }
 
       await this.batchProcess(follows, async (follow: any) => {
         try {
           const url = new URL(follow.siteUrl);
-          const response = await axios.post<RecommandListType>(
+          const data = await ServerFetch.post<RecommandListType>(
             `${url.origin}/api/v1/note/public-list`,
             { page: 1, size: 30 },
             { timeout: 10000 }
           );
 
-          const processedData = response.data.map(item => {
+          const processedData = data.map(item => {
             const newItem = { ...item, originURL: url.origin };
 
             if (newItem.attachments) {

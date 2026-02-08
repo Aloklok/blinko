@@ -289,6 +289,7 @@ async function bootstrap() {
     if (!server) {
       server = app.listen(PORT, "0.0.0.0", () => {
         console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
+        console.log('Server restarted via watcher.');
       });
 
       // Increase timeout for large file uploads (5 minutes)

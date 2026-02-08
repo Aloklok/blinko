@@ -8,15 +8,33 @@ let boss: PgBoss | null = null;
  */
 export async function getPgBoss(): Promise<PgBoss> {
   if (!boss) {
-    const connectionString = process.env.DATABASE_URL;
-    
+    const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
 
+    // Supabase specific fix: pg-boss requires session mode (port 5432) not transaction mode (port 6543)
+    // If we're using the pooler port (6543), try to switch to 5432 for pg-boss
+    let bossConnectionString = connectionString;
+    if (connectionString.includes('pooler.supabase.com') && connectionString.includes('6543')) {
+      console.log('[pg-boss] Detected Supabase Transaction Pooler (6543). Switching to Session Mode (5432) for pg-boss...');
+      try {
+        const url = new URL(connectionString);
+        url.port = '5432';
+        url.searchParams.delete('pgbouncer');
+        bossConnectionString = url.toString();
+      } catch (e) {
+        console.warn('[pg-boss] Failed to parse connection string, falling back to string replacement', e);
+        bossConnectionString = connectionString.replace('6543', '5432').replace('?pgbouncer=true', '').replace('&pgbouncer=true', '');
+      }
+    }
+
     boss = new PgBoss({
-      connectionString,
+      connectionString: bossConnectionString,
       schema: 'pgboss',
+      // Limit connection pool for background jobs
+      max: 4,
       // Retry configuration
       retryLimit: 3,
       retryDelay: 60, // seconds
@@ -42,7 +60,7 @@ export async function getPgBoss(): Promise<PgBoss> {
     await boss.start();
     console.log('[pg-boss] Started successfully');
   }
-  
+
   return boss;
 }
 

@@ -1,4 +1,4 @@
-import axios from 'axios';
+// import axios from 'axios'; // Removed
 import { getWithProxy, postWithProxy } from './proxy';
 
 interface SpotifyConfig {
@@ -143,6 +143,15 @@ export class SpotifyClient {
         },
       });
 
+      if (response.error) {
+        if (response.status === 401) {
+          this.token = '';
+          return this.getArtistImage(artist);
+        }
+        console.error('Failed to get artist image:', response.message);
+        return '';
+      }
+
       const artists = response.data.artists.items;
       if (!artists.length) {
         return '';
@@ -150,10 +159,6 @@ export class SpotifyClient {
 
       return artists[0]?.images[0]?.url || '';
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        this.token = '';
-        return this.getArtistImage(artist);
-      }
       console.error('Failed to get artist image:', error);
       return '';
     }
@@ -176,12 +181,16 @@ export class SpotifyClient {
         },
       });
 
+      if (response.error) {
+        if (response.status === 401) {
+          this.token = '';
+          return this.search(params);
+        }
+        throw new Error(response.message);
+      }
+
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        this.token = '';
-        return this.search(params);
-      }
       throw error;
     }
   }

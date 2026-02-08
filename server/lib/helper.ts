@@ -1,4 +1,5 @@
-import axios from "axios";
+// import axios from "axios";
+import { ServerFetch } from "@server/lib/fetch";
 import { authenticator } from 'otplib';
 import crypto from 'crypto';
 import { Feed } from "feed";
@@ -12,7 +13,7 @@ export const SendWebhook = async (data: any, webhookType: string, ctx: any) => {
   try {
     const globalConfig = await getGlobalConfig({ ctx })
     if (globalConfig.webhookEndpoint) {
-      await axios.post(globalConfig.webhookEndpoint, { data, webhookType, activityType: `blinko.note.${webhookType}` })
+      await ServerFetch.post(globalConfig.webhookEndpoint, { data, webhookType, activityType: `blinko.note.${webhookType}` })
     }
   } catch (error) {
     console.log('request webhook error:', error)

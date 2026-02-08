@@ -88,7 +88,6 @@ export const noteRouter = router({
             comments: z.any().optional(),
             _count: z.object({
               comments: z.number(),
-              histories: z.number(),
             }),
             owner: z.object({
               id: z.number(),
@@ -97,8 +96,8 @@ export const noteRouter = router({
               image: z.string(),
             }).nullable().optional(),
             isSharedNote: z.boolean().optional(),
-            canEdit: z.boolean().optional(),
             isInternalShared: z.boolean().optional(),
+            canEdit: z.boolean().optional(),
           }),
         ),
       ),
@@ -203,54 +202,18 @@ export const noteRouter = router({
           attachments: {
             orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
           },
-          comments: {
-            include: {
-              account: {
-                select: {
-                  image: true,
-                  nickname: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          references: {
-            select: {
-              toNoteId: true,
-              toNote: {
-                select: {
-                  content: true,
-                  createdAt: true,
-                  updatedAt: true,
-                },
-              },
-            },
-          },
-          referencedBy: {
-            select: {
-              fromNoteId: true,
-              fromNote: {
-                select: {
-                  content: true,
-                  createdAt: true,
-                  updatedAt: true,
-                },
-              },
-            },
-          },
           _count: {
             select: {
               comments: true,
-              histories: true,
+              internalShares: true,
             },
           },
-          internalShares: true,
         },
       });
 
       return notes.map((note) => ({
         ...note,
-        isInternalShared: note.internalShares.length > 0,
+        isInternalShared: note._count.internalShares > 0,
       }));
     }),
   publicList: publicProcedure
@@ -382,7 +345,6 @@ export const noteRouter = router({
               .optional(),
             _count: z.object({
               comments: z.number(),
-              histories: z.number(),
             }),
           }),
         ),
@@ -424,7 +386,6 @@ export const noteRouter = router({
           _count: {
             select: {
               comments: true,
-              histories: true,
             },
           },
         },
@@ -485,7 +446,6 @@ export const noteRouter = router({
                 .optional(),
               _count: z.object({
                 comments: z.number(),
-                histories: z.number(),
               }),
             }),
           ),
@@ -527,7 +487,6 @@ export const noteRouter = router({
           _count: {
             select: {
               comments: true,
-              histories: true,
             },
           },
         },
@@ -616,7 +575,6 @@ export const noteRouter = router({
               .optional(),
             _count: z.object({
               comments: z.number(),
-              histories: z.number(),
             }),
           }),
         ),
@@ -663,7 +621,7 @@ export const noteRouter = router({
               },
             },
           },
-          _count: { select: { comments: true, histories: true } },
+          _count: { select: { comments: true } },
         },
       });
     }),
@@ -789,7 +747,6 @@ export const noteRouter = router({
             .optional(),
           _count: z.object({
             comments: z.number(),
-            histories: z.number(),
           }),
         }),
       ),

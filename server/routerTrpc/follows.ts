@@ -2,7 +2,8 @@ import { z } from "zod";
 import { router, authProcedure, publicProcedure } from "../middleware";
 import { TRPCError } from "@trpc/server";
 import { prisma } from '../prisma';
-import axios from "axios";
+// import axios from "axios";
+import { ServerFetch } from "@server/lib/fetch";
 import { followsSchema, NotificationType } from "@shared/lib/prismaZodType";
 import { CreateNotification } from "./notification";
 import { RecommandJob, recommandListSchema, RecommandListType } from "../jobs/recommandJob";
@@ -59,7 +60,7 @@ export const followsRouter = router({
         input.siteUrl = new URL(input.siteUrl).origin;
         input.mySiteUrl = new URL(input.mySiteUrl).origin;
         const followerId = ctx.id;
-        const siteInfo = await axios.get(input.siteUrl + '/api/v1/public/site-info', { params: { id: null } });
+        const siteInfoData = await ServerFetch.get<any>(input.siteUrl + '/api/v1/public/site-info', { params: { id: null } });
 
         // Check if already following
         const existingFollow = await tx.follows.findFirst({
@@ -81,8 +82,8 @@ export const followsRouter = router({
           data: {
             followType: "following",
             siteUrl: input.siteUrl,
-            siteName: siteInfo.data.name,
-            siteAvatar: siteInfo.data.image ? input.siteUrl + siteInfo.data.image : "",
+            siteName: siteInfoData.name,
+            siteAvatar: siteInfoData.image ? input.siteUrl + siteInfoData.image : "",
             accountId: Number(followerId),
           },
         });
@@ -93,8 +94,8 @@ export const followsRouter = router({
           },
         });
 
-        await axios.post(input.siteUrl + '/api/v1/follows/follow-from', {
-          mySiteAccountId: siteInfo?.data?.id,
+        await ServerFetch.post(input.siteUrl + '/api/v1/follows/follow-from', {
+          mySiteAccountId: siteInfoData?.id,
           siteUrl: input.mySiteUrl,
           siteName: mySiteInfo?.nickname ?? mySiteInfo?.name,
           siteAvatar: input.mySiteUrl + mySiteInfo?.image,
@@ -192,7 +193,7 @@ export const followsRouter = router({
         input.siteUrl = new URL(input.siteUrl).origin;
         input.mySiteUrl = new URL(input.mySiteUrl).origin;
         const followerId = ctx.id;
-        
+
         await tx.follows.deleteMany({
           where: {
             siteUrl: input.siteUrl,
@@ -200,19 +201,19 @@ export const followsRouter = router({
             accountId: Number(followerId),
           },
         });
-        
+
         try {
-          const siteInfo = await axios.get(input.siteUrl + '/api/v1/public/site-info', {
+          const siteInfoData = await ServerFetch.get<any>(input.siteUrl + '/api/v1/public/site-info', {
             timeout: 5000
           });
-          
-          axios.post(input.siteUrl + '/api/v1/follows/unfollow-from', {
-            mySiteAccountId: siteInfo?.data?.id,
+
+          ServerFetch.post(input.siteUrl + '/api/v1/follows/unfollow-from', {
+            mySiteAccountId: siteInfoData?.id,
             siteUrl: input.mySiteUrl,
           })
-          .catch(error => {
-            console.error(`Failed to notify site ${input.siteUrl} about unfollowing:`, error.message);
-          });
+            .catch(error => {
+              console.error(`Failed to notify site ${input.siteUrl} about unfollowing:`, error.message);
+            });
         } catch (error) {
           console.error(`Failed to get info from site ${input.siteUrl}:`, error.message);
         }
@@ -220,7 +221,7 @@ export const followsRouter = router({
         RecommandJob.RunTask().catch(err => {
           console.error('Failed to run recommand job:', err);
         });
-        
+
         return true;
       });
     }),
