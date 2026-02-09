@@ -7,9 +7,8 @@ import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { prisma } from '../../prisma';
-import { verifyPassword } from '@prisma/seed';
 import { getGlobalConfig } from '../../routerTrpc/config';
-import { getNextAuthSecret, generateToken } from '../../lib/helper';
+import { getNextAuthSecret, generateToken, verifyPassword } from '../../lib/helper';
 import { cache } from '@shared/lib/cache';
 
 // Cache TTL in milliseconds (20 seconds)
@@ -19,7 +18,7 @@ export const configureSession = async (app: any) => {
   await initJwtStrategy();
   initLocalStrategy();
   await initOAuthStrategies();
-  
+
   app.use(passport.initialize());
 };
 
@@ -48,7 +47,7 @@ async function handleOAuthCallback(accessToken: string, refreshToken: string, pr
       cache.set(`user_by_id_${newUser.id}`, null);
 
       const token = await generateToken(newUser, false);
-      
+
       return done(null, { ...newUser, token });
     } else {
       let realUser = existingUser;
@@ -330,7 +329,7 @@ const initOAuthStrategies = async () => {
               const { Strategy: OAuth2Strategy } = require('passport-oauth2');
 
               let oauthConfig;
-              
+
               if (provider.wellKnown) {
                 const wellKnownResponse = await fetch(provider.wellKnown);
                 if (!wellKnownResponse.ok) {
@@ -364,19 +363,19 @@ const initOAuthStrategies = async () => {
                     if (provider.wellKnown) {
                       const wellKnownResponse = await fetch(provider.wellKnown);
                       const wellKnownConfig = await wellKnownResponse.json();
-                      
+
                       const userInfoResponse = await fetch(wellKnownConfig.userinfo_endpoint, {
                         headers: {
                           'Authorization': `Bearer ${accessToken}`
                         }
                       });
-                      
+
                       if (!userInfoResponse.ok) {
                         throw new Error('Failed to fetch user info from OpenID Connect provider');
                       }
 
                       const userInfo = await userInfoResponse.json();
-                      
+
                       profile = {
                         id: userInfo.sub,
                         username: userInfo.preferred_username || userInfo.name,
@@ -411,7 +410,7 @@ export const reinitializeOAuthStrategies = async () => {
     // Clear existing OAuth strategies
     const config = await getGlobalConfig({ useAdmin: true });
     const providers = config.oauth2Providers || [];
-    
+
     // Unregister existing OAuth strategies
     for (const provider of providers) {
       try {
@@ -420,7 +419,7 @@ export const reinitializeOAuthStrategies = async () => {
         // Strategy might not exist, continue
       }
     }
-    
+
     // Re-initialize OAuth strategies
     await initOAuthStrategies();
     return { success: true, message: 'OAuth strategies reinitialized' };
