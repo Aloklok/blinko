@@ -33,7 +33,7 @@
 
 .vditor-reset ul,
 .vditor-reset ol {
-  padding-left: 2.5em;
+  padding-left: 2.8em !important;
   /* Increase padding to ensure bullets are not cut off */
 }
 
@@ -173,7 +173,8 @@
   color: var(--foreground);
 }
 
-.vditor-task input {
+/* Broader selector to catch all checkboxes in Vditor (Issue #2: Invisible on Safari) */
+.vditor-reset input[type="checkbox"] {
   width: 16px;
   height: 16px;
 
@@ -188,15 +189,17 @@
   margin-right: 8px;
   vertical-align: middle;
   cursor: pointer;
+  display: inline-block;
+  /* Ensure it takes up space */
 }
 
-.vditor-task input:checked {
+.vditor-reset input[type="checkbox"]:checked {
   background-color: #EAB308;
   border-color: #EAB308;
   position: relative;
 }
 
-.vditor-task input:checked::after {
+.vditor-reset input[type="checkbox"]:checked::after {
   content: '';
   position: absolute;
   left: 50%;

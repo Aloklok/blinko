@@ -97,21 +97,23 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
     >
       <AiWritePop />
 
-      <Menu
-        style={{
-          bmMenuWrap: {
-            transition: 'all .3s',
-          },
-        }}
-        disableAutoFocus
-        onClose={() => setisOpen(false)}
-        onOpen={setisOpen}
-        isOpen={isOpen}
-        pageWrapId={'page-wrap'}
-        outerContainerId={'outer-container'}
-      >
-        <Sidebar onItemClick={() => setisOpen(false)} />
-      </Menu>
+      {!isPc && (
+        <Menu
+          style={{
+            bmMenuWrap: {
+              transition: 'all .3s',
+            },
+          }}
+          disableAutoFocus
+          onClose={() => setisOpen(false)}
+          onOpen={setisOpen}
+          isOpen={isOpen}
+          pageWrapId={'page-wrap'}
+          outerContainerId={'outer-container'}
+        >
+          <Sidebar onItemClick={() => setisOpen(false)} />
+        </Menu>
+      )}
 
       {isPc && <Sidebar />}
 

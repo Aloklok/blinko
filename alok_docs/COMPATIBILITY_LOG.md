@@ -86,6 +86,16 @@ Mac Safari 录制的音频文件（WebM 格式）无法在 iOS Safari 中播放�
 
 ---
 
+## 7. Safari Vditor 样式兼容
+
+*   **🔴 问题**: Safari 下 Vditor 编辑模式的任务列表复选框 (`checkbox`) 不可见；普通列表 (`ul`) 在容器溢出时 Bullet 被裁剪。
+*   **🟢 我们的方案**:
+    *   **Checkbox**: 显式添加 `-webkit-appearance: none` 及背景色/盒模型重置，解决 Safari 渲染异常。
+    *   **List Padding**: 调整 `.vditor-reset ul` 的 `padding-left` 至 `2.5em`，防止 overflow 裁剪。
+    *   **Passive Events**: 针对 `touchstart` / `wheel` 等事件强制添加 `{ passive: true }`，解决浏览器控制台的 Violation 警告并提升滚动响应速度。
+
+---
+
 ## 💡 功能优化说明
 
 关于 **AI 功能增强、插件系统桥接、UI/UX 性能优化** 的具体记录已迁移至：

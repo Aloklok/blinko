@@ -191,9 +191,9 @@ export const getTokenFromRequest = async (req: ExpressRequest) => {
   }
 }
 
-export const getAllPathTags = async () => {
-  const flattenTags = await prisma.tag.findMany();
-  const hasHierarchy = flattenTags.some(tag => tag.parent != null);
+export const getAllPathTags = async (accountId: number) => {
+  const flattenTags = await prisma.tag.findMany({ where: { accountId } });
+  const hasHierarchy = flattenTags.some(tag => tag.parent != null && tag.parent !== 0);
   if (hasHierarchy) {
     const buildHashTagTreeFromDb = (tags: any[]) => {
       const tagMap = new Map();

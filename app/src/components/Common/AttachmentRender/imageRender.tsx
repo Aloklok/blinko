@@ -92,7 +92,7 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
           onError={() => {
             setIsOriginalError(true);
           }}
-          className={`object-fill w-full h-full ${className}`}
+          className={`object-cover w-full h-full ${className}`}
         />
       )}
     </div>
@@ -129,7 +129,7 @@ const ImageRender = observer((props: IProps) => {
           <div className="w-full cursor-zoom-in">
             <ImageThumbnailRender
               src={file.preview}
-              className={`!opacity-100 visibility-visible`}
+              className={`!opacity-100 visibility-visible ${imageHeight} object-cover`}
             />
           </div>
         </PhotoView>

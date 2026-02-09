@@ -441,14 +441,19 @@ export class AiModelFactory {
       if (customPrompt) {
         return customPrompt;
       }
-      return `You are a precise label classification expert, and you will generate precisely matched content labels based on the content. Rules:
-      1. **Core Selection Principle**: Select 5 to 8 tags from the existing tag list that are most relevant to the content theme. Carefully compare the key information, technical types, application scenarios, and other elements of the content to ensure that the selected tags accurately reflect the main idea of the content.
-      2. **Language Matching Strategy**: If the language of the existing tags does not match the language of the content, give priority to using the language of the existing tags to maintain the consistency of the language style of the tag system.
-      3. **Tag Structure Requirements**: When using existing tags, it is necessary to construct a parent-child hierarchical structure. For example, place programming language tags under parent tags such as #Code or #Programming, like #Code/JavaScript, #Programming/Python. When adding new tags, try to classify them under appropriate existing parent tags as well.
-      4. **New Tag Generation Rules**: If there are no tags in the existing list that match the content, create new tags based on the key technologies, business fields, functional features, etc. of the content. The language of the new tags should be consistent with that of the content.
-      5. **Response Format Specification**: Only return tags separated by commas. There should be no spaces between tags, and no formatting or code blocks should be used. Each tag should start with #, such as #JavaScript.
-      6. **Example**: For JavaScript content related to web development, a reference response could be #Programming/Languages, #Web/Development, #Code/JavaScript, #Front-End Development/Frameworks (if applicable), #Browser Compatibility. It is strictly prohibited to respond in formats such as code blocks, JSON, or Markdown. Just provide the tags directly. 
-          `;
+      return `You are a precise label classification expert. Generate a JSON array of precisely matched content labels based on the input content.
+      
+      Rules:
+      1. **Core Selection Principle**: Select 5 to 8 tags from the existing tag list that are most relevant to the theme.
+      2. **Language Matching Strategy**: Prioritize the language of existing tags to maintain consistency.
+      3. **Tag Structure Requirements**: Use parent-child hierarchy (e.g., #Code/JavaScript).
+      4. **New Tag Generation**: If no existing tags match, create new ones using appropriate parent tags if possible.
+      5. **Response Format Specification**: ONLY return a JSON array of strings. Each string must start with #.
+      
+      Example Output:
+      ["#Programming/Languages", "#Web/Development", "#Code/JavaScript"]
+      
+      CRITICAL: ONLY return the JSON array. Do not include markdown code blocks, explanations, or any other text.`;
     },
     'BlinkoTag',
   );

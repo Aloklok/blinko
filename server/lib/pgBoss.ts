@@ -34,7 +34,8 @@ export async function getPgBoss(): Promise<PgBoss> {
       connectionString: bossConnectionString,
       schema: 'pgboss',
       // Limit connection pool for background jobs
-      max: 4,
+      // Reduced to 2 to avoid "MaxClientsInSessionMode" error on free tier Supabase
+      max: 2,
       // Retry configuration
       retryLimit: 3,
       retryDelay: 60, // seconds

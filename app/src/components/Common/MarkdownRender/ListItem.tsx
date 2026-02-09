@@ -88,7 +88,17 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
   }
 
   const childArray = React.Children.toArray(children);
-  const checkbox = childArray.find((child: any) => child?.type === 'input') as any;
+
+  // Find checkbox even if nested (e.g. inside <p> tag in loose lists)
+  let checkbox = childArray.find((child: any) => child?.type === 'input') as any;
+  if (!checkbox) {
+    const pChild = childArray.find((child: any) => child?.type === 'p' || child?.props?.children);
+    if (pChild) {
+      const pChildren = React.Children.toArray((pChild as any).props.children);
+      checkbox = pChildren.find((child: any) => child?.type === 'input') as any;
+    }
+  }
+
   const isChecked = checkbox?.props?.checked ?? false;
 
   const taskText = getNodesAsText(childArray);
@@ -147,7 +157,7 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
   };
 
   return (
-    <li className={`${className} !list-none`}>
+    <li className={`${className} !list-none -ml-[1.4em]`}>
       <div
         className='flex items-start gap-1 cursor-pointer justify-center'
         onClick={handleToggle}

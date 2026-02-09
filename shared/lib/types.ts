@@ -103,6 +103,7 @@ export const ZConfigKey = z.union([
   z.literal('globalPrompt'),
   z.literal('signinFooterEnabled'),
   z.literal('signinFooterText'),
+  // z.literal('aiTagsOnlyExisting'),
   ZUserPerferConfigKey,
   z.any()
 ]);
@@ -191,7 +192,8 @@ export const ZConfigSchema = z.object({
   systemTray: z.any().optional(),
   fontStyle: z.string().optional(),
   signinFooterEnabled: z.boolean().optional(),
-  signinFooterText: z.string().optional()
+  signinFooterText: z.string().optional(),
+  // aiTagsOnlyExisting: z.boolean().optional()
 });
 
 export type GlobalConfig = z.infer<typeof ZConfigSchema>;
@@ -217,7 +219,7 @@ export const installPluginSchema = pluginInfoSchema.omit({
 
 // TypeScript types derived from the schemas
 export type PluginInfo = z.infer<typeof pluginInfoSchema>;
-export type InstallPluginInput = z.infer<typeof installPluginSchema>; 
+export type InstallPluginInput = z.infer<typeof installPluginSchema>;
 
 export type RestoreResult = {
   type: 'success' | 'skip' | 'error';

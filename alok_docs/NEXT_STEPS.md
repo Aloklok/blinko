@@ -27,16 +27,17 @@
 *   **痛点**: `[Violation]` 警报提示布局抖动（Forced Reflow）；重型库（Vditor）卸载后内存回收不彻底。
 *   **优化方案**:
     *   **内容可见性 (Content-Visibility)**: 对长列表卡片使用 CSS `content-visibility: auto`，跳过视口外元素的渲染计算。
-    *   **骨架屏渲染锁**: 在 `BlinkoStore` 数据流转过程中，增加微任务级别的防抖，避免数据分批到达导致的界面多次重排。
+      - **骨架屏渲染锁**: 在 `BlinkoStore` 数据流转过程中，增加微任务级别的防抖，避免数据分批到达导致的界面多次重排。
+    - **后端缩略图物理裁切 (Server-Side Cover Crop)**: 修改 `sharp` 逻辑，生成 `200x200` 绝对正方形缩略图 (`fit: cover`)，根治长图黑边及高度不一问题。
 
 ## 5. 2026 依赖体系现代化与维护建议 (Maintenance & Modernization)
 *   **背景**: 针对 2026 年初的技术环境，项目需处理 React 19 迁移、ESLint Flat Config 适配及冗余 Polyfill 清理。
 *   **核心升级清单**:
     *   **React 19+**: 迁移并利用 `use` Hook 及原生 Ref 传递，简化代码逻辑。
     *   **ESLint 9/10**: 切换至 Flat Config 模式，废弃旧版配置文件格式。
-    *   **Prisma 6**: 提升数据库引擎启动速度及 Edge 环境支持。
+    *   **Prisma 6**: (已完成 ✅) 提升数据库引擎启动速度及 Edge 环境支持。
 *   **冗余清理**:
-    *   移除 `abortcontroller-polyfill`, `requestidlecallback-polyfill` (现代环境原生支持)。
+    *   移除 `abortcontroller-polyfill`, `requestidlecallback-polyfill` (⚠️ 已暂缓：用户决定保留以兼容 Safari 15)。
     *   评估并移除 `systemjs` (现代 ESM 已足够强大)。
     *   使用 Bun 原生能力替换 `ncp` 等旧式工具。
 *   **AI 栈优化**:
@@ -44,7 +45,7 @@
     *   **聚合**: 使用统一的 Provider 接口（如 Vercel AI SDK 或 OpenRouter）管理过多的 AI 模型供应商。
 *   **一致性治理**:
     *   **Lodash**: 继续推行原生替代方案，减少 `lodash-es` 与 `lodash` 的混用。
-    *   **Prisma**: 统一 Monorepo 内所有模块的 Prisma 版本（目前存在 5.22 与 6.x 引擎混用风险）。
+    *   **Prisma**: (已完成 ✅) 统一 Monorepo 内所有模块的 Prisma 版本至 v6。
 
 ---
 

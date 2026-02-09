@@ -19,6 +19,7 @@ import { RebuildEmbeddingJob } from '../jobs/rebuildEmbeddingJob';
 import { userCaller } from '../routerTrpc/_app';
 
 import { getAllPathTags } from '@server/lib/helper';
+import { helper } from '@shared/lib/helper';
 import { LibSQLVector } from '@mastra/libsql';
 import { RuntimeContext } from "@mastra/core/di";
 
@@ -456,29 +457,72 @@ export class AiService {
           } else {
             tagAgent = await AiModelFactory.TagAgent();
           }
-          const tags = await getAllPathTags();
+          const tags = await getAllPathTags(note.accountId ?? 0);
           const result = await tagAgent.generate(
-            `Existing tags list:  [${tags.join(', ')}]\n Note content:\n${note.content}`
-          )
-          suggestedTags = result.text.split(',').map((tag) => tag.trim());
-
-          // Deduplication: Filter out tags that already exist in the note
-          const existingTagNames = new Set(
-            note.tags.map((t) => t.tag.name.toLowerCase().replace(/^#/, ''))
+            `Existing tags list: [${tags.join(', ')}]\nNote content:\n${note.content}`
           );
 
-          suggestedTags = suggestedTags.filter((tag) => {
-            if (!tag) return false;
-            // Normalize tag for comparison (remove # and convert to lowercase)
-            const normalizedTag = tag.trim().toLowerCase().replace(/^#/, '');
-            return !existingTagNames.has(normalizedTag);
-          });
+          // Robust parsing using JSON.parse
+          let rawSuggestedTags: string[] = [];
+          try {
+            const aiResponse = result.text.trim();
+            // Handle cases where AI might wrap JSON in code blocks
+            const jsonStr = aiResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            rawSuggestedTags = JSON.parse(jsonStr);
+            if (!Array.isArray(rawSuggestedTags)) {
+              rawSuggestedTags = [];
+            }
+          } catch (e) {
+            console.error('Failed to parse AI tags JSON:', result.text);
+            // Fallback for simple comma/space list if JSON fails
+            rawSuggestedTags = helper.extractHashtags(result.text);
+          }
 
-          // Limit to 5 tags max
-          suggestedTags = suggestedTags.slice(0, 5);
+          // Fetch all user tags to reconstruct paths accurately
+          const allUserTags = await prisma.tag.findMany({ where: { accountId: note.accountId ?? 0 } });
+          const tagMap = new Map(allUserTags.map(t => [t.id, t]));
+
+          const getFullPath = (tagId: number): string => {
+            const tag = tagMap.get(tagId);
+            if (!tag) return '';
+            if (tag.parent && tag.parent !== 0) {
+              const parentPath = getFullPath(tag.parent);
+              return parentPath ? `${parentPath}/${tag.name}` : tag.name;
+            }
+            return tag.name;
+          };
+
+          // Helper to normalize path for comparison (lowercase, remove #, remove internal spaces)
+          const normalizePath = (path: string) =>
+            path.toLowerCase().replace(/^#/, '').replace(/\s*\/\s*/g, '/').trim();
+
+          // Standardize existing note tags
+          const existingTagPaths = new Set(
+            note.tags.map((t) => normalizePath(getFullPath(t.tagId)))
+          );
+
+          const globalTagsSet = new Set(tags.map(t => normalizePath(t)));
+
+          // Process and deduplicate
+          suggestedTags = [...new Set(rawSuggestedTags)] // Internal deduplication
+            .filter((tag) => {
+              if (!tag) return false;
+              const normalized = normalizePath(tag);
+
+              // 1. Check if already in note
+              if (existingTagPaths.has(normalized)) return false;
+
+              // 2. Strict filtering: if enabled, only allow existing global tags
+              // if (config.aiTagsOnlyExisting && !globalTagsSet.has(normalized)) {
+              //   return false;
+              // }
+
+              return true;
+            })
+            .slice(0, 5); // Limit to 5 tags max
 
           if (suggestedTags.length > 0) {
-            caller.notes.upsert({
+            await caller.notes.upsert({
               id: noteId,
               content: note.content + '\n' + suggestedTags.join(' '),
             });

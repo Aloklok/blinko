@@ -406,6 +406,26 @@ export const useEditorInit = (
         applyThemeToEditor(store.instanceId, inputTheme);
       }, 800);
 
+      // Monkey patch addEventListener to force passive: true for scroll-blocking events during initialization
+      // This fixes the "Added non-passive event listener" violations
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ) {
+        if (['touchstart', 'touchmove', 'wheel', 'mousewheel'].includes(type)) {
+          if (typeof options === 'boolean') {
+            options = { capture: options, passive: true };
+          } else if (typeof options === 'object') {
+            options = { ...options, passive: true };
+          } else {
+            options = { passive: true };
+          }
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+
       const vditor = new Vditor(`vditor-${store.instanceId}`, {
         width: '100%',
         "toolbar": isPc ? ToolbarPC : ToolbarMobile,
@@ -484,6 +504,9 @@ export const useEditorInit = (
           }
         },
         after: () => {
+          // Restore original addEventListener
+          EventTarget.prototype.addEventListener = originalAddEventListener;
+
           if (canceled) return;
           vditor.setValue(content);
           store.init({

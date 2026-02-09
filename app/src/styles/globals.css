@@ -138,6 +138,11 @@ html:not(.dark) {
 }
 
 
+/* Fix: Restore list-style for mixed lists in Card View */
+.markdown-body .contains-task-list li:not(.task-list-item) {
+  list-style: disc !important;
+}
+
 /* SzHsin React Menu Custom Styles */
 .szh-menu-container {
   z-index: 10000 !important;

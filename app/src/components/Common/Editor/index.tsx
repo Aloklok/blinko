@@ -96,6 +96,7 @@ const Editor = observer(({ content, onChange, onSend, isSendLoading, originFiles
             open={open}
             onFileUpload={store.uploadFiles}
           />
+          <RecordingButton onFileUpload={store.uploadFiles} isRound={false} />
           {pluginApi.customToolbarIcons
             .map((item) => (
               item.content ? (

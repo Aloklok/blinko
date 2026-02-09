@@ -3,9 +3,9 @@ import { prisma } from '../prisma';
 import { router, authProcedure, publicProcedure } from '../middleware';
 
 // Helper to convert Buffer to base64 string for JSON transmission
-function bufferToBase64(buffer: Buffer | null | undefined): string | null {
+function bufferToBase64(buffer: Buffer | Uint8Array | null | undefined): string | null {
   if (!buffer) return null;
-  return buffer.toString('base64');
+  return Buffer.from(buffer).toString('base64');
 }
 
 // Helper to transform font from DB to API response
@@ -95,7 +95,7 @@ export const fontRouter = router({
     .output(z.array(fontMetadataSchema))
     .query(async ({ input }) => {
       const where: any = {};
-      
+
       if (input?.category) {
         where.category = input.category;
       }
@@ -248,13 +248,13 @@ export const fontRouter = router({
 
       // Decode base64 to Buffer
       const fileBuffer = Buffer.from(input.fileData, 'base64');
-      
+
       // Validate file size (max 10MB to prevent memory issues)
       const MAX_FONT_SIZE = 10 * 1024 * 1024; // 10MB
       if (fileBuffer.length > MAX_FONT_SIZE) {
         throw new Error(`Font file too large. Maximum size is ${MAX_FONT_SIZE / 1024 / 1024}MB`);
       }
-      
+
       if (fileBuffer.length === 0) {
         throw new Error('Font file is empty');
       }

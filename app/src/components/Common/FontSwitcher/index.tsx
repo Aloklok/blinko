@@ -100,6 +100,7 @@ const FontSwitcher = ({ fontname = 'default', onChange }: FontSwitcherProps) => 
         {fonts.map((font) => (
           <DropdownItem
             key={font.name}
+            textValue={font.displayName}
             className="flex items-center justify-between cursor-pointer"
             onClick={() => handleFontSelect(font.name)}
             endContent={

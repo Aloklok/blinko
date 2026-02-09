@@ -625,7 +625,7 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
       </div>
     </DropdownTrigger>
     <DropdownMenu aria-label="Static Actions" disabledKeys={disabledKeys}>
-      <DropdownItem key="HeaderActions" isReadOnly className="cursor-default opacity-100" showDivider hover={false}>
+      <DropdownItem key="HeaderActions" textValue="Actions" isReadOnly className="cursor-default opacity-100" showDivider hover={false}>
         <TopActionRow
           onComment={handleComment}
           onAITag={handleAITag}
@@ -635,23 +635,23 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
       </DropdownItem>
       {!isDetailPage ? (
         <>
-          <DropdownItem key="MutiSelectItem" onPress={() => handleMultiSelect()}>
+          <DropdownItem key="MutiSelectItem" textValue="Multiple Select" onPress={() => handleMultiSelect()}>
             <MutiSelectItem />
           </DropdownItem>
-          <DropdownItem key="SelectAllItem" onPress={() => handleSelectAll()}>
+          <DropdownItem key="SelectAllItem" textValue="Select All" onPress={() => handleSelectAll()}>
             <SelectAllItem />
           </DropdownItem>
         </>
       ) : null}
       {/* <DropdownItem key="EditTimeItem" onPress={() => ShowEditTimeModel()}> <EditTimeItem /></DropdownItem> */}
       {/* <DropdownItem key="ConvertItem" onPress={ConvertItemFunction}> <ConvertItem /></DropdownItem> */}
-      <DropdownItem key="TopItem" onPress={handleTop}> <TopItem />  </DropdownItem>
-      <DropdownItem key="ArchivedItem" onPress={handleArchived}>
+      <DropdownItem key="TopItem" textValue="Top" onPress={handleTop}> <TopItem />  </DropdownItem>
+      <DropdownItem key="ArchivedItem" textValue="Archive" onPress={handleArchived}>
         <ArchivedItem />
       </DropdownItem>
 
       {!blinko.curSelectedNote?.isRecycle ? (
-        <DropdownItem key="ShareItem" onPress={handlePublic}>
+        <DropdownItem key="ShareItem" textValue="Share" onPress={handlePublic}>
           <PublicItem />
         </DropdownItem>
       ) : <></>}
@@ -659,7 +659,7 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
 
 
       {blinko.config.value?.mainModelId ? (
-        <DropdownItem key="RelatedNotesItem" onPress={handleRelatedNotes}>
+        <DropdownItem key="RelatedNotesItem" textValue="Related Notes" onPress={handleRelatedNotes}>
           <RelatedNotesItem />
         </DropdownItem>
       ) : <></>}
@@ -670,7 +670,7 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
           <>
             {
               pluginApi.customRightClickMenus.map((menu) => (
-                <DropdownItem key={menu.name} onPress={() => menu.onClick(blinko.curSelectedNote!)}>
+                <DropdownItem key={menu.name} textValue={menu.label} onPress={() => menu.onClick(blinko.curSelectedNote!)}>
                   <div className="flex items-start gap-2">
                     {menu.icon && <Icon icon={menu.icon} width="20" height="20" />}
                     <div>{menu.label}</div>
@@ -683,13 +683,13 @@ export const LeftCickMenu = observer(({ onTrigger, className }: { onTrigger: () 
       }
 
       {!blinko.curSelectedNote?.isRecycle ? (
-        <DropdownItem key="TrashItem" onPress={handleTrash}>
+        <DropdownItem key="TrashItem" textValue="Trash" onPress={handleTrash}>
           <TrashItem />
         </DropdownItem>
       ) : <></>}
 
       {blinko.curSelectedNote?.isRecycle ? (
-        <DropdownItem key="DeleteItem" className="text-danger" onPress={handleDelete}>
+        <DropdownItem key="DeleteItem" textValue="Delete" className="text-danger" onPress={handleDelete}>
           <DeleteItem />
         </DropdownItem>
       ) : <></>}

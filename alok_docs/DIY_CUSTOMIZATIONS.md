@@ -114,3 +114,16 @@
 ### 7.2 CSS 变量驱动布局 (CSS-Driven Layout)
 *   **方案**: 将 SideBar 的动态宽度计算从 MobX 响应式 JS 直接驱动迁移为 **CSS 变量 (`--sidebar-width`)** 模式。
 *   **优势**: 缩放侧边栏时不再触发布局抖动 (Forced Reflow)，渲染更高效，消除了 Chrome 控制台中的性能警报。
+---
+
+## 8. PC 端编辑器功能入口 (PC Editor Feature Entry)
+
+为了实现全平台创作体验的对等，我们在 PC 端编辑器中引入了原本仅在移动端可用的高频功能。
+
+### 8.1 麦克风录音按钮 (PC Microphone)
+为了实现全平台对等的创作体验，在 PC 端工具栏中集成了麦克风录音按钮。
+- **组件复用**：直接复用了移动端的 `RecordingButton` 与 `AudioDialog`。
+- **样式适配**：针对 PC 端工具栏进行了响应式样式优化。通过为 `RecordingButton` 增加 `isRound` Props，在 PC 端禁用了强制圆形（`!rounded-full`）并移除硬编码的大尺寸，使其自动适配 PC 工具栏的圆角矩形风格与标准尺寸，确保视觉统一，同时不影响移动端的圆形大按钮样式。
+- **代码位置**：
+    - [RecordingButton.tsx](file:///Users/Alok/Desktop/my_ai_project/blinko/app/src/components/Common/Editor/Toolbar/RecordingButton.tsx) (组件逻辑与动态样式)
+    - [Editor/index.tsx](file:///Users/Alok/Desktop/my_ai_project/blinko/app/src/components/Common/Editor/index.tsx) (PC/Mobile 工具栏差异化调用)

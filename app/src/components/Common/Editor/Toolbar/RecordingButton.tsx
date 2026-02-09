@@ -6,9 +6,10 @@ interface Props {
     onFileUpload: (files: File[]) => void;
     size?: number;
     containerSize?: number;
+    isRound?: boolean;
 }
 
-export const RecordingButton = ({ onFileUpload, size, containerSize }: Props) => {
+export const RecordingButton = ({ onFileUpload, size, containerSize, isRound = true }: Props) => {
     const { t } = useTranslation();
 
     return (
@@ -16,11 +17,11 @@ export const RecordingButton = ({ onFileUpload, size, containerSize }: Props) =>
             icon="solar:soundwave-bold"
             tooltip={t('recording')}
             classNames={{
-                base: 'hover:bg-hover !rounded-full transition-all',
+                base: `hover:bg-hover transition-all ${isRound ? '!rounded-full' : ''}`,
                 icon: '!text-[#00e676]'
             }}
-            size={size || 26}
-            containerSize={containerSize || 50}
+            size={size}
+            containerSize={containerSize}
             onClick={() => ShowAudioDialog((file) => onFileUpload([file]))}
         />
     );

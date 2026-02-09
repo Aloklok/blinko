@@ -18,14 +18,14 @@ interface LanguageSwitcherProps {
 const LanguageSwitcher = ({ value, onChange }: LanguageSwitcherProps = {}) => {
   const baseStore = RootStore.Get(BaseStore)
   const { i18n } = useTranslation();
-  
+
   function onSelectChange(nextLocale: string) {
     baseStore.changeLanugage(i18n, nextLocale)
     onChange?.(nextLocale)
   }
 
   const currentLocale = value || baseStore.locale.value
-  
+
   return (
     <Dropdown>
       <DropdownTrigger>
@@ -38,6 +38,7 @@ const LanguageSwitcher = ({ value, onChange }: LanguageSwitcherProps = {}) => {
         {baseStore.locales.map((locale) => (
           <DropdownItem
             key={locale.value}
+            textValue={locale.label}
             className="flex items-center justify-between cursor-pointer"
             onClick={() => {
               onSelectChange(locale.value);
