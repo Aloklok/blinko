@@ -140,9 +140,16 @@ export default defineConfig({
         manualChunks: (id) => {
           if (id.includes('node_modules/react') ||
             id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/react-router-dom') ||
-            id.includes('node_modules/@react-')) {
-            return 'react-vendor';
+            id.includes('node_modules/react-router-dom')) {
+            return 'react-core';
+          }
+
+          if (id.includes('node_modules/@heroui')) {
+            return 'heroui-vendor';
+          }
+
+          if (id.includes('node_modules/mobx') || id.includes('node_modules/mobx-react-lite')) {
+            return 'state-vendor';
           }
 
           if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
@@ -157,24 +164,32 @@ export default defineConfig({
             return 'mermaid-vendor';
           }
 
-          if (id.includes('node_modules/vditor')) {
-            return 'vditor-vendor';
+          if (id.includes('node_modules/vditor') ||
+            id.includes('node_modules/react-markdown') ||
+            id.includes('node_modules/remark-') ||
+            id.includes('node_modules/rehype-') ||
+            id.includes('node_modules/katex')) {
+            return 'markdown-vendor';
           }
 
           if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) {
             return 'animation-vendor';
           }
 
-          if (id.includes('node_modules/react-') ||
-            id.includes('node_modules/@ui-') ||
-            id.includes('node_modules/@headlessui') ||
-            id.includes('node_modules/headlessui')) {
-            return 'ui-components';
+          if (id.includes('node_modules/zod') ||
+            id.includes('node_modules/i18next') ||
+            id.includes('node_modules/dayjs') ||
+            id.includes('node_modules/lodash-es') ||
+            id.includes('node_modules/zustand')) {
+            return 'common-vendor';
           }
 
-          if (id.includes('node_modules/lodash-es') ||
-            id.includes('node_modules/date-fns')) {
-            return 'utils';
+          if (id.includes('node_modules/@tauri-apps')) {
+            return 'tauri-vendor';
+          }
+
+          if (id.includes('node_modules/@dnd-kit')) {
+            return 'dnd-vendor';
           }
         }
       }

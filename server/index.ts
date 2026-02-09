@@ -254,13 +254,12 @@ async function bootstrap() {
     }
 
     const staticOptions = {
-      maxAge: '7d',
+      maxAge: '365d',
       immutable: true,
       setHeaders: (res: express.Response, path: string) => {
         const ext = path.split('.').pop()?.toLowerCase();
-        if (['png', 'webp', 'svg', 'json', 'ico', 'gif', 'mp4'].includes(ext || '')) {
-          res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
-          res.setHeader('Expires', new Date(Date.now() + 604800000).toUTCString());
+        if (['png', 'webp', 'svg', 'json', 'ico', 'gif', 'mp4', 'js', 'css', 'woff2'].includes(ext || '')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
       }
     };

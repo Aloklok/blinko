@@ -1,0 +1,10 @@
+export default {
+  "prefix": "humbleicons",
+  "icons": {
+    "user-add": {
+      "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"2\" d=\"M15 12h3m0 0h3m-3 0v3m0-3V9M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1M12 8a3 3 0 1 1-6 0a3 3 0 0 1 6 0Z\"/>"
+    }
+  },
+  "width": 24,
+  "height": 24
+};

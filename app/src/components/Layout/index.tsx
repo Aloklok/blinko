@@ -12,16 +12,16 @@ import { BlinkoRightClickMenu } from '@/components/BlinkoRightClickMenu';
 import { useMediaQuery } from 'usehooks-ts';
 import { push as Menu } from 'react-burger-menu';
 import { eventBus } from '@/lib/event';
-import AiWritePop from '../Common/PopoverFloat/aiWritePop';
+const AiWritePop = React.lazy(() => import('../Common/PopoverFloat/aiWritePop'));
 import { Sidebar } from './Sidebar';
 import { MobileNavBar } from './MobileNavBar';
-import FilterPop from '../Common/PopoverFloat/filterPop';
+const FilterPop = React.lazy(() => import('../Common/PopoverFloat/filterPop'));
 import { api } from '@/lib/trpc';
 import { showTipsDialog } from '../Common/TipsDialog';
 import { DialogStandaloneStore } from '@/store/module/DialogStandalone';
 import { ToastPlugin } from '@/store/module/Toast/Toast';
 import { BarSearchInput } from './BarSearchInput';
-import { BlinkoNotification } from '@/components/BlinkoNotification';
+const BlinkoNotification = React.lazy(() => import('@/components/BlinkoNotification').then(m => ({ default: m.BlinkoNotification })));
 import { AiStore } from '@/store/aiStore';
 import { useLocation, useSearchParams, Link } from 'react-router-dom';
 
@@ -95,7 +95,9 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
       id="outer-container"
       style={{ '--sidebar-width': `${base.sideBarWidth}px` } as React.CSSProperties}
     >
-      <AiWritePop />
+      <React.Suspense fallback={null}>
+        <AiWritePop />
+      </React.Suspense>
 
       {!isPc && (
         <Menu
@@ -208,7 +210,9 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
               </div>
               <div className="flex items-center justify-center gap-2 md:gap-4 w-auto ">
                 <BarSearchInput isPc={isPc} />
-                <FilterPop />
+                <React.Suspense fallback={null}>
+                  <FilterPop />
+                </React.Suspense>
                 {!blinkoStore.config.value?.isCloseDailyReview && (
                   <Badge
                     size="sm"
@@ -223,7 +227,9 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
                     </Link>
                   </Badge>
                 )}
-                <BlinkoNotification />
+                <React.Suspense fallback={null}>
+                  <BlinkoNotification />
+                </React.Suspense>
               </div>
             </div>
           </div>

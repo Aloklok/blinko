@@ -9,8 +9,8 @@ import '@/lib/i18n';
 import { initStore } from '@/store/init';
 import { CommonLayout } from '@/components/Layout';
 import { AppProvider } from '@/store/module/AppProvider';
-import { BlinkoMultiSelectPop } from '@/components/BlinkoMultiSelectPop';
-import { BlinkoMusicPlayer } from '@/components/BlinkoMusicPlayer';
+const BlinkoMultiSelectPop = lazy(() => import('@/components/BlinkoMultiSelectPop').then(m => ({ default: m.BlinkoMultiSelectPop })));
+const BlinkoMusicPlayer = lazy(() => import('@/components/BlinkoMusicPlayer').then(m => ({ default: m.BlinkoMusicPlayer })));
 import { LoadingPage } from '@/components/Common/LoadingPage';
 import { PluginManagerStore } from '@/store/plugin/pluginManagerStore';
 import { RootStore } from '@/store';
@@ -288,12 +288,16 @@ function App() {
             <CommonLayout>
               <div className="app-content">
                 <AppRoutes />
-                <BlinkoMultiSelectPop />
+                <Suspense fallback={null}>
+                  <BlinkoMultiSelectPop />
+                </Suspense>
               </div>
             </CommonLayout>
           </ThemeProvider>
         </HeroUIProvider>
-        <BlinkoMusicPlayer />
+        <Suspense fallback={null}>
+          <BlinkoMusicPlayer />
+        </Suspense>
       </BrowserRouter>
     </>
   );
