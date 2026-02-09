@@ -110,34 +110,50 @@ export async function generateFeed(userId: number, origin: string, rows: number 
   return feed;
 }
 
-let isLoading = false
+let cachedSecret: string | null = null;
+let secretPromise: Promise<string> | null = null;
 
 export const getNextAuthSecret = async () => {
-  const configKey = 'JWT_SECRET';
-  let secret = process.env.JWT_SECRET;
-  if (isLoading) {
-    return secret!
+  const envSecret = process.env.JWT_SECRET;
+  if (envSecret && envSecret !== 'my_ultra_secure_nextauth_secret') {
+    return envSecret;
   }
-  if (!secret || secret === 'my_ultra_secure_nextauth_secret') {
+
+  if (cachedSecret) {
+    return cachedSecret;
+  }
+
+  // Use a promise to handle concurrent requests and avoid multiple DB calls
+  if (secretPromise) {
+    return secretPromise;
+  }
+
+  secretPromise = (async () => {
+    const configKey = 'JWT_SECRET';
     const savedSecret = await prisma.config.findFirst({
       where: { key: configKey }
     });
+
+    let secret: string;
     if (savedSecret) {
       // @ts-ignore
       secret = savedSecret.config.value as string;
     } else {
-      const newSecret = crypto.randomBytes(32).toString('base64');
+      secret = crypto.randomBytes(32).toString('base64');
       await prisma.config.create({
         data: {
           key: configKey,
-          config: { value: newSecret }
+          config: { value: secret }
         }
       });
-      secret = newSecret;
     }
-  }
-  isLoading = false
-  return secret;
+
+    cachedSecret = secret;
+    secretPromise = null;
+    return secret;
+  })();
+
+  return secretPromise;
 }
 
 export const generateToken = async (user: any, twoFactorVerified = false) => {

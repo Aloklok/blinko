@@ -863,8 +863,8 @@ export const noteRouter = router({
       const config = await getGlobalConfig({ ctx });
 
       const markdownImages =
-        content?.match(/!\[.*?\]\((\/api\/(?:s3)?file\/[^)]+)\)/g)?.map((match) => {
-          const matches = /!\[.*?\]\((\/api\/(?:s3)?file\/[^)]+)\)/.exec(match);
+        content?.match(/!\[.*?\]\((\/api\/(?:s3)?file\/[^?)]+)(?:\?[^)]*)?\)/g)?.map((match) => {
+          const matches = /!\[.*?\]\((\/api\/(?:s3)?file\/[^?)]+)(?:\?[^)]*)?\)/.exec(match);
           return matches?.[1] || '';
         }) || [];
       if (markdownImages.length > 0) {

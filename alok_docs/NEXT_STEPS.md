@@ -49,5 +49,14 @@
 
 ---
 
-> [!TIP]
 > **结论**: 当前的性能表现已能满足普通用户需求。上述优化属于从“好用”到“极致”的进阶。在 **2026 维护建议 (环节 5)** 中，优先建议实施 **Polyfill 清理**，因为它对减包、提效且风险极低。
+
+## 6. Cloudflare 缓存规则 (2026.02 Update)
+*   **背景**: 针对 Vite 构建产物（Assets）启用激进的长效缓存策略，以减少回源流量并提升全球访问速度。
+*   **配置指南**:
+    *   **Rule Name**: `Cache Assets`
+    *   **Condition**: `(http.host eq "blinko.alok-rss.top") and (http.request.uri.path starts_with "/assets/")`
+    *   **Cache Eligibility**: `Eligible for cache`
+    *   **Edge TTL**: `1 month` (Vite Hashing 确保了文件内容的唯一性，长缓存安全)
+    *   **Browser TTL**: `1 year`
+*   **注意**: 严禁在 `public/` 下创建名为 `assets` 的无 Hash 文件夹。

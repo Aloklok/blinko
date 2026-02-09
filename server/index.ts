@@ -285,6 +285,15 @@ async function bootstrap() {
     // Initialize scheduled jobs
     await initializeJobs();
 
+    // Warm up JWT secret cache
+    try {
+      const { getNextAuthSecret } = await import('./lib/helper');
+      await getNextAuthSecret();
+      console.log('JWT Secret cache warmed up.');
+    } catch (warmupError) {
+      console.error('Failed to warm up JWT Secret cache:', warmupError);
+    }
+
     // Start or update server
     if (!server) {
       server = app.listen(PORT, "0.0.0.0", () => {

@@ -41,6 +41,15 @@ export class ResourceStore implements Store {
     });
   };
 
+  selectUnusedResources = (resources: ResourceType[]) => {
+    this.selectedItems.clear();
+    resources.forEach(resource => {
+      if (!resource.isFolder && !resource.noteId && resource.id) {
+        this.selectedItems.add(resource.id);
+      }
+    });
+  };
+
   toggleSelect = (id: number) => {
     const newSet = new Set(this.selectedItems);
     if (newSet.has(id)) {

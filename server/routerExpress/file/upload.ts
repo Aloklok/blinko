@@ -2,7 +2,7 @@ import express from 'express';
 import { FileService } from '../../lib/files';
 import { AiService } from '../../aiServer/index';
 import { AiModelFactory } from '../../aiServer/aiModelFactory';
-import { getTokenFromRequest } from '../../lib/helper';
+import { getUserFromRequest } from '../../lib/helper';
 import { Readable, PassThrough } from 'stream';
 import busboy from 'busboy';
 import cors from 'cors';
@@ -72,8 +72,8 @@ router.post('/', async (req, res) => {
     req.setTimeout(0); // 0 = no timeout
     res.setTimeout(0); // 0 = no timeout
 
-    const token = await getTokenFromRequest(req);
-    if (!token) {
+    const user = await getUserFromRequest(req);
+    if (!user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -161,7 +161,7 @@ router.post('/', async (req, res) => {
           originalName: fileInfo.filename,
           fileSize: fileInfo.size,
           type: fileInfo.mimeType,
-          accountId: Number(token.id),
+          accountId: Number(user.id),
           metadata: Object.keys(metadata).length > 0 ? metadata : undefined
         });
 
@@ -175,7 +175,7 @@ router.post('/', async (req, res) => {
                 transcription = await AiService.transcribeAudio({
                   filePath: fileResult.path,
                   voiceModelId: config.voiceModelId,
-                  accountId: Number(token.id)
+                  accountId: Number(user.id)
                 });
               } finally {
                 if (fileResult.cleanup) {

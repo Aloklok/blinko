@@ -177,6 +177,33 @@ const Page = observer(() => {
                 </Button>
               </motion.div>
 
+              <motion.div
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 20, opacity: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25
+                }}
+              >
+                <Button
+                  size="sm"
+                  variant="flat"
+                  onPress={() => {
+                    resourceStore.selectUnusedResources(resources);
+                  }}
+                  startContent={
+                    <Icon
+                      icon="material-symbols:filter-list"
+                      className="w-5 h-5"
+                    />
+                  }
+                >
+                  {t('select-unused')}
+                </Button>
+              </motion.div>
+
               {selectedItems.size > 0 && resourceStore.currentFolder && resourceStore.currentFolder !== 'Root' && (
                 <motion.div
                   initial={{ x: 20, opacity: 0 }}

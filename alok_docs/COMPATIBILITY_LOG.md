@@ -5,7 +5,7 @@
 > 目前首要任务是保障**主力设备**的运行流畅度与性能。
 > - **目标设备**：macOS Monterey (12.7.6) / iOS (17.6)
 > - **目标浏览器**：**Safari 17.6**
-> - **策略调整**：鉴于 Safari 17.6 对现代 JS 语法（如正则具名捕获组等）已有良好支持，为了极限优化首屏加载速度，**当前已主动停用 `@vitejs/plugin-legacy`**。全量 Safari 15 兼容性（Babel 转译）内容已保留在下文中，作为未来构建发布版 DMG 时的技术储备。
+> - **策略调整**：鉴于 Safari 17.6 对 modern JS 语法（如正则具名捕获组等）已有良好支持，为了极限优化首屏加载速度，**当前已主动停用 `@vitejs/plugin-legacy`**。全量 Safari 15 兼容性（Babel 转译）内容已保留在下文中，作为未来构建发布版 DMG 时的技术储备。
 
 本文档记录了本 Fork 仓库相对于官方上游仓库 (`blinkospace/blinko`) 所做的关键调整。
 
@@ -28,7 +28,7 @@
 
 ### 🟢 我们的方案
 *   **工具**: 引入 `postcss-preset-env`。
-*   **原理**: 在构建打包时，自动计算出 `color-mix` 的最终颜色值，并生成 `rgba()` 格式的 Fallback 代码。
+*   **原理**: 在打包时，自动计算出 `color-mix` 的最终颜色值，并生成 `rgba()` 格式的 Fallback 代码。
 
 ---
 
@@ -82,10 +82,6 @@ Mac Safari 录制的音频文件（WebM 格式）无法在 iOS Safari 中播放�
 
 ---
 
-
-
----
-
 ## 7. Safari Vditor 样式兼容
 
 *   **🔴 问题**: Safari 下 Vditor 编辑模式的任务列表复选框 (`checkbox`) 不可见；普通列表 (`ul`) 在容器溢出时 Bullet 被裁剪。
@@ -93,6 +89,16 @@ Mac Safari 录制的音频文件（WebM 格式）无法在 iOS Safari 中播放�
     *   **Checkbox**: 显式添加 `-webkit-appearance: none` 及背景色/盒模型重置，解决 Safari 渲染异常。
     *   **List Padding**: 调整 `.vditor-reset ul` 的 `padding-left` 至 `2.5em`，防止 overflow 裁剪。
     *   **Passive Events**: 针对 `touchstart` / `wheel` 等事件强制添加 `{ passive: true }`，解决浏览器控制台的 Violation 警告并提升滚动响应速度。
+
+---
+
+## 8. S3/R2 资源跨域与 CDN 优化 (CORS & CDN)
+
+*   **🔴 问题**: 使用自定义 CDN 域名重定向 R2 资源时，浏览器常报 "CORS Failed" 或 "Direct URL failed"，导致图片无法显示。
+*   **🟢 我们的方案**:
+    *   **CORS 补齐**: 在 `s3file.ts` 的 `302 Redirect` 响应中显式注入全量 CORS 头部（Origin, Methods, Headers, Expose-Headers），确保浏览器允许跨域跟随重定向。
+    *   **缓存策略**: 为 CDN URL 注入了 7 天的 `immutable` 强缓存头部，显著降低了重复加载时的网络开销。
+    *   **运行时兼容**: 针对 Bun 1.2+ 环境优化了 `GetObject` 的流处理，使用 `transformToByteArray` 的严谨异步等待模式，解决了旧版流读取不完整导致的 0 字节文件报错。
 
 ---
 

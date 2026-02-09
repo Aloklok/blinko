@@ -82,9 +82,9 @@ export const ResourceItemPreview = ({
               <Icon icon="fluent-color:cloud-16" className="w-4 h-4" />
             </Tooltip>
           )}
-          {showAssociationIcon && !item.noteId && showExtraInfo && (
-            <Tooltip content={t('no-note-associated')}>
-              <Icon icon="ic:twotone-no-backpack" className="w-4 h-4 text-yellow-500" />
+          {showAssociationIcon && item.noteId && showExtraInfo && (
+            <Tooltip content={t('associated-with-note')}>
+              <Icon icon="ph:link-bold" className="w-4 h-4 text-primary" />
             </Tooltip>
           )}
         </div>

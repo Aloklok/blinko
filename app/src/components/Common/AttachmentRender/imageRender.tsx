@@ -36,28 +36,13 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
     const fetchImage = async () => {
       if (!isIntersecting) return;
 
-      setLoading(true);
-      try {
-        const { data } = await apiClient.get(getBlinkoEndpoint(`${src}?thumbnail=true`), {
-          responseType: 'blob'
-        });
+      const token = RootStore.Get(UserStore).tokenData.value?.token;
+      if (!token) return;
 
-        objectUrl = URL.createObjectURL(data as Blob);
-        setCurrentSrc(objectUrl);
-      } catch (error) {
-        try {
-          const { data } = await apiClient.get(src, {
-            responseType: 'blob'
-          });
-
-          objectUrl = URL.createObjectURL(data as Blob);
-          setCurrentSrc(objectUrl);
-        } catch (error) {
-          setIsOriginalError(true);
-        }
-      } finally {
-        setLoading(false);
-      }
+      // Primary Strategy: Direct URL with Token (Supports 302 Redirect & Native Loading)
+      const directUrl = getBlinkoEndpoint(`${src}?token=${token}&thumbnail=true`);
+      setCurrentSrc(directUrl);
+      setLoading(false);
     };
 
     fetchImage();
@@ -68,6 +53,29 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
       }
     };
   }, [src, isIntersecting]);
+
+  const handleFallback = async () => {
+    if (isOriginalError || !src || currentSrc.startsWith('blob:')) {
+      setIsOriginalError(true);
+      setLoading(false);
+      return;
+    }
+
+    console.warn(`[ImageRender] Fallback triggered for: ${src}`);
+    try {
+      const response = await apiClient.get(getBlinkoEndpoint(`${src}?thumbnail=true`), {
+        responseType: 'blob',
+        timeout: 5000 // Add timeout
+      });
+      const objectUrl = URL.createObjectURL(response.data as Blob);
+      setCurrentSrc(objectUrl);
+    } catch (error) {
+      console.error(`[ImageRender] Persistent error for ${src}:`, error.message);
+      setIsOriginalError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isOriginalError) {
@@ -90,7 +98,7 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
           }}
           draggable={false}
           onError={() => {
-            setIsOriginalError(true);
+            handleFallback();
           }}
           className={`object-cover w-full h-full ${className}`}
         />

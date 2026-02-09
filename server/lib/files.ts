@@ -11,6 +11,7 @@ import { PassThrough } from 'stream';
 import { createWriteStream } from "fs";
 import pathIsInside from 'path-is-inside';
 import sanitizeFilename from 'sanitize-filename';
+import sharp from "sharp";
 
 export class FileService {
   /**
@@ -38,7 +39,7 @@ export class FileService {
       return sanitizeFilename(part, { replacement: '_' });
     });
     const sanitizedPath = sanitizedParts.join('/');
-    
+
     // Check if sanitization changed the path (indicates dangerous characters)
     if (sanitizedPath !== inputPath.replace(/\\/g, '/')) {
       throw new Error('Invalid path: contains dangerous characters');
@@ -95,7 +96,7 @@ export class FileService {
 
     return this.validateAndResolvePath(filePath, baseDir, allowTemp);
   }
-  
+
   public static async getS3Client() {
     const config = await getGlobalConfig({ useAdmin: true });
     return cache.wrap(`${config.s3Endpoint}-${config.s3Region}-${config.s3Bucket}-${config.s3AccessKeyId}-${config.s3AccessKeySecret}`, async () => {
@@ -168,8 +169,27 @@ export class FileService {
   }: {
     buffer: Buffer, originalName: string, type: string, withOutAttachment?: boolean, accountId: number, metadata?: any
   }) {
-    const extension = path.extname(originalName);
-    const baseName = path.basename(originalName, extension);
+    let finalBuffer = buffer;
+    let finalType = type;
+    let finalName = originalName;
+
+    // Auto convert images (JPEG/PNG) to WebP
+    const isImage = type.includes('image/') && (type.includes('jpeg') || type.includes('png'));
+    if (isImage) {
+      try {
+        finalBuffer = await sharp(buffer)
+          .webp({ quality: 80 })
+          .toBuffer();
+        finalType = 'image/webp';
+        const ext = path.extname(originalName);
+        finalName = originalName.replace(new RegExp(`\\${ext}$`, 'i'), '.webp');
+      } catch (error) {
+        console.error('Failed to convert image to webp, falling back to original:', error);
+      }
+    }
+
+    const extension = path.extname(finalName);
+    const baseName = path.basename(finalName, extension);
     const timestamp = Date.now();
     const config = await getGlobalConfig({ useAdmin: true });
 
@@ -188,7 +208,8 @@ export class FileService {
       const command = new PutObjectCommand({
         Bucket: config.s3Bucket,
         Key: s3Key,
-        Body: buffer,
+        Body: finalBuffer,
+        ContentType: finalType,
       });
 
       await s3ClientInstance.send(command);
@@ -197,20 +218,20 @@ export class FileService {
         await FileService.createAttachment({
           path: s3Url,
           name: FileService.getOriginFilename(timestampedFileName),
-          size: buffer.length,
-          type,
+          size: finalBuffer.length,
+          type: finalType,
           accountId,
           metadata
         });
       }
       return { filePath: s3Url, fileName: FileService.getOriginFilename(timestampedFileName) };
     } else {
-      const filename = await this.writeFileSafe(baseName, extension, buffer);
+      const filename = await this.writeFileSafe(baseName, extension, finalBuffer);
       await FileService.createAttachment({
         path: `/api/file/${filename}`,
         name: FileService.getOriginFilename(filename),
-        size: buffer.length,
-        type,
+        size: finalBuffer.length,
+        type: finalType,
         accountId,
         metadata
       });
@@ -263,11 +284,10 @@ export class FileService {
       });
 
       const response = await s3ClientInstance.send(command);
-      const chunks: any[] = [];
-      for await (const chunk of response.Body as any) {
-        chunks.push(chunk);
+      if (!response.Body) {
+        throw new Error('S3 response body is empty');
       }
-      return Buffer.concat(chunks);
+      return Buffer.from(await (response.Body as any).transformToByteArray());
     } else {
       const localPath = this.extractAndValidatePath(filePath);
       return await fs.readFile(localPath);
@@ -323,8 +343,39 @@ export class FileService {
       stream: ReadableStream, originalName: string, fileSize: number, type: string, accountId: number, metadata?: any
     }) {
     const config = await getGlobalConfig({ useAdmin: true });
-    const extension = path.extname(originalName);
-    const baseName = path.basename(originalName, extension);
+
+    let finalStream = stream;
+    let finalType = type;
+    let finalName = originalName;
+    let finalSize = fileSize;
+
+    // Auto convert images (JPEG/PNG) to WebP
+    const isImage = type.includes('image/') && (type.includes('jpeg') || type.includes('png'));
+    if (isImage) {
+      try {
+        const nodeReadable = Readable.fromWeb(stream as any);
+        const chunks: any[] = [];
+        for await (const chunk of nodeReadable) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+        const webpBuffer = await sharp(buffer)
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        finalType = 'image/webp';
+        const ext = path.extname(originalName);
+        finalName = originalName.replace(new RegExp(`\\${ext}$`, 'i'), '.webp');
+        finalSize = webpBuffer.length;
+        // Re-create stream from buffer
+        finalStream = Readable.toWeb(Readable.from(webpBuffer)) as any;
+      } catch (error) {
+        console.error('Failed to convert image stream to webp, falling back to original:', error);
+      }
+    }
+
+    const extension = path.extname(finalName);
+    const baseName = path.basename(finalName, extension);
     const timestamp = Date.now();
     const timestampedFileName = `${baseName}_${timestamp}${extension}`;
 
@@ -341,8 +392,8 @@ export class FileService {
         const s3Key = `${customPath}${timestampedFileName}`.replace(/^\//, '');
 
         const passThrough = new PassThrough();
-        const nodeReadable = Readable.fromWeb(stream as any);
-        
+        const nodeReadable = Readable.fromWeb(finalStream as any);
+
         // Setup proper error handling
         nodeReadable.on('error', (err) => {
           passThrough.destroy(err);
@@ -356,6 +407,7 @@ export class FileService {
             Bucket: config.s3Bucket,
             Key: s3Key,
             Body: passThrough,
+            ContentType: finalType,
           },
         });
 
@@ -367,18 +419,18 @@ export class FileService {
           nodeReadable.destroy();
           throw error;
         }
-        
+
         // Explicitly destroy streams after upload completes
         passThrough.destroy();
         nodeReadable.destroy();
-        
+
         const s3Url = `/api/s3file/${s3Key}`;
 
         await FileService.createAttachment({
           path: s3Url,
           name: timestampedFileName,
-          size: fileSize,
-          type,
+          size: finalSize,
+          type: finalType,
           accountId,
           metadata
         });
@@ -396,13 +448,13 @@ export class FileService {
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
 
         const writeStream = createWriteStream(fullPath);
-        const nodeReadable = Readable.fromWeb(stream as any);
+        const nodeReadable = Readable.fromWeb(finalStream as any);
 
         // Setup proper error handling
         nodeReadable.on('error', (err) => {
           writeStream.destroy(err);
         });
-        
+
         writeStream.on('error', (err) => {
           nodeReadable.destroy();
           throw err;
@@ -425,8 +477,8 @@ export class FileService {
         await FileService.createAttachment({
           path: `/api/file/${relativePath}`,
           name: timestampedFileName,
-          size: fileSize,
-          type,
+          size: finalSize,
+          type: finalType,
           noteId: null,
           accountId,
           metadata
@@ -505,7 +557,7 @@ export class FileService {
           throw new Error('Invalid new filename: contains dangerous characters');
         }
         const newFilePath = path.join(path.dirname(oldFilePath), sanitizedNewName);
-        
+
         // Validate the new path is still within allowed directory
         const resolvedBaseDir = path.resolve(UPLOAD_FILE_PATH);
         const resolvedNewPath = path.resolve(newFilePath);

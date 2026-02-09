@@ -1511,7 +1511,7 @@ const parseIconName = (iconName: string): { prefix: string; name: string } => {
 const getIconData = (iconName: string) => {
   const { prefix, name } = parseIconName(iconName);
   const collectionKey = prefix.replace(/-/g, '_') as keyof typeof collections;
-  
+
   // All icon collections
   const collections = {
     eva,
@@ -1562,14 +1562,14 @@ const getIconData = (iconName: string) => {
     cil,
     fluent_color,
   };
-  
+
   const collection = collections[collectionKey];
-  
+
   if (!collection || !collection.icons || !collection.icons[name]) {
     console.warn(`Icon "${name}" not found in "${prefix}" collection`);
     return null;
   }
-  
+
   return {
     body: collection.icons[name].body,
     width: collection.icons[name].width || collection.width || 16,
@@ -1578,37 +1578,38 @@ const getIconData = (iconName: string) => {
 };
 
 // Icon component
-export const Icon = ({ 
-  icon, 
-  width = 24, 
-  height = 24, 
-  color, 
-  className = '', 
+export const Icon = React.forwardRef<SVGSVGElement, IconProps>(({
+  icon,
+  width = 24,
+  height = 24,
+  color,
+  className = '',
   style = {},
-  onClick 
-}: IconProps) => {
+  onClick
+}, ref) => {
   if (!icon) return null;
-  
+
   const iconData = getIconData(icon);
-  
+
   if (!iconData) {
     console.warn(`Local icon not found: ${icon}, using Iconify fallback`);
-    return <IconifyIcon 
+    return <IconifyIcon
       icon={icon}
       width={width}
       height={height}
       color={color}
       className={className}
       style={style}
-      onClick={onClick}
+      onClick={onClick as any}
+      ref={ref as any}
     />;
   }
-  
+
   const renderData = iconToSVG(iconData, {
     width: typeof width === 'number' ? width.toString() : width || '24',
     height: typeof height === 'number' ? height.toString() : height || '24',
   });
-  
+
   const svgAttributes = {
     width,
     height,
@@ -1620,9 +1621,10 @@ export const Icon = ({
     },
     dangerouslySetInnerHTML: { __html: renderData.body },
     onClick,
+    ref,
   };
-  
+
   return <svg {...svgAttributes} />;
-};
+});
 
 export default Icon;

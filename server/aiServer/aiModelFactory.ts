@@ -309,6 +309,19 @@ export class AiModelFactory {
       audio = await audioProvider.getAudioModel(audioConfig);
     }
 
+    // Get Image/Vision instance (if configured)
+    let vision: LanguageModelV1 | null = null;
+    if (imageModel) {
+      const visionConfig = {
+        provider: imageModel.provider.provider,
+        apiKey: imageModel.provider.apiKey,
+        baseURL: imageModel.provider.baseURL,
+        modelKey: imageModel.modelKey,
+        apiVersion: (imageModel.provider.config as any)?.apiVersion
+      };
+      vision = await llmProvider.getLanguageModel(visionConfig);
+    }
+
     // Get utilities
     const vectorStore = await AiUtilities.VectorStore();
     const markdownSplitter = AiUtilities.MarkdownSplitter();
@@ -316,6 +329,7 @@ export class AiModelFactory {
 
     return {
       LLM: llm,
+      visionModel: vision,
       VectorStore: vectorStore,
       Embeddings: embeddings,
       MarkdownSplitter: markdownSplitter,
@@ -553,14 +567,26 @@ export class AiModelFactory {
 
   static TestConnectAgent = AiModelFactory.#createAgentFactory('Blinko Test Connect Agent', `Test the api is working,return 1 words`, 'BlinkoTestConnect');
 
-  static ImageEmbeddingAgent = AiModelFactory.#createAgentFactory(
-    'Blinko Image Embedding Agent',
-    `You are a vision assistant. When provided an image, you must:
+  static ImageEmbeddingAgent = async () => {
+    const provider = await AiModelFactory.GetProvider();
+    const agent = new Agent({
+      name: 'Blinko Image Embedding Agent',
+      instructions: `You are a vision assistant. When provided an image, you must:
 1) Describe the image in detail (objects, scenes, layout, style, colors).
 2) Extract and return all visible text in the image (OCR) accurately.
 If the underlying model does not support image inputs, respond exactly with: not support image`,
-    'BlinkoImageEmbedding',
-  );
+      model: provider?.visionModel || provider?.LLM!,
+    });
+
+    const mastra = new Mastra({
+      agents: { agent },
+      logger: process.env.NODE_ENV === 'development' ? new PinoLogger({
+        name: 'Mastra',
+        level: 'debug',
+      }) : undefined,
+    });
+    return mastra.getAgent('agent');
+  };
 
   static async readImage(
     imagePath: string,

@@ -17,21 +17,35 @@
 *   **Vditor 适配**: 修复了 Safari 下 Vditor 初始化 ID 冲突的问题，支持多实例稳定运行；引入了“异步初始化竞态拦截器”解决卸载后的报错；通过 **Scoped Monkey Patch** 强制开启 `passive: true` 解决了 52+ 个触摸/滚动事件监听器的性能警告。
 
 ### 3. UI 健壮性修复
-*   **图标 Ref 警告**: 修复了 HeroIcons 在 React 18 下由于缺失 `forwardRef` 导致的控制台报错。
+*   **图标 Ref 转发修复**: 修复了 `@iconify/react` 组件在 React 18 / HeroUI 环境下由于缺失 `forwardRef` 导致的 `Function components cannot be given refs` 控制台报错。通过重构全局 `Icon` 组件引入 `forwardRef` 解决了该遗留问题。
 *   **标签颜色冲突**: 修复了自定义主题色（如 Rose）时标签背景变纯色的问题。通过引入 `--primary-rgb` 变量并为 `color-mix` 提供 `rgba` 降级方案，确保了在所有现代浏览器中标签背景维持 10% 的透明度。同时合并清理了 `globals.css` 中的冗余定义。
-*   **卡片图片显示与缩放**: 修复了卡片中图片显示不出的问题，并随后解决了缩放尺寸回归的问题（Phase 42 & 44）。通过以下方式优化：1. 修正 `HandleFileType` 状态逻辑；2. 恢复并锁定卡片预览图为 100x100px 固定尺寸 + `object-cover` 裁剪模式，确保长图在正方形容器内完美填充且无黑边。
-*   **麦克风资源泄露**: 修复了录音结束后麦克风占用仍不释放的问题（Phase 43）。通过以下方式解决：1. 使用 `useRef` 治理定时器避免闭包失效；2. 增加 `isMounted` 守卫防止异步操作导致的“孤儿”资源启动；3. 在 Safari/Mac 下增加 `AudioContext` 挂起逻辑并显式禁用全部物理轨道 (`enabled = false`)。
-*   **Vditor 初始化竞态**: 修复了组件卸载后异步资源加载完成导致的 "Failed to get element by id" 报错。通过引入 `canceled` 标志位，确保在组件卸载后中断初始化流程，提升了快速切换路由时的稳定性。
-*   **AI 标签生成与账号隔离**: 重构了 AI 标签自动生成逻辑。1. 通过将 `TagAgent` 切换为 **JSON 模式**（返回字符串数组），彻底解决了因 AI 随机输出格式（空格/换行）导致的解析重复问题；2. 增加 **混合解析兜底**，若用户设置了自定义 Prompt 禁止 JSON，系统会自动退回正则提取模式，确保依然能精准去重；3. 引入了“全路径标准化比对”算法，能够识别并去重各种格式差异（如空格、大小写）的层级标签；4. 在底层 `getAllPathTags` 中强制引入 `accountId` 过滤，确保用户标签数据的物理隔离，防止跨账号建议。
-*   **Prisma 6 打包修复**: 修复了在 Docker/生产环境下使用 `esbuild` 打包时，Prisma Client 内部引擎无法正确加载导致的 `Cannot read properties of undefined (reading 'bind')` 报错。通过在 `server/esbuild.config.ts` 中将 `@prisma/client` 和 `.prisma/client` 设为 **external** 依赖，解决了该生产环境稳定性问题。
-
----
+*   **卡片图片显示与缩放**: 修复了卡片中图片显示不出的问题，并随后解决了缩放尺寸回归的问题。
+*   **麦克风资源泄露**: 修复了录音结束后麦克风占用仍不释放的问题。
 
 ### 4. 资源加载与网络优化 (Phase 5)
 *   **图片体积缩减**: 将首页核心图片 (`logo`, `home.png`) 转换为 **WebP** 格式，体积缩减 **80-92%**。
-*   **字体 CDN 迁移**: 鉴于 `fonts.cdnfonts.com` 在中国大陆的访问延迟/阻断问题，将 `prisma/defaultFonts.ts` 中所有 20+ 款西方字体（如 Inter, Open Sans, JetBrains Mono）的源替换为 **Loli.net (Google Fonts Mirror)**。此举彻底消除了因单一字体加载阻塞导致页面白屏或卡顿的现象。
+*   **字体 CDN 迁移**: 将字体镜像源替换为 **Loli.net**，解决了大陆访问加载阻塞导致的白屏问题。
+*   **Markdown 图片持久化**: 
+    *   **前端注入**：在编辑器插入附件时，自动在 URL 后附加当前用户的身份令牌 (`?token=...`)，解决了部分图片引用在非会话环境下的渲染失败问题。
+    *   **后端增强**：重写了 `noteRouter` 中的图片匹配正则，使其能够精准识别并解析带有查询参数的附件路径，确保了元数据提取的一致性。
+
+---
+
+### 5. 数据库与后端性能 (Phase 6)
+*   **Prisma 连接池优化**: 修复了 `DATABASE_URL` 环境变量中因符号冗余导致的 `connection_limit` 解析失败问题。将默认连接数从 **1** 提升至 **15**，彻底解决了高并发（如查看资源页）时导致的 `PrismaClientInitializationError` 以及前端 `Unexpected token '<'` (HTML 误刷) 报错。
+*   **JWT 密钥内存缓存**: 在 `helper.ts` 中为 `JWT_SECRET` 引入了 **Promise 单例模式内存缓存**。
+    *   **优化点**：避免了每次鉴权（包括缩略图请求）都去 Supabase 查询 Config 表，减少了约 **90%** 的鉴权数据库 IO。
+    *   **预热机制**：在服务器启动阶段自动完成 Secret 加载，确保高并发请求到达时内存已就绪。
+*   **S3 资源加载增强**: 针对 Bun 运行时优化了 S3 流读取逻辑，引入了 `transformToByteArray` 的可靠性检查与 0 字节文件自动跳过机制，解决了 `sharp` 库在处理损坏/空文件时的崩溃风险。
+*   **鉴权中间件升级**: 统一改用 `getUserFromRequest`，同时支持 Cookie Session 与 URL Token 两种认证模式，显著增强了跨域附件访问的稳定性。
+
+---
+
+### 6. AI 基础设施升级 (Phase 7)
+*   **Mastra 改构**: 将 AI Vision 核心 `ImageEmbeddingAgent` 迁移至 **Mastra 架构**，实现了更纯粹的 Agent 定义。
+*   **模型感知增强**: 引入了更严谨的 Vision 能力探测逻辑，确保模型在不支持图片输入时能优雅退回，并优化了多步推导的 Instructions。
 
 ---
 
 > [!NOTE]
-> 记录于 2026-02-09: 已完成全链路性能补强与构建稳定性修复。
+> 记录于 2026-02-10: 已完成全链路连接稳定性、缓存优化及 AI 模型架构升级。

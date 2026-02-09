@@ -239,13 +239,18 @@ function detectFontCategory(fontName: string): string {
   return "sans-serif";
 }
 
-main()
-  .then(e => {
-    console.log("✨ Seed done! ✨")
-  })
-  .catch((e) => {
-    console.error(e);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Only run if this file is the main entry point
+const isDirectRun = process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js');
+
+if (isDirectRun) {
+  main()
+    .then(e => {
+      console.log("✨ Seed done! ✨")
+    })
+    .catch((e) => {
+      console.error(e);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

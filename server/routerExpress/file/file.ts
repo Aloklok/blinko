@@ -7,7 +7,7 @@ import { UPLOAD_FILE_PATH, TEMP_PATH } from '../../../shared/lib/pathConstant';
 import crypto from 'crypto';
 import sharp from 'sharp';
 import { prisma } from '../../prisma';
-import { getTokenFromRequest } from '../../lib/helper';
+import { getUserFromRequest } from '../../lib/helper';
 import { FileService } from '../../lib/files';
 
 const router = express.Router();
@@ -88,7 +88,7 @@ let activeStreams = 0;
 //@ts-ignore
 router.get(/.*/, async (req, res) => {
   const fullPath = decodeURIComponent(req.path.substring(1));
-  const token = await getTokenFromRequest(req);
+  const user = await getUserFromRequest(req);
   const needThumbnail = req.query.thumbnail === 'true';
   const isDownload = req.query.download === 'true';
 
@@ -97,9 +97,9 @@ router.get(/.*/, async (req, res) => {
   try {
     const allowTemp = fullPath.includes('temp/');
     filePath = FileService.validateAndResolvePath(fullPath, UPLOAD_FILE_PATH, allowTemp);
-    
+
     // For temp/ paths, require authentication
-    if (allowTemp && !token) {
+    if (allowTemp && !user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
   } catch (error: any) {
@@ -138,14 +138,14 @@ router.get(/.*/, async (req, res) => {
       // console.log('myFile', myFile);
 
 
-      if (!token) {
+      if (!user) {
         if (myFile?.note?.isShare) {
         } else {
           return res.status(401).json({ error: "Unauthorized" });
         }
       }
 
-      if (myFile && (!myFile?.note?.isShare && Number(token?.id) != myFile?.note?.accountId && !myFile?.accountId)) {
+      if (myFile && (!myFile?.note?.isShare && Number(user?.id) != myFile?.note?.accountId && !myFile?.accountId)) {
         return res.status(401).json({ error: "Unauthorized" });
       }
     } catch (error) {
@@ -154,7 +154,7 @@ router.get(/.*/, async (req, res) => {
     }
   }
 
-  if (fullPath.endsWith('.bko') && token?.role !== 'superadmin') {
+  if (fullPath.endsWith('.bko') && user?.role !== 'superadmin') {
     return res.status(401).json({ error: "Only superadmin can access" });
   }
 

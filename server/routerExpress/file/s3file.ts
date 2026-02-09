@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { FileService } from "../../lib/files";
 import sharp from "sharp";
 import mime from "mime-types";
-import { getTokenFromRequest } from "../../lib/helper";
+import { getUserFromRequest } from "../../lib/helper";
 import { prisma } from "../../prisma";
 
 const router = express.Router();
@@ -19,39 +19,36 @@ function isImage(filename: string): boolean {
 
 async function generateThumbnail(s3ClientInstance: any, config: any, fullPath: string) {
   try {
+    console.log(`[Thumbnail] Fetching: Bucket=${config.s3Bucket}, Key=${fullPath}`);
     const command = new GetObjectCommand({
       Bucket: config.s3Bucket,
-      Key: decodeURIComponent(fullPath)
+      Key: fullPath
     });
 
     const response = await s3ClientInstance.send(command);
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of response.Body as any) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
 
-    const metadata = await sharp(buffer).metadata();
-    const { width = 0, height = 0 } = metadata;
-
-    let resizeWidth = width;
-    let resizeHeight = height;
-    const maxDimension = 500;
-
-    if (width > height && width > maxDimension) {
-      resizeWidth = maxDimension;
-      resizeHeight = Math.round(height * (maxDimension / width));
-    } else if (height > maxDimension) {
-      resizeHeight = maxDimension;
-      resizeWidth = Math.round(width * (maxDimension / height));
+    if (!response.Body) {
+      throw new Error('S3 response body is null');
     }
 
-    const thumbnail = await sharp(buffer, {
-      failOnError: false,
-      limitInputPixels: false
-    })
+    // Diagnostic: Check if S3 actually has data
+    if (response.ContentLength === 0) {
+      throw new Error(`S3 reported 0 bytes for this file (Key: ${fullPath}). skipping thumbnail.`);
+    }
+
+    // In Bun, this is the most reliable way to read the stream from AWS SDK
+    const bodyContents = await (response.Body as any).transformToByteArray();
+    const buffer = Buffer.from(bodyContents);
+
+    console.log(`[Thumbnail] Read ${buffer.length} bytes for ${fullPath}.`);
+
+    if (buffer.length === 0) {
+      throw new Error(`Downloaded 0 bytes despite ContentLength ${response.ContentLength}`);
+    }
+
+    const thumbnail = await sharp(buffer, { failOnError: false })
       .rotate()
-      .resize(resizeWidth, resizeHeight, {
+      .resize(500, 500, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
         withoutEnlargement: true
@@ -60,7 +57,7 @@ async function generateThumbnail(s3ClientInstance: any, config: any, fullPath: s
 
     return thumbnail;
   } catch (error) {
-    console.error('Thumbnail generation error:', error);
+    console.warn('[Thumbnail Warning]', error.message);
     throw error;
   }
 }
@@ -115,7 +112,7 @@ async function generateThumbnail(s3ClientInstance: any, config: any, fullPath: s
 //@ts-ignore
 router.get(/.*/, async (req: Request, res: Response) => {
   try {
-    const token = await getTokenFromRequest(req);
+    const user = await getUserFromRequest(req);
     const { s3ClientInstance, config } = await FileService.getS3Client();
     const fullPath = decodeURIComponent(req.path.substring(1));
     const needThumbnail = req.query.thumbnail === 'true';
@@ -143,7 +140,10 @@ router.get(/.*/, async (req: Request, res: Response) => {
           return res.status(404).json({ error: "File not found" });
         }
 
-        if (!token) {
+        // Cache file type for later use in signed URL generation
+        (req as any).myFileType = myFile.type;
+
+        if (!user) {
           if (myFile.note?.isShare) {
             // Public shared file, allow access
           } else {
@@ -151,10 +151,10 @@ router.get(/.*/, async (req: Request, res: Response) => {
           }
         } else {
           // Check if user owns the file or the note containing the file
-          const isOwner = myFile.accountId === Number(token.id) || 
-                          myFile.note?.accountId === Number(token.id) ||
-                          token.role === 'superadmin';
-          
+          const isOwner = myFile.accountId === Number(user.id) ||
+            myFile.note?.accountId === Number(user.id) ||
+            user.role === 'superadmin';
+
           if (!myFile.note?.isShare && !isOwner) {
             return res.status(401).json({ error: "Unauthorized" });
           }
@@ -165,7 +165,7 @@ router.get(/.*/, async (req: Request, res: Response) => {
       }
     } else {
       // For temp files, require authentication
-      if (!token) {
+      if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
     }
@@ -185,29 +185,37 @@ router.get(/.*/, async (req: Request, res: Response) => {
         return res.send(thumbnail);
       } catch (error) {
         console.error('Failed to generate thumbnail, falling back to original:', error);
-        const command = new GetObjectCommand({
-          Bucket: config.s3Bucket,
-          Key: decodeURIComponent(fullPath),
-          ResponseCacheControl: `public, max-age=${CACHE_DURATION}, immutable`,
-        });
-
-        console.log('Bucket:', config.s3Bucket);
-        console.log('Key:', decodeURIComponent(fullPath));
-        const signedUrl = await getSignedUrl(s3ClientInstance as any, command as any, {
-          expiresIn: MAX_PRESIGNED_URL_EXPIRY,
-        });
-
-        console.log('Signed URL:', signedUrl);
-
-        return res.redirect(signedUrl);
       }
     }
-    console.log('fullPath!!', decodeURIComponent(fullPath));
+
+    // Redirect to custom domain if configured
+    if (config.s3CustomDomain) {
+      const customDomain = config.s3CustomDomain.replace(/\/$/, '');
+      const originalToken = req.query.token as string;
+      const redirectUrl = originalToken
+        ? `${customDomain}/${fullPath}?token=${originalToken}`
+        : `${customDomain}/${fullPath}`;
+
+      console.log(`[S3] Redirecting to CDN: ${fullPath}`);
+
+      res.set({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range',
+        'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges, Content-Type',
+        'Cache-Control': `public, max-age=${CACHE_DURATION}, immutable`,
+        'Expires': new Date(Date.now() + CACHE_DURATION * 1000).toUTCString()
+      });
+      return res.redirect(302, redirectUrl);
+    }
+
+    console.log('Falling back to signed URL for:', fullPath);
     //@important if @aws-sdk/client-s3 is not 3.693.0, has 403 error
     const command = new GetObjectCommand({
       Bucket: config.s3Bucket,
-      Key: decodeURIComponent(fullPath),
-      ResponseCacheControl: `public, max-age=${CACHE_DURATION}, immutable`
+      Key: fullPath,
+      ResponseCacheControl: `public, max-age=${CACHE_DURATION}, immutable`,
+      ResponseContentType: (req as any).myFileType || undefined
     });
 
     const signedUrl = await getSignedUrl(s3ClientInstance as any, command as any, {
@@ -221,7 +229,7 @@ router.get(/.*/, async (req: Request, res: Response) => {
 
     return res.redirect(signedUrl);
   } catch (error) {
-    console.error('S3 file access error:', error);
+    console.error('[S3] Access error:', error.message);
     return res.status(404).json({
       error: 'File not found',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined

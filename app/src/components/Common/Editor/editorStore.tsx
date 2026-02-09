@@ -18,6 +18,7 @@ import { ToastPlugin } from '@/store/module/Toast/Toast';
 import { NoteType } from '@shared/lib/types';
 import { eventBus } from '@/lib/event';
 import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
+import { UserStore } from '@/store/user';
 // import axiosInstance from '@/lib/axios'; // Removed
 
 export class EditorStore {
@@ -321,6 +322,9 @@ export class EditorStore {
   handlePasteFile = ({ fileName, filePath, type, size }: { fileName: string, filePath: string, type: string, size: number }) => {
     const extension = helper.getFileExtension(fileName)
     const previewType = helper.getFileType(type, fileName)
+    const token = RootStore.Get(UserStore).tokenData?.value?.token;
+    const authenticatedFilePath = token ? `${filePath}?token=${token}` : filePath;
+
     showTipsDialog({
       title: i18n.t('insert-attachment-or-note'),
       content: i18n.t('paste-to-note-or-attachment'),
@@ -328,9 +332,9 @@ export class EditorStore {
         <Button variant='flat' className="ml-auto" color='default'
           onPress={e => {
             if (type.includes('image')) {
-              this.vditor?.insertValue(`![${fileName}](${filePath})`)
+              this.vditor?.insertValue(`![${fileName}](${authenticatedFilePath})`)
             } else {
-              this.vditor?.insertValue(`[${fileName}](${filePath})`)
+              this.vditor?.insertValue(`[${fileName}](${authenticatedFilePath})`)
             }
             RootStore.Get(DialogStandaloneStore).close()
           }}>{i18n.t('context')}</Button>

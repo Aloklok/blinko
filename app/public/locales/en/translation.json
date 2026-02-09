@@ -494,6 +494,8 @@
   "full-screen": "Full Screen",
   "exit-fullscreen": "Exit Fullscreen",
   "no-note-associated": "No note associated",
+  "associated-with-note": "Associated with note",
+  "select-unused": "Select unused",
   "insert-context": "Insert to context",
   "follow": "Follow",
   "follower": "Follower",

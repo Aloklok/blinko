@@ -1,6 +1,6 @@
 import express from 'express';
 import { FileService } from '../../lib/files';
-import { getTokenFromRequest } from '../../lib/helper';
+import { getUserFromRequest } from '../../lib/helper';
 import { prisma } from '../../prisma';
 
 const router = express.Router();
@@ -42,13 +42,13 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
   try {
-    const token = await getTokenFromRequest(req);
-    if (!token) {
+    const user = await getUserFromRequest(req);
+    if (!user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    
+
     const { attachment_path } = req.body;
-    
+
     if (!attachment_path) {
       return res.status(400).json({ error: "Missing attachment_path parameter" });
     }
@@ -70,14 +70,14 @@ router.post('/', async (req, res) => {
     }
 
     // Check if user owns the file or the note containing the file
-    const isOwner = attachment.accountId === Number(token.id) || 
-                    attachment.note?.accountId === Number(token.id) ||
-                    token.role === 'superadmin';
+    const isOwner = attachment.accountId === Number(user.id) ||
+      attachment.note?.accountId === Number(user.id) ||
+      user.role === 'superadmin';
 
     if (!isOwner) {
       return res.status(403).json({ error: "Forbidden: You don't have permission to delete this file" });
     }
-    
+
     await FileService.deleteFile(attachment_path);
     return res.status(200).json({ Message: "Success", status: 200 });
   } catch (error) {
