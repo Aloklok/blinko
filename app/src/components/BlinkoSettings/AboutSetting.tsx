@@ -52,7 +52,7 @@ export const AboutSetting = observer(() => {
           cacheNames.map(cacheName => caches.delete(cacheName))
         );
       }
-      
+
       // Unregister all service workers to clear their cache
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -60,9 +60,9 @@ export const AboutSetting = observer(() => {
           registrations.map(registration => registration.unregister())
         );
       }
-      
+
       RootStore.Get(ToastPlugin).success(t('cache-cleared-successfully'));
-      
+
       // Force hard reload (bypass cache) similar to Ctrl+Shift+R
       setTimeout(() => {
         // Method 1: Use location.reload with force flag (deprecated but still works in some browsers)
@@ -76,7 +76,7 @@ export const AboutSetting = observer(() => {
           window.location.href = url.toString();
         }
       }, 1000);
-      
+
     } catch (error) {
       console.error('Failed to clear cache:', error);
       RootStore.Get(ToastPlugin).error(t('failed-to-clear-cache'));
@@ -89,7 +89,7 @@ export const AboutSetting = observer(() => {
       title={t('about')}
     >
       <div className="flex items-start space-x-4 mb-6">
-        <Image src="/logo.png" alt="Blinko" className="w-16 h-16 rounded-xl" />
+        <Image src="/logo.webp" alt="Blinko" className="w-16 h-16 rounded-xl" />
         <div>
           <h2 className="text-xl font-semibold">Blinko</h2>
           <div className="flex flex-col gap-2 mt-1">

@@ -39,7 +39,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Inter',
     displayName: 'Inter',
-    url: 'https://fonts.cdnfonts.com/css/inter',
+    url: 'https://fonts.loli.net/css2?family=Inter:wght@100..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -50,7 +50,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Open Sans',
     displayName: 'Open Sans',
-    url: 'https://fonts.cdnfonts.com/css/open-sans',
+    url: 'https://fonts.loli.net/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap',
     fileData: null,
     isLocal: false,
     weights: [300, 400, 600, 700, 800],
@@ -61,7 +61,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Poppins',
     displayName: 'Poppins',
-    url: 'https://fonts.cdnfonts.com/css/poppins',
+    url: 'https://fonts.loli.net/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -72,7 +72,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Montserrat',
     displayName: 'Montserrat',
-    url: 'https://fonts.cdnfonts.com/css/montserrat',
+    url: 'https://fonts.loli.net/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -83,7 +83,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Nunito',
     displayName: 'Nunito',
-    url: 'https://fonts.cdnfonts.com/css/nunito',
+    url: 'https://fonts.loli.net/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 800, 900],
@@ -94,7 +94,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Raleway',
     displayName: 'Raleway',
-    url: 'https://fonts.cdnfonts.com/css/raleway-5',
+    url: 'https://fonts.loli.net/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -105,7 +105,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Manrope',
     displayName: 'Manrope',
-    url: 'https://fonts.cdnfonts.com/css/manrope',
+    url: 'https://fonts.loli.net/css2?family=Manrope:wght@200..800&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 800],
@@ -116,7 +116,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Space Grotesk',
     displayName: 'Space Grotesk',
-    url: 'https://fonts.cdnfonts.com/css/space-grotesk',
+    url: 'https://fonts.loli.net/css2?family=Space+Grotesk:wght@300..700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [300, 400, 500, 600, 700],
@@ -127,7 +127,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'DM Sans',
     displayName: 'DM Sans',
-    url: 'https://fonts.cdnfonts.com/css/dm-sans',
+    url: 'https://fonts.loli.net/css2?family=DM+Sans:ital,wght@0,9..40;1,9..40&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400, 500, 700],
@@ -138,7 +138,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Plus Jakarta Sans',
     displayName: 'Plus Jakarta Sans',
-    url: 'https://fonts.cdnfonts.com/css/plus-jakarta-sans',
+    url: 'https://fonts.loli.net/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 800],
@@ -149,7 +149,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Outfit',
     displayName: 'Outfit',
-    url: 'https://fonts.cdnfonts.com/css/outfit',
+    url: 'https://fonts.loli.net/css2?family=Outfit:wght@100..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -161,7 +161,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Noto Sans SC',
     displayName: '思源黑体 (Noto Sans SC)',
-    url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100;200;300;400;500;600;700;800;900&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@100;200;300;400;500;600;700;800;900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -172,7 +172,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Noto Serif SC',
     displayName: '思源宋体 (Noto Serif SC)',
-    url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 900],
@@ -183,7 +183,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Noto Sans TC',
     displayName: '思源黑体繁体 (Noto Sans TC)',
-    url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;200;300;400;500;600;700;800;900&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Noto+Sans+TC:wght@100;200;300;400;500;600;700;800;900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
@@ -194,7 +194,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Noto Serif TC',
     displayName: '思源宋体繁体 (Noto Serif TC)',
-    url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400;500;600;700;900&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Noto+Serif+TC:wght@200;300;400;500;600;700;900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 900],
@@ -205,7 +205,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Ma Shan Zheng',
     displayName: '马善政手写体',
-    url: 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Ma+Shan+Zheng&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -216,7 +216,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'ZCOOL XiaoWei',
     displayName: '站酷小薇体',
-    url: 'https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap',
+    url: 'https://fonts.loli.net/css2?family=ZCOOL+XiaoWei&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -227,7 +227,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'ZCOOL KuaiLe',
     displayName: '站酷快乐体',
-    url: 'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap',
+    url: 'https://fonts.loli.net/css2?family=ZCOOL+KuaiLe&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -238,7 +238,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'ZCOOL QingKe HuangYou',
     displayName: '站酷庆科黄油体',
-    url: 'https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap',
+    url: 'https://fonts.loli.net/css2?family=ZCOOL+QingKe+HuangYou&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -249,7 +249,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Long Cang',
     displayName: '仓耳今楷',
-    url: 'https://fonts.googleapis.com/css2?family=Long+Cang&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Long+Cang&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -260,7 +260,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Zhi Mang Xing',
     displayName: '站酷文艺体',
-    url: 'https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap',
+    url: 'https://fonts.loli.net/css2?family=Zhi+Mang+Xing&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -271,7 +271,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'JetBrains Mono',
     displayName: 'JetBrains Mono',
-    url: 'https://fonts.cdnfonts.com/css/jetbrains-mono-2',
+    url: 'https://fonts.loli.net/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700, 800],
@@ -282,7 +282,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Fira Code',
     displayName: 'Fira Code',
-    url: 'https://fonts.cdnfonts.com/css/fira-code',
+    url: 'https://fonts.loli.net/css2?family=Fira+Code:wght@300..700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [300, 400, 500, 600, 700],
@@ -293,7 +293,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Source Code Pro',
     displayName: 'Source Code Pro',
-    url: 'https://fonts.cdnfonts.com/css/source-code-pro',
+    url: 'https://fonts.loli.net/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 900],
@@ -304,7 +304,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Space Mono',
     displayName: 'Space Mono',
-    url: 'https://fonts.cdnfonts.com/css/space-mono',
+    url: 'https://fonts.loli.net/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400, 700],
@@ -315,7 +315,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Roboto Mono',
     displayName: 'Roboto Mono',
-    url: 'https://fonts.cdnfonts.com/css/roboto-mono',
+    url: 'https://fonts.loli.net/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [100, 200, 300, 400, 500, 600, 700],
@@ -326,7 +326,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Ubuntu Mono',
     displayName: 'Ubuntu Mono',
-    url: 'https://fonts.cdnfonts.com/css/ubuntu-mono',
+    url: 'https://fonts.loli.net/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400, 700],
@@ -337,7 +337,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Inconsolata',
     displayName: 'Inconsolata',
-    url: 'https://fonts.cdnfonts.com/css/inconsolata',
+    url: 'https://fonts.loli.net/css2?family=Inconsolata:wght@200..900&display=swap',
     fileData: null,
     isLocal: false,
     weights: [200, 300, 400, 500, 600, 700, 800, 900],
@@ -348,7 +348,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Anonymous Pro',
     displayName: 'Anonymous Pro',
-    url: 'https://fonts.cdnfonts.com/css/anonymous-pro',
+    url: 'https://fonts.loli.net/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400, 700],
@@ -359,7 +359,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'VT323',
     displayName: 'VT323 (Retro)',
-    url: 'https://fonts.cdnfonts.com/css/vt323',
+    url: 'https://fonts.loli.net/css2?family=VT323&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],
@@ -370,7 +370,7 @@ export const cdnFonts: FontSeed[] = [
   {
     name: 'Share Tech Mono',
     displayName: 'Share Tech Mono',
-    url: 'https://fonts.cdnfonts.com/css/share-tech-mono',
+    url: 'https://fonts.loli.net/css2?family=Share+Tech+Mono&display=swap',
     fileData: null,
     isLocal: false,
     weights: [400],

@@ -1,5 +1,5 @@
 
-<img style="border-radius:20px;margin-bottom:20px" src="./app/public/home.png" alt="Blinko" />
+<img style="border-radius:20px;margin-bottom:20px" src="./app/public/home.webp" alt="Blinko" />
 
 <h1 align="center">Blinko</h1>
 

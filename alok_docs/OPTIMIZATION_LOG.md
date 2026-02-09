@@ -23,6 +23,13 @@
 *   **麦克风资源泄露**: 修复了录音结束后麦克风占用仍不释放的问题（Phase 43）。通过以下方式解决：1. 使用 `useRef` 治理定时器避免闭包失效；2. 增加 `isMounted` 守卫防止异步操作导致的“孤儿”资源启动；3. 在 Safari/Mac 下增加 `AudioContext` 挂起逻辑并显式禁用全部物理轨道 (`enabled = false`)。
 *   **Vditor 初始化竞态**: 修复了组件卸载后异步资源加载完成导致的 "Failed to get element by id" 报错。通过引入 `canceled` 标志位，确保在组件卸载后中断初始化流程，提升了快速切换路由时的稳定性。
 *   **AI 标签生成与账号隔离**: 重构了 AI 标签自动生成逻辑。1. 通过将 `TagAgent` 切换为 **JSON 模式**（返回字符串数组），彻底解决了因 AI 随机输出格式（空格/换行）导致的解析重复问题；2. 增加 **混合解析兜底**，若用户设置了自定义 Prompt 禁止 JSON，系统会自动退回正则提取模式，确保依然能精准去重；3. 引入了“全路径标准化比对”算法，能够识别并去重各种格式差异（如空格、大小写）的层级标签；4. 在底层 `getAllPathTags` 中强制引入 `accountId` 过滤，确保用户标签数据的物理隔离，防止跨账号建议。
+*   **Prisma 6 打包修复**: 修复了在 Docker/生产环境下使用 `esbuild` 打包时，Prisma Client 内部引擎无法正确加载导致的 `Cannot read properties of undefined (reading 'bind')` 报错。通过在 `server/esbuild.config.ts` 中将 `@prisma/client` 和 `.prisma/client` 设为 **external** 依赖，解决了该生产环境稳定性问题。
+
+---
+
+### 4. 资源加载与网络优化 (Phase 5)
+*   **图片体积缩减**: 将首页核心图片 (`logo`, `home.png`) 转换为 **WebP** 格式，体积缩减 **80-92%**。
+*   **字体 CDN 迁移**: 鉴于 `fonts.cdnfonts.com` 在中国大陆的访问延迟/阻断问题，将 `prisma/defaultFonts.ts` 中所有 20+ 款西方字体（如 Inter, Open Sans, JetBrains Mono）的源替换为 **Loli.net (Google Fonts Mirror)**。此举彻底消除了因单一字体加载阻塞导致页面白屏或卡顿的现象。
 
 ---
 
