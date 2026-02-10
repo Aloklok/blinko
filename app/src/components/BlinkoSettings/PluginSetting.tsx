@@ -48,6 +48,7 @@ const PluginCard = ({ name, version, displayName, description, author, downloads
                         icon="mdi:github"
                         className="text-lg text-default-500 hover:text-primary cursor-pointer"
                         onClick={() => window.open(url, '_blank')}
+                        aria-label={t('github-repository')}
                       />
                     )}
                   </div>
@@ -190,6 +191,7 @@ const InstalledPlugins = observer(() => {
                   <Button
                     size="sm"
                     isIconOnly
+                    aria-label={t('plugin-settings')}
                     variant="flat"
                     startContent={<Icon icon="mdi:cog" width="16" height="16" />}
                     onPress={() => {
@@ -209,6 +211,7 @@ const InstalledPlugins = observer(() => {
                       size="sm"
                       color="warning"
                       isIconOnly
+                      aria-label={t('upgrade')}
                       startContent={<Icon icon="material-symbols:upgrade-rounded" width="16" height="16" />}
                       onPress={() => showUpgradeModal(latestPlugin)}
                       title={t('plugin-requires-app-upgrade')}
@@ -218,6 +221,7 @@ const InstalledPlugins = observer(() => {
                       size="sm"
                       color="warning"
                       isIconOnly
+                      aria-label={t('upgrade')}
                       isLoading={loadingPluginName === metadata.name}
                       startContent={<Icon icon="material-symbols:upgrade-rounded" width="16" height="16" />}
                       onPress={() => handleUpdate(latestPlugin)}
@@ -227,6 +231,7 @@ const InstalledPlugins = observer(() => {
                 <Button
                   size="sm"
                   isIconOnly
+                  aria-label={t('uninstall-plugin')}
                   color="danger"
                   startContent={<Icon icon="mdi:trash-can" width="16" height="16" />}
                   onPress={() => handleUninstall(plugin.id)}
@@ -666,6 +671,7 @@ const LocalDevelopment = observer(() => {
                 size="sm"
                 color="primary"
                 isIconOnly
+                aria-label={t('plugin-settings')}
                 className="h-6 px-2 min-w-0"
                 startContent={<Icon icon="mdi:cog" className="text-sm" />}
                 onPress={() => {

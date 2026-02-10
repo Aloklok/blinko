@@ -24,8 +24,8 @@ const UpdateUserInfo = observer(({ id, name, password, nickname, loginType }: { 
     nickname: nickname || name,
     upsertUser: new PromiseState({
       function: async () => {
-        const upsertItem: { name: string; password: string; nickname?: string; id?: number } = { 
-          name: store.username, 
+        const upsertItem: { name: string; password: string; nickname?: string; id?: number } = {
+          name: store.username,
           password: store.password,
           nickname: store.nickname
         }
@@ -114,7 +114,7 @@ export const UserSetting = observer(() => {
                   <TableCell>{i.loginType == 'oauth' ? 'oauth' : t('password')}</TableCell>
                   <TableCell>
                     <div className="flex">
-                      <Button isIconOnly variant="flat" size="sm" startContent={<Icon icon="tabler:edit" width="18" height="18" />} onPress={e => {
+                      <Button isIconOnly aria-label={t('edit-user')} variant="flat" size="sm" startContent={<Icon icon="tabler:edit" width="18" height="18" />} onPress={e => {
                         RootStore.Get(DialogStore).setData({
                           isOpen: true,
                           title: t('edit-user'),
@@ -122,7 +122,7 @@ export const UserSetting = observer(() => {
                         })
                       }}>
                       </Button>
-                      <Button isIconOnly color="danger" size="sm" className="ml-2"
+                      <Button isIconOnly aria-label={t('delete-user')} color="danger" size="sm" className="ml-2"
                         startContent={<Icon icon="tabler:trash" width="18" height="18" />}
                         onPress={e => {
                           showTipsDialog({

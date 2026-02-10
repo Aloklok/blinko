@@ -34,7 +34,6 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
   };
 
   useEffect(() => {
-    console.log('router.query');
     if (!isPc) {
       base.collapseSidebar();
     }
@@ -100,7 +99,8 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
               <Link
                 key={i.title}
                 to={i.href}
-                onClick={() => {
+                onClick={(e) => {
+                  (e.currentTarget as HTMLElement).blur();
                   base.currentRouter = i;
                   onItemClick?.();
                 }}
@@ -135,7 +135,8 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
               <Link
                 key={i.title}
                 to={i.href}
-                onClick={() => {
+                onClick={(e) => {
+                  (e.currentTarget as HTMLElement).blur();
                   base.currentRouter = i;
                   onItemClick?.();
                 }}

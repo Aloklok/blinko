@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Note, ResourceType, Tag } from '@shared/lib/types';
 import { ScrollArea } from '../Common/ScrollArea';
 import { ResourceItemPreview } from '@/components/BlinkoResource/ResourceItem';
-import { allSettings } from '@/pages/settings';
+import { allSettings } from '@/components/BlinkoSettings/settingsData';
 import { BlinkoCard } from '../BlinkoCard';
 import { ConvertTypeButton } from '../BlinkoCard/cardFooter';
 import { LoadingAndEmpty } from '../Common/LoadingAndEmpty';

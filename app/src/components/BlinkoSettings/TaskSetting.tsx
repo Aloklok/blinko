@@ -98,6 +98,7 @@ export const TaskSetting = observer(() => {
               min={1}
             />
             <Switch
+              aria-label={t('schedule-archive-blinko')}
               thumbIcon={blinko.updateArchiveTask.loading.value ? <Icon icon="eos-icons:three-dots-loading" width="24" height="24" /> : null}
               isDisabled={blinko.updateArchiveTask.loading.value}
               isSelected={blinko.ArchiveTask?.isRunning}
@@ -203,20 +204,22 @@ const AITasksPanel = observer(() => {
                   <Tooltip content={task.isEnabled ? t('disable') : t('enable')}>
                     <Button
                       isIconOnly
+                      aria-label={task.isEnabled ? t('disable') : t('enable')}
                       size="sm"
                       variant="light"
                       onPress={() => handleToggle(task.id, !task.isEnabled)}
                     >
-                      <Icon 
-                        icon={task.isEnabled ? "mdi:pause" : "mdi:play"} 
-                        width="18" 
-                        height="18" 
+                      <Icon
+                        icon={task.isEnabled ? "mdi:pause" : "mdi:play"}
+                        width="18"
+                        height="18"
                       />
                     </Button>
                   </Tooltip>
                   <Tooltip content={t('run-now')}>
                     <Button
                       isIconOnly
+                      aria-label={t('run-now')}
                       size="sm"
                       variant="light"
                       onPress={() => handleRunNow(task.id)}
@@ -227,6 +230,7 @@ const AITasksPanel = observer(() => {
                   <Tooltip content={t('delete')}>
                     <Button
                       isIconOnly
+                      aria-label={t('delete')}
                       size="sm"
                       variant="light"
                       color="danger"

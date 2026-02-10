@@ -428,6 +428,7 @@ export const HotkeySetting = observer(() => {
             }
             rightContent={
               <Switch
+                aria-label="Autostart"
                 isSelected={autoStartEnabled}
                 onValueChange={toggleAutoStart}
               />
@@ -444,6 +445,7 @@ export const HotkeySetting = observer(() => {
             }
             rightContent={
               <Switch
+                aria-label={t('hotkey.enableGlobalHotkey')}
                 isSelected={hotkeyConfig.enabled}
                 onValueChange={(enabled) => saveConfig({ enabled })}
               />
@@ -457,6 +459,7 @@ export const HotkeySetting = observer(() => {
               <div className="flex items-center gap-2">
                 <Input
                   ref={recordingRef}
+                  aria-label={t('hotkey.quickNoteShortcut')}
                   value={isRecording ? recordedKeys.join('+') || t('hotkey.pressShortcut') : hotkeyConfig.quickNote}
                   placeholder={t('hotkey.clickRecordButton')}
                   readOnly
@@ -483,6 +486,7 @@ export const HotkeySetting = observer(() => {
                     color="default"
                     variant="flat"
                     isIconOnly
+                    aria-label={t('reset-default', 'Reset to Default')}
                     onPress={resetQuickNoteToDefault}
                     className="opacity-70 hover:opacity-100"
                   >
@@ -514,6 +518,7 @@ export const HotkeySetting = observer(() => {
             }
             rightContent={
               <Switch
+                aria-label="Enable Quick AI"
                 isSelected={hotkeyConfig.aiEnabled}
                 onValueChange={(enabled) => saveConfig({ aiEnabled: enabled })}
               />
@@ -527,6 +532,7 @@ export const HotkeySetting = observer(() => {
               <div className="flex items-center gap-2">
                 <Input
                   ref={recordingAIRef}
+                  aria-label="Quick AI Shortcut"
                   value={isRecordingAI ? recordedAIKeys.join('+') || t('hotkey.pressShortcut') : hotkeyConfig.quickAI}
                   placeholder={t('hotkey.clickRecordButton')}
                   readOnly
@@ -553,6 +559,7 @@ export const HotkeySetting = observer(() => {
                     color="default"
                     variant="flat"
                     isIconOnly
+                    aria-label={t('reset-default', 'Reset to Default')}
                     onPress={resetQuickAIToDefault}
                     className="opacity-70 hover:opacity-100"
                   >
@@ -584,6 +591,7 @@ export const HotkeySetting = observer(() => {
             }
             rightContent={
               <Switch
+                aria-label="Enable Text Selection Toolbar"
                 isSelected={hotkeyConfig.textSelectionToolbar?.enabled ?? DEFAULT_TEXT_SELECTION_TOOLBAR_CONFIG.enabled}
                 onValueChange={(enabled) =>
                   saveConfig({

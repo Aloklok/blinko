@@ -26,36 +26,45 @@ export const UpdateUserInfo = observer(() => {
     store.nickname = user.nickname!
   }, [user.name, user.nickname])
 
-  return <>
-    <Input
-      label={t('username')}
-      labelPlacement="outside"
-      variant="bordered"
-      value={store.username}
-      onChange={e => { store.username = e.target.value }}
-    />
-    <Input
-      label={t('nickname')}
-      variant="bordered"
-      labelPlacement="outside"
-      value={store.nickname}
-      onChange={e => { store.nickname = e.target.value }}
-    />
-    <PasswordInput
-      label={t('original-password')}
-      placeholder={t('enter-your-password')}
-      value={store.originalPassword}
-      onChange={e => { store.originalPassword = e.target.value }}
-    />
-    <div className="flex w-full mt-2">
-      <Button className="ml-auto" color='primary' onPress={async e => {
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={async (e) => {
+        e.preventDefault();
         await PromiseCall(api.users.upsertUser.mutate({ id: Number(user.id), name: store.username, nickname: store.nickname, originalPassword: store.originalPassword }))
         RootStore.Get(DialogStore).close()
         eventBus.emit('user:signout')
         navigate('/signin')
-      }}>{t('save')}</Button>
-    </div>
-  </>
+      }}
+    >
+      <Input
+        label={t('username')}
+        labelPlacement="outside"
+        variant="bordered"
+        value={store.username}
+        autoComplete="username"
+        onChange={e => { store.username = e.target.value }}
+      />
+      <Input
+        label={t('nickname')}
+        variant="bordered"
+        labelPlacement="outside"
+        value={store.nickname}
+        autoComplete="nickname"
+        onChange={e => { store.nickname = e.target.value }}
+      />
+      <PasswordInput
+        label={t('original-password')}
+        placeholder={t('enter-your-password')}
+        value={store.originalPassword}
+        autoComplete="current-password"
+        onChange={e => { store.originalPassword = e.target.value }}
+      />
+      <div className="flex w-full mt-2">
+        <Button className="ml-auto" color='primary' type="submit">{t('save')}</Button>
+      </div>
+    </form>
+  )
 })
 
 
@@ -66,19 +75,45 @@ export const UpdateUserPassword = observer(() => {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [originalPassword, setOriginalPassword] = useState("");
   const navigate = useNavigate()
-  return <>
-    <div className="flex w-full mt-2 flex-col gap-2">
-      <PasswordInput placeholder={t('enter-your-password')}label={t('original-password')} value={originalPassword} onChange={e => setOriginalPassword(e.target.value)} />
-      <PasswordInput placeholder={t('enter-your-password')} label={t('password')} value={password} onChange={e => setPassword(e.target.value)} />
-      <PasswordInput placeholder={t('enter-your-password')} label={t('confirm-password')} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} />
+
+  return (
+    <form
+      className="flex w-full mt-2 flex-col gap-2"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (password !== passwordConfirm) {
+          return;
+        }
+        await PromiseCall(api.users.upsertUser.mutate({ id: Number(user.id), password }))
+        RootStore.Get(DialogStore).close()
+        eventBus.emit('user:signout')
+        navigate('/signin')
+      }}
+    >
+      <PasswordInput
+        placeholder={t('enter-your-password')}
+        label={t('original-password')}
+        value={originalPassword}
+        autoComplete="current-password"
+        onChange={e => setOriginalPassword(e.target.value)}
+      />
+      <PasswordInput
+        placeholder={t('enter-your-password')}
+        label={t('password')}
+        value={password}
+        autoComplete="new-password"
+        onChange={e => setPassword(e.target.value)}
+      />
+      <PasswordInput
+        placeholder={t('enter-your-password')}
+        label={t('confirm-password')}
+        value={passwordConfirm}
+        autoComplete="new-password"
+        onChange={e => setPasswordConfirm(e.target.value)}
+      />
       <div className="flex w-full justify-end">
-        <Button className="ml-auto" color='primary' onPress={async e => {
-          await PromiseCall(api.users.upsertUser.mutate({ id: Number(user.id), password }))
-          RootStore.Get(DialogStore).close()
-          eventBus.emit('user:signout')
-          navigate('/signin')
-        }}>{t('save')}</Button>
+        <Button className="ml-auto" color='primary' type="submit">{t('save')}</Button>
       </div>
-    </div>
-  </>
+    </form>
+  )
 })

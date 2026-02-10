@@ -136,6 +136,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
               size="sm"
               variant="flat"
               isIconOnly
+              aria-label={t('edit-provider', 'Edit Provider')}
               startContent={<Icon icon="hugeicons:settings-02" width="16" height="16" />}
               onPress={() => {
                 RootStore.Get(DialogStore).setData({
@@ -151,6 +152,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
               size="sm"
               color="danger"
               isIconOnly
+              aria-label={t('delete-provider', 'Delete Provider')}
               variant="flat"
               startContent={<Icon icon="hugeicons:delete-01" width="16" height="16" />}
               onPress={() => handleDeleteProvider(provider.id)}
@@ -208,6 +210,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                 size="sm"
                 variant="flat"
                 isIconOnly
+                aria-label={isModelsCollapsed ? t('expand-models', 'Expand Models') : t('collapse-models', 'Collapse Models')}
                 startContent={<Icon icon={isModelsCollapsed ? "hugeicons:arrow-down-01" : "hugeicons:arrow-up-01"} width="14" height="14" />}
                 onPress={toggleModelsCollapse}
               />
@@ -278,6 +281,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                               size="sm"
                               variant="flat"
                               isIconOnly
+                              aria-label={t('test-connection', 'Test Connection')}
                               startContent={<Icon icon="hugeicons:connect" width="12" height="12" />}
                               onPress={() => {
                                 RootStore.Get(ToastPlugin).promise(
@@ -298,6 +302,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                               size="sm"
                               variant="flat"
                               isIconOnly
+                              aria-label={t('edit-model', 'Edit Model')}
                               startContent={<Icon icon="hugeicons:settings-02" width="12" height="12" />}
                               onPress={() => {
                                 RootStore.Get(DialogStore).setData({
@@ -313,6 +318,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                               color="danger"
                               variant="flat"
                               isIconOnly
+                              aria-label={t('delete-model', 'Delete Model')}
                               startContent={<Icon icon="hugeicons:delete-01" width="12" height="12" />}
                               onPress={() => handleDeleteModel(model.id, model.providerId)}
                             />
@@ -347,6 +353,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                             size="sm"
                             variant="flat"
                             isIconOnly
+                            aria-label={t('test-connection', 'Test Connection')}
                             startContent={<Icon icon="hugeicons:connect" width="12" height="12" />}
                             onPress={() => {
                               RootStore.Get(ToastPlugin).promise(
@@ -367,6 +374,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                             size="sm"
                             variant="flat"
                             isIconOnly
+                            aria-label={t('edit-model', 'Edit Model')}
                             startContent={<Icon icon="hugeicons:settings-02" width="12" height="12" />}
                             onPress={() => {
                               RootStore.Get(DialogStore).setData({
@@ -382,6 +390,7 @@ export default observer(function ProviderCard({ provider }: ProviderCardProps) {
                             color="danger"
                             variant="flat"
                             isIconOnly
+                            aria-label={t('delete-model', 'Delete Model')}
                             startContent={<Icon icon="hugeicons:delete-01" width="12" height="12" />}
                             onPress={() => handleDeleteModel(model.id, model.providerId)}
                           />

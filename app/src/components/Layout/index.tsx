@@ -34,6 +34,71 @@ export const getFixedHeaderBackground = () => {
   return '#ffffff80';
 };
 
+const NavTitle = observer(() => {
+  const { t } = useTranslation();
+  const base = RootStore.Get(BaseStore);
+  const location = useLocation();
+
+  return (
+    <div className="font-black select-none">
+      {location.pathname == '/ai'
+        ? !!RootStore.Get(AiStore).currentConversation.value?.title
+          ? RootStore.Get(AiStore).currentConversation.value?.title
+          : t(base.currentTitle)
+        : t(base.currentTitle)}
+    </div>
+  );
+});
+
+const ActionButtons = observer(({ isPc }: { isPc: boolean }) => {
+  const { t } = useTranslation();
+  const blinkoStore = RootStore.Get(BlinkoStore);
+  const [searchParams] = useSearchParams();
+
+  return (
+    <div className="flex flex-row items-center gap-1">
+      <NavTitle />
+
+      {searchParams.get('path') != 'trash' ? (
+        <Icon
+          className="cursor-pointer hover:rotate-180 !transition-all hidden md:block"
+          onClick={() => {
+            blinkoStore.refreshData();
+          }}
+          icon="fluent:arrow-sync-12-filled"
+          width="20"
+          height="20"
+        />
+      ) : (
+        <Icon
+          className="cursor-pointer !transition-all text-red-500"
+          onClick={() => {
+            showTipsDialog({
+              size: 'sm',
+              title: t('confirm-to-delete'),
+              content: t(
+                'this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'
+              ),
+              onConfirm: async () => {
+                await RootStore.Get(ToastPlugin).promise(api.notes.clearRecycleBin.mutate(), {
+                  loading: t('in-progress'),
+                  success: <b>{t('your-changes-have-been-saved')}</b>,
+                  error: <b>{t('operation-failed')}</b>,
+                });
+                blinkoStore.refreshData();
+                RootStore.Get(DialogStandaloneStore).close();
+              },
+            });
+          }}
+          icon="mingcute:delete-2-line"
+          width="20"
+          height="20"
+        />
+      )}
+    </div>
+  );
+});
+
 export const CommonLayout = observer(({ children, header }: { children?: React.ReactNode; header?: React.ReactNode }) => {
   const [isClient, setClient] = useState(false);
   const [isOpen, setisOpen] = useState(false);
@@ -155,51 +220,7 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
             <div className="flex flex-1 items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-[4px] h-[16px] bg-primary rounded-xl hidden md:block" />
-                <div className="flex flex-row items-center gap-1">
-                  <div className="font-black select-none">
-                    {location.pathname == '/ai'
-                      ? !!RootStore.Get(AiStore).currentConversation.value?.title
-                        ? RootStore.Get(AiStore).currentConversation.value?.title
-                        : t(base.currentTitle)
-                      : t(base.currentTitle)}
-                  </div>
-                  {searchParams.get('path') != 'trash' ? (
-                    <Icon
-                      className="cursor-pointer hover:rotate-180 !transition-all hidden md:block"
-                      onClick={() => {
-                        blinkoStore.refreshData();
-                      }}
-                      icon="fluent:arrow-sync-12-filled"
-                      width="20"
-                      height="20"
-                    />
-                  ) : (
-                    <Icon
-                      className="cursor-pointer !transition-all text-red-500"
-                      onClick={() => {
-                        showTipsDialog({
-                          size: 'sm',
-                          title: t('confirm-to-delete'),
-                          content: t(
-                            'this-operation-removes-the-associated-label-and-cannot-be-restored-please-confirm'
-                          ),
-                          onConfirm: async () => {
-                            await RootStore.Get(ToastPlugin).promise(api.notes.clearRecycleBin.mutate(), {
-                              loading: t('in-progress'),
-                              success: <b>{t('your-changes-have-been-saved')}</b>,
-                              error: <b>{t('operation-failed')}</b>,
-                            });
-                            blinkoStore.refreshData();
-                            RootStore.Get(DialogStandaloneStore).close();
-                          },
-                        });
-                      }}
-                      icon="mingcute:delete-2-line"
-                      width="20"
-                      height="20"
-                    />
-                  )}
-                </div>
+                <ActionButtons isPc={isPc} />
                 {!base.isOnline && (
                   <Badge color="warning" variant="flat" className="animate-pulse">
                     <div className="flex text-sm items-center gap-1 text-yellow-500">

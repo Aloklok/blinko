@@ -146,11 +146,9 @@ export class PluginApiStore implements Store {
     const sameNameIndex = this.customRightClickMenus.findIndex(item => item.name === options.name);
     if (sameNameIndex !== -1) {
       this.customRightClickMenus[sameNameIndex] = options;
-      console.log('this.customRightClickMenus', this.customRightClickMenus);
       return;
     }
     this.customRightClickMenus.push(options);
-    console.log('this.customRightClickMenus', this.customRightClickMenus);
   }
 
   showDialog(options: DialogOptions) {

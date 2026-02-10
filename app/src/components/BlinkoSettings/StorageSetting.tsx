@@ -115,33 +115,37 @@ export const StorageSetting = observer(() => {
             }} />} />
         <Item
           leftContent={<>{t('endpoint')}</>}
-          rightContent={<Input value={store.s3Endpoint} onChange={e => store.s3Endpoint = e.target.value} placeholder="Endpoint" onBlur={async (e) => {
+          rightContent={<Input aria-label={t('endpoint')} value={store.s3Endpoint} onChange={e => store.s3Endpoint = e.target.value} placeholder="Endpoint" onBlur={async (e) => {
             await PromiseCall(api.config.update.mutate({
               key: 's3Endpoint',
               value: e.target.value
             }), { autoAlert: false })
-          }} />} />
+          }} />
+          } />
         <Item
           leftContent={<>{t('region')}</>}
-          rightContent={<Input value={store.s3Region} onChange={e => store.s3Region = e.target.value} placeholder="Region" onBlur={async (e) => {
+          rightContent={<Input aria-label={t('region')} value={store.s3Region} onChange={e => store.s3Region = e.target.value} placeholder="Region" onBlur={async (e) => {
             await PromiseCall(api.config.update.mutate({
               key: 's3Region',
               value: e.target.value
             }), { autoAlert: false })
-          }} />} />
+          }} />
+          } />
         <Item
           leftContent={<>{t('bucket')}</>}
-          rightContent={<Input value={store.s3Bucket} onChange={e => store.s3Bucket = e.target.value} placeholder="Bucket" onBlur={async (e) => {
+          rightContent={<Input aria-label={t('bucket')} value={store.s3Bucket} onChange={e => store.s3Bucket = e.target.value} placeholder="Bucket" onBlur={async (e) => {
             await PromiseCall(api.config.update.mutate({
               key: 's3Bucket',
               value: e.target.value
             }), { autoAlert: false })
-          }} />} />
+          }} />
+          } />
         <Item
           leftContent={<>
             <div>{t('custom-path')}</div>
           </>}
           rightContent={<Input
+            aria-label={t('custom-path')}
             value={store.s3CustomPath}
             onChange={e => store.s3CustomPath = e.target.value}
             placeholder="/custom/path/"
@@ -150,10 +154,12 @@ export const StorageSetting = observer(() => {
                 key: 's3CustomPath',
                 value: e.target.value
               }), { autoAlert: false })
-            }} />} />
+            }} />
+          } />
         <Item
           leftContent={<div>CDN / Custom Domain</div>}
           rightContent={<Input
+            aria-label="CDN / Custom Domain"
             value={store.s3CustomDomain}
             onChange={e => store.s3CustomDomain = e.target.value}
             placeholder="https://assets.alok-rss.top"
@@ -162,7 +168,8 @@ export const StorageSetting = observer(() => {
                 key: 's3CustomDomain',
                 value: e.target.value
               }), { autoAlert: false })
-            }} />} />
+            }} />
+          } />
       </>
     }
 

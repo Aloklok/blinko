@@ -130,6 +130,7 @@ export const PerferSetting = observer(() => {
     <Item
       leftContent={<>{t('hide-notification')}</>}
       rightContent={<Switch
+        aria-label={t('hide-notification')}
         isSelected={blinko.config.value?.isHiddenNotification}
         onChange={e => {
           PromiseCall(api.config.update.mutate({
@@ -142,6 +143,7 @@ export const PerferSetting = observer(() => {
     <Item
       leftContent={<>{t('show-navigation-bar-on-mobile')}</>}
       rightContent={<Switch
+        aria-label={t('show-navigation-bar-on-mobile')}
         isSelected={blinko.config.value?.isHiddenMobileBar}
         onChange={e => {
           PromiseCall(api.config.update.mutate({
@@ -154,6 +156,7 @@ export const PerferSetting = observer(() => {
     <Item
       leftContent={<>{t('hide-comments-in-card')}</>}
       rightContent={<Switch
+        aria-label={t('hide-comments-in-card')}
         isSelected={blinko.config.value?.isHideCommentInCard}
         onChange={e => {
           PromiseCall(api.config.update.mutate({
@@ -166,6 +169,7 @@ export const PerferSetting = observer(() => {
     <Item
       leftContent={<>{t('order-by-create-time')}</>}
       rightContent={<Switch
+        aria-label={t('order-by-create-time')}
         isSelected={blinko.config.value?.isOrderByCreateTime}
         onChange={e => {
           PromiseCall(api.config.update.mutate({
@@ -183,6 +187,7 @@ export const PerferSetting = observer(() => {
       rightContent={
         <div className="flex items-center gap-2">
           <Input
+            aria-label={t('max-home-page-width')}
             type="number"
             size='sm'
             className='w-20'
@@ -218,6 +223,7 @@ export const PerferSetting = observer(() => {
       rightContent={
         <div className="flex items-center gap-2">
           <Input
+            aria-label={t('text-fold-length')}
             type="number"
             size='sm'
             className='w-20'
@@ -243,6 +249,7 @@ export const PerferSetting = observer(() => {
       leftContent={<>{t('close-daily-review')}</>}
       rightContent={
         <Switch
+          aria-label={t('close-daily-review')}
           isSelected={blinko.config.value?.isCloseDailyReview}
           onChange={e => {
             PromiseCall(api.config.update.mutate({
@@ -348,6 +355,7 @@ export const PerferSetting = observer(() => {
       leftContent={<>{t('page-size')}</>}
       rightContent={
         <Input
+          aria-label={t('page-size')}
           type="number"
           min="10"
           max="100"
@@ -394,6 +402,7 @@ export const PerferSetting = observer(() => {
       leftContent={<>{t('use-blinko-hub')}</>}
       rightContent={
         <Switch
+          aria-label={t('use-blinko-hub')}
           isSelected={blinko.config.value?.isUseBlinkoHub}
           onChange={async e => {
             await PromiseCall(api.config.update.mutate({
@@ -412,6 +421,7 @@ export const PerferSetting = observer(() => {
           <div ></div>
         </GradientBackground>}>
           <Switch
+            aria-label={t('close-background-animation')}
             isSelected={blinko.config.value?.isCloseBackgroundAnimation}
             onChange={e => {
               PromiseCall(api.config.update.mutate({
@@ -434,6 +444,7 @@ export const PerferSetting = observer(() => {
             <div className="text-xs text-default-400">{t('custom-bg-tip')}</div>
           </div>}
           rightContent={<Input
+            aria-label={t('custom-background-url')}
             className="w-full md:w-[400px]"
             placeholder="https://www.shadergradient.co/customize?"
             type="text"
@@ -456,6 +467,7 @@ export const PerferSetting = observer(() => {
           leftContent={<>{t('enable-signin-footer')}</>}
           rightContent={
             <Switch
+              aria-label={t('enable-signin-footer')}
               isSelected={blinko.config.value?.signinFooterEnabled ?? false}
               onChange={async (e) => {
                 await PromiseCall(api.config.update.mutate({
@@ -482,6 +494,7 @@ export const PerferSetting = observer(() => {
           }
           rightContent={
             <Textarea
+              aria-label={t('signin-footer-text')}
               radius="lg"
               minRows={3}
               maxRows={8}

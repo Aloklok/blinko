@@ -50,7 +50,7 @@ export const HttpProxySetting = observer(() => {
       const result = await api.public.testHttpProxy.mutate({
         url: testUrl
       });
-      
+
       setTestResult(result);
     } catch (error) {
       setTestResult({
@@ -68,14 +68,15 @@ export const HttpProxySetting = observer(() => {
       <Item
         leftContent={
           <ItemWithTooltip
-          content={<>{t('use-http-proxy')}</>}
-          toolTipContent={
-            <div className="w-[300px]">{t('enable-http-proxy-for-accessing-github-or-ai-api-endpoints')}</div>
-          }
+            content={<>{t('use-http-proxy')}</>}
+            toolTipContent={
+              <div className="w-[300px]">{t('enable-http-proxy-for-accessing-github-or-ai-api-endpoints')}</div>
+            }
           />
         }
         rightContent={
           <Switch
+            aria-label={t('use-http-proxy')}
             isSelected={store.isUseHttpProxy}
             onChange={(e) => {
               PromiseCall(
@@ -106,6 +107,7 @@ export const HttpProxySetting = observer(() => {
               <Input
                 radius="lg"
                 type="text"
+                aria-label={t('proxy-host')}
                 placeholder="127.0.0.1"
                 className="w-full max-w-[300px]"
                 value={store.httpProxyHost ?? ''}
@@ -138,6 +140,7 @@ export const HttpProxySetting = observer(() => {
               <Input
                 radius="lg"
                 type="number"
+                aria-label={t('proxy-port')}
                 placeholder="8080"
                 className="w-full max-w-[300px]"
                 value={store.httpProxyPort ? store.httpProxyPort.toString() : ''}
@@ -171,6 +174,7 @@ export const HttpProxySetting = observer(() => {
               <Input
                 radius="lg"
                 type="text"
+                aria-label={t('proxy-username')}
                 placeholder={t('optional')}
                 className="w-full max-w-[300px]"
                 value={store.httpProxyUsername ?? ''}
@@ -203,6 +207,7 @@ export const HttpProxySetting = observer(() => {
               <Input
                 radius="lg"
                 type={store.isProxyPasswordVisible ? 'text' : 'password'}
+                aria-label={t('proxy-password')}
                 placeholder={t('optional')}
                 className="w-full max-w-[300px]"
                 value={store.httpProxyPassword ?? ''}
@@ -223,6 +228,7 @@ export const HttpProxySetting = observer(() => {
                   <button
                     className="focus:outline-none"
                     type="button"
+                    aria-label={store.isProxyPasswordVisible ? t('hide-password', 'Hide Password') : t('show-password', 'Show Password')}
                     onClick={() => {
                       store.isProxyPasswordVisible = !store.isProxyPasswordVisible;
                     }}
@@ -257,6 +263,7 @@ export const HttpProxySetting = observer(() => {
                     <Input
                       radius="lg"
                       type="text"
+                      aria-label="Test URL"
                       placeholder="https://www.google.com"
                       className="w-full"
                       value={testUrl}
@@ -272,12 +279,12 @@ export const HttpProxySetting = observer(() => {
                       {t('test')}
                     </Button>
                   </div>
-                  
+
                   {Object.keys(testResult).length > 0 && (
                     <div className={`p-3 rounded-lg mt-2 ${testResult.success ? 'bg-success-50 text-success-600' : 'bg-danger-50 text-danger-600'}`}>
                       <div className="flex items-center gap-2">
-                        {testResult.success 
-                          ? <Icon icon="mdi:check-circle" width="20" height="20" /> 
+                        {testResult.success
+                          ? <Icon icon="mdi:check-circle" width="20" height="20" />
                           : <Icon icon="mdi:alert-circle" width="20" height="20" />
                         }
                         <span className="font-medium">{testResult.message}</span>

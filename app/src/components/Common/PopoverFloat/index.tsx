@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Card } from '@heroui/react';
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import { useMediaQuery } from 'usehooks-ts'
 
 interface PopoverFloatProps {

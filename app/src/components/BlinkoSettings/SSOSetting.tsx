@@ -328,6 +328,7 @@ export const SSOSetting = observer(() => {
                     <div className="flex">
                       <Button
                         isIconOnly
+                        aria-label={t('edit-oauth2-provider')}
                         variant="flat"
                         size="sm"
                         startContent={<Icon icon="tabler:edit" width="18" height="18" />}
@@ -341,6 +342,7 @@ export const SSOSetting = observer(() => {
                       />
                       <Button
                         isIconOnly
+                        aria-label={t('confirm-to-delete')}
                         color="danger"
                         size="sm"
                         className="ml-2"

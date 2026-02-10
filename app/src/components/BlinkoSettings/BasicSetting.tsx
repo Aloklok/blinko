@@ -13,7 +13,7 @@ import { PromiseCall, PromiseState } from "@/store/standard/PromiseState";
 import { api } from "@/lib/trpc";
 import { BlinkoStore } from "@/store/blinkoStore";
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ShowGen2FATokenModal } from "../Common/TwoFactorModal/gen2FATokenModal";
 import { CollapsibleCard } from "../Common/CollapsibleCard";
 import { eventBus } from "@/lib/event";
@@ -115,7 +115,7 @@ export const BasicSetting = observer(() => {
               </UploadFileWrapper>
             </div>
 
-            <Button variant="flat" isIconOnly startContent={<Icon icon="tabler:edit" width="20" height="20" />} size='sm'
+            <Button variant="flat" isIconOnly aria-label={t('change-user-info')} startContent={<Icon icon="tabler:edit" width="20" height="20" />} size='sm'
               onPress={e => {
                 RootStore.Get(DialogStore).setData({
                   isOpen: true,
@@ -123,7 +123,7 @@ export const BasicSetting = observer(() => {
                   content: <UpdateUserInfo />
                 })
               }} />
-            <Button variant="flat" isIconOnly startContent={<Icon icon="material-symbols:password" width="20" height="20" />} size='sm'
+            <Button variant="flat" isIconOnly aria-label={t('rest-user-password')} startContent={<Icon icon="material-symbols:password" width="20" height="20" />} size='sm'
               onPress={e => {
                 RootStore.Get(DialogStore).setData({
                   title: t('rest-user-password'),
@@ -133,7 +133,7 @@ export const BasicSetting = observer(() => {
               }} />
             {
               user.userInfo?.value?.loginType == 'oauth' &&
-              <Button variant="flat" isIconOnly startContent={<Icon icon="tabler:link" width="20" height="20" />} size='sm'
+              <Button variant="flat" isIconOnly aria-label={t('link-account')} startContent={<Icon icon="tabler:link" width="20" height="20" />} size='sm'
                 onPress={e => {
                   RootStore.Get(DialogStore).setData({
                     title: t('link-account'),
@@ -146,7 +146,7 @@ export const BasicSetting = observer(() => {
 
             {
               user.userInfo?.value?.isLinked &&
-              <Button color="danger" variant="flat" isIconOnly startContent={<Icon icon="hugeicons:unlink-03" width="20" height="20" />} size='sm'
+              <Button color="danger" variant="flat" isIconOnly aria-label={t('unlink-account')} startContent={<Icon icon="hugeicons:unlink-03" width="20" height="20" />} size='sm'
                 onPress={e => {
                   showTipsDialog({
                     title: t('unlink-account'),
@@ -172,6 +172,7 @@ export const BasicSetting = observer(() => {
               <div>{t('access-token')}</div>
               <Button
                 isIconOnly
+                aria-label={store.showToken ? t('hide-token') : t('show-token')}
                 variant="flat"
                 size="sm"
                 onPress={() => {
@@ -220,12 +221,13 @@ export const BasicSetting = observer(() => {
           </div>
         }
         rightContent={
-          <div className="flex gap-2 items-center">
+          <form className="flex gap-2 items-center" onSubmit={(e) => e.preventDefault()}>
             <Input
               disabled
               className="w-[150px] md:w-[300px]"
               value={store.showToken ? user.userInfo.value?.token : '••••••••••••••••'}
               type={store.showToken ? "text" : "password"}
+              autoComplete="off"
               endContent={<Copy size={20} content={user.userInfo.value?.token ?? ''} />}
             />
 
@@ -240,7 +242,7 @@ export const BasicSetting = observer(() => {
               width="20"
               height="20"
             />
-          </div>
+          </form>
         }
       />
 
@@ -287,6 +289,7 @@ export const BasicSetting = observer(() => {
         <Item
           leftContent={<>{t('allow-register')}</>}
           rightContent={<Switch
+            aria-label={t('allow-register')}
             thumbIcon={store.setRigster.loading.value ? <Icon icon="eos-icons:three-dots-loading" width="24" height="24" /> : null}
             isDisabled={store.setRigster.loading.value}
             isSelected={user.canRegister.value}
@@ -322,6 +325,7 @@ export const BasicSetting = observer(() => {
         rightContent={
           <div className="flex gap-2 items-center">
             <Switch
+              aria-label={t('hide-pc-editor')}
               isSelected={blinko.config.value?.hidePcEditor ?? false}
               onChange={async (e) => {
                 await PromiseCall(api.config.update.mutate({
@@ -340,6 +344,7 @@ export const BasicSetting = observer(() => {
         rightContent={
           <div className="flex gap-2 items-center">
             <Switch
+              aria-label={t('two-factor-authentication')}
               isSelected={blinko.config.value?.twoFactorEnabled ?? false}
               onChange={async (e) => {
                 if (!e.target.checked) {
@@ -369,7 +374,7 @@ export const BasicSetting = observer(() => {
         leftContent={<></>}
         rightContent={
           <Tooltip placement="bottom" content={t('logout')}>
-            <Button isIconOnly startContent={<Icon icon="hugeicons:logout-05" width="20" height="20" />} color='danger' onPress={async () => {
+            <Button isIconOnly aria-label={t('logout')} startContent={<Icon icon="hugeicons:logout-05" width="20" height="20" />} color='danger' onPress={async () => {
               await signOut({ callbackUrl: '/signin' })
               eventBus.emit('user:signout')
             }}></Button>

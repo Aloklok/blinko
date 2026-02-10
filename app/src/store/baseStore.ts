@@ -222,12 +222,20 @@ export class BaseStore implements Store {
     document.addEventListener('mouseup', this.stopResizing);
   };
 
+  private resizeAnimationFrameId: number | null = null;
+
   handleMouseMove = (e: MouseEvent) => {
     if (!this.isResizing || this.isSidebarCollapsed) return;
 
     e.preventDefault();
-    const newWidth = Math.max(80, Math.min(400, e.clientX));
-    this.sidebarWidth.save(newWidth);
+    if (this.resizeAnimationFrameId) {
+      cancelAnimationFrame(this.resizeAnimationFrameId);
+    }
+
+    this.resizeAnimationFrameId = requestAnimationFrame(() => {
+      const newWidth = Math.max(80, Math.min(400, e.clientX));
+      this.sidebarWidth.save(newWidth);
+    });
   };
 
   stopResizing = () => {

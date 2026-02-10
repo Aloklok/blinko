@@ -86,6 +86,7 @@ export default observer(function AiSetting() {
             <div>
               <label className="text-sm font-medium text-default-700">Endpoint URL</label>
               <Input
+                aria-label="Endpoint URL"
                 value={`${getBlinkoEndpoint() ?? window.location.origin}sse`}
                 readOnly
                 className="mt-1"
@@ -96,6 +97,7 @@ export default observer(function AiSetting() {
             <div>
               <label className="text-sm font-medium text-default-700">Authorization Token</label>
               <Input
+                aria-label="Authorization Token"
                 value={user.userInfo.value?.token || ''}
                 readOnly
                 type="password"
