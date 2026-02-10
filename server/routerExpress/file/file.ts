@@ -9,6 +9,7 @@ import sharp from 'sharp';
 import { prisma } from '../../prisma';
 import { getUserFromRequest } from '../../lib/helper';
 import { FileService } from '../../lib/files';
+import { uint8ArrayToBase64, uint8ArrayToHex, stringToUint8Array } from 'uint8array-extras';
 
 const router = express.Router();
 const STREAM_THRESHOLD = 5 * 1024 * 1024;
@@ -186,7 +187,7 @@ router.get(/.*/, async (req, res) => {
         const thumbnail = await thumbnailStream.toBuffer();
 
         const filename = path.basename(fullPath);
-        const safeFilename = Buffer.from(filename).toString('base64');
+        const safeFilename = uint8ArrayToBase64(stringToUint8Array(filename));
 
         clearTimeout(processingTimeout);
         res.set({
@@ -344,7 +345,7 @@ function generateFileHash(filePath: string): string {
     return hashSum.digest('hex');
   } catch (error) {
     console.error(`Error generating file hash for ${filePath}:`, error);
-    return crypto.randomBytes(16).toString('hex');
+    return uint8ArrayToHex(crypto.randomBytes(16));
   }
 }
 

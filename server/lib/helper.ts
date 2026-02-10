@@ -8,6 +8,7 @@ import { prisma } from "@server/prisma";
 import { User } from "@server/context";
 import { Request as ExpressRequest } from 'express';
 import { getGlobalConfig } from "@server/routerTrpc/config";
+import { uint8ArrayToBase64, uint8ArrayToHex } from 'uint8array-extras';
 
 export const SendWebhook = async (data: any, webhookType: string, ctx: any) => {
   try {
@@ -139,7 +140,7 @@ export const getNextAuthSecret = async () => {
       // @ts-ignore
       secret = savedSecret.config.value as string;
     } else {
-      secret = crypto.randomBytes(32).toString('base64');
+      secret = uint8ArrayToBase64(crypto.randomBytes(32));
       await prisma.config.create({
         data: {
           key: configKey,
@@ -322,10 +323,10 @@ export const generateUrlWithToken = async (url: string, user: any) => {
 
 export async function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(16).toString('hex');
+    const salt = uint8ArrayToHex(crypto.randomBytes(16));
     crypto.pbkdf2(password, salt, 1000, 64, 'sha512', (err, derivedKey) => {
       if (err) reject(err);
-      resolve('pbkdf2:' + salt + ':' + derivedKey.toString('hex'));
+      resolve('pbkdf2:' + salt + ':' + uint8ArrayToHex(derivedKey));
     });
   });
 }
@@ -338,7 +339,7 @@ export async function verifyPassword(inputPassword: string, hashedPassword: stri
     }
     crypto.pbkdf2(inputPassword, salt!, 1000, 64, 'sha512', (err, derivedKey) => {
       if (err) reject(err);
-      resolve(derivedKey.toString('hex') === hash);
+      resolve(uint8ArrayToHex(derivedKey) === hash);
     });
   });
 }

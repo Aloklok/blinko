@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
       if (fieldname === 'file') {
         const passThrough = new PassThrough();
         let fileSize = 0;
-        const decodedFilename = Buffer.from(info.filename, 'binary').toString('utf-8');
+        const decodedFilename = new TextDecoder().decode(Uint8Array.from(info.filename, c => c.charCodeAt(0)));
 
         stream.on('data', (chunk) => {
           fileSize += chunk.length;

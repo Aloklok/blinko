@@ -1,6 +1,8 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  output          = "../server/generated/client"
+  compilerBuild   = "fast"
+  previewFeatures = ["typedSql"]
 }
 
 // generator zod {
@@ -8,9 +10,7 @@ generator client {
 // }
 
 datasource db {
-  provider  = "postgres"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgres"
 }
 
 model accounts {

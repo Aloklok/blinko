@@ -12,6 +12,7 @@ import { createWriteStream } from "fs";
 import pathIsInside from 'path-is-inside';
 import sanitizeFilename from 'sanitize-filename';
 import sharp from "sharp";
+import { concatUint8Arrays } from 'uint8array-extras';
 
 export class FileService {
   /**
@@ -358,7 +359,7 @@ export class FileService {
         for await (const chunk of nodeReadable) {
           chunks.push(chunk);
         }
-        const buffer = Buffer.concat(chunks);
+        const buffer = concatUint8Arrays(chunks);
         const webpBuffer = await sharp(buffer)
           .webp({ quality: 80 })
           .toBuffer();

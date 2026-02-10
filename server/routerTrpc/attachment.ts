@@ -1,27 +1,10 @@
-import { router, authProcedure } from '../middleware';
+import { router, authProcedure, demoAuthMiddleware } from '@server/middleware';
 import { z } from 'zod';
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
-import path from 'path';
-import { FileService } from '../lib/files';
+import { prisma } from '@server/prisma';
+import { attachmentSchema } from '@shared/lib/prismaZodType';
+import { listAttachmentsInFolder, searchAttachments } from "@server/generated/client/sql"
 
-export interface AttachmentResult {
-  id: number | null;
-  path: string;
-  name: string;
-  size: string | null;
-  type: string | null;
-  isShare: boolean;
-  sharePassword: string;
-  noteId: number | null;
-  sortOrder: number;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  isFolder: boolean;
-  folderName: string | null;
-}
-
-const mapAttachmentResult = (item: any): AttachmentResult => ({
+const mapAttachmentResult = (item: any) => ({
   id: item.id,
   path: item.path,
   name: item.name,
@@ -31,10 +14,10 @@ const mapAttachmentResult = (item: any): AttachmentResult => ({
   sharePassword: item.sharePassword,
   noteId: item.noteId,
   sortOrder: item.sortOrder,
-  createdAt: item.createdAt ? new Date(item.createdAt) : null,
-  updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
-  isFolder: item.is_folder,
-  folderName: item.folder_name
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+  isFolder: item.is_folder || false,
+  folderName: item.folder_name || null
 });
 
 export const attachmentsRouter = router({
@@ -45,34 +28,19 @@ export const attachmentsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { folderName, parentFolder } = input;
-      
-      // Build the folder path
-      const folderPath = parentFolder 
-        ? `${parentFolder.split('/').join(',')},${folderName}`
-        : folderName;
-      
-      // Create a placeholder attachment record for the folder
-      const placeholder = await prisma.attachments.create({
+      const perfixPath = parentFolder ? `${parentFolder},${folderName}` : folderName;
+
+      return await prisma.attachments.create({
         data: {
-          path: `/api/file/${parentFolder ? `${parentFolder}/` : ''}${folderName}/.folder`,
-          name: '.folder',
-          size: 0,
-          type: 'folder',
-          perfixPath: folderPath,
-          accountId: Number(ctx.id),
-          isShare: false,
-          sharePassword: '',
-          sortOrder: 0
+          name: folderName,
+          path: '',
+          perfixPath,
+          depth: parentFolder ? parentFolder.split(',').length + 1 : 1,
+          accountId: Number(ctx.id)
         }
       });
-      
-      return {
-        success: true,
-        folderName,
-        folderPath
-      };
     }),
-  
+
   list: authProcedure
     .input(z.object({
       page: z.number().default(1),
@@ -83,172 +51,41 @@ export const attachmentsRouter = router({
     .query(async function ({ input, ctx }) {
       const { page, size, searchText, folder } = input;
       const skip = (page - 1) * size;
+      const accountId = Number(ctx.id);
 
-      if (searchText) {
-        const attachments = await prisma.attachments.findMany({
+      if (searchText && !folder) {
+        const querySearch = `%${searchText}%`.toLowerCase();
+        const items = await prisma.$queryRawTyped(searchAttachments(accountId, querySearch, BigInt(size), BigInt(skip)));
+        const total = await prisma.attachments.count({
           where: {
             OR: [
-              {
-                note: {
-                  accountId: Number(ctx.id)
-                }
-              },
-              {
-                accountId: Number(ctx.id)
-              }
+              { name: { contains: searchText, mode: 'insensitive' } },
+              { path: { contains: searchText, mode: 'insensitive' } },
             ],
-            AND: {
-              OR: [
-                { name: { contains: searchText, mode: 'insensitive' } },
-                { path: { contains: searchText, mode: 'insensitive' } }
-              ]
-            }
+            note: { accountId },
           },
-          orderBy: [
-            { sortOrder: 'asc' },
-            { updatedAt: 'desc' }
-          ],
-          take: size,
-          skip: skip
         });
-
-        return attachments.map(item => ({
-          id: item.id,
-          path: item.path,
-          name: item.name,
-          size: item.size?.toString() || null,
-          type: item.type,
-          isShare: item.isShare,
-          sharePassword: item.sharePassword,
-          noteId: item.noteId,
-          sortOrder: item.sortOrder,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-          isFolder: false,
-          folderName: null
-        }));
+        return {
+          items: items.map(mapAttachmentResult),
+          total,
+        };
       }
 
-      if (folder) {
-        const folderPath = folder.split('/').join(',');
+      const folderPath = folder ? folder.split('/').join(',') : '';
+      const folderWithSuffix = folderPath ? `${folderPath},%` : '%';
 
-        const rawQuery = Prisma.sql`
-          WITH combined_items AS (
-            SELECT DISTINCT ON (folder_name)
-              NULL as id,
-              CASE 
-                WHEN path LIKE '/api/s3file/%' THEN '/api/s3file/'
-                ELSE '/api/file/'
-              END || split_part("perfixPath", ',', array_length(string_to_array(${folderPath}, ','), 1) + 1) as path,
-              split_part("perfixPath", ',', array_length(string_to_array(${folderPath}, ','), 1) + 1) as name,
-              NULL::decimal as size,
-              NULL as type,
-              false as "isShare",
-              '' as "sharePassword",
-              NULL as "noteId",
-              0 as "sortOrder",
-              NULL as "createdAt",
-              NULL as "updatedAt",
-              true as is_folder,
-              split_part("perfixPath", ',', array_length(string_to_array(${folderPath}, ','), 1) + 1) as folder_name
-            FROM attachments
-            WHERE ("noteId" IN (
-              SELECT id FROM notes WHERE "accountId" = ${Number(ctx.id)}
-            ) OR "accountId" = ${Number(ctx.id)})
-              AND "perfixPath" LIKE ${`${folderPath},%`}
-              AND array_length(string_to_array("perfixPath", ','), 1) > array_length(string_to_array(${folderPath}, ','), 1)
-            
-            UNION ALL
-            
-            SELECT 
-              id,
-              path,
-              name,
-              size,
-              type,
-              "isShare",
-              "sharePassword",
-              "noteId",
-              "sortOrder",
-              "createdAt",
-              "updatedAt",
-              false as is_folder,
-              NULL as folder_name
-            FROM attachments
-            WHERE ("noteId" IN (
-              SELECT id FROM notes WHERE "accountId" = ${Number(ctx.id)}
-            ) OR "accountId" = ${Number(ctx.id)})
-              AND "perfixPath" = ${folderPath}
-          )
-          SELECT *
-          FROM combined_items
-          ORDER BY is_folder DESC, "sortOrder" ASC, "updatedAt" DESC NULLS LAST
-          LIMIT ${size}
-          OFFSET ${skip};
-        `;
+      const results = await prisma.$queryRawTyped(listAttachmentsInFolder(folderPath, accountId, folderWithSuffix, BigInt(size), BigInt(skip)));
+      const total = await prisma.attachments.count({
+        where: {
+          accountId,
+          perfixPath: folderPath
+        }
+      });
 
-        const results = await prisma.$queryRaw<any[]>(rawQuery);
-        return results.map(mapAttachmentResult);
-      }
-
-      const rawQuery = Prisma.sql`
-        WITH combined_items AS (
-          SELECT DISTINCT ON (folder_name)
-            NULL as id,
-            CASE 
-              WHEN path LIKE '/api/s3file/%' THEN '/api/s3file/'
-              ELSE '/api/file/'
-            END || split_part("perfixPath", ',', 1) as path,
-            split_part("perfixPath", ',', 1) as name,
-            NULL::decimal as size,
-            NULL as type,
-            false as "isShare",
-            '' as "sharePassword",
-            NULL as "noteId",
-            0 as "sortOrder",
-            NULL as "createdAt",
-            NULL as "updatedAt",
-            true as is_folder,
-            split_part("perfixPath", ',', 1) as folder_name
-          FROM attachments
-          WHERE ("noteId" IN (
-            SELECT id FROM notes WHERE "accountId" = ${Number(ctx.id)}
-          ) OR "accountId" = ${Number(ctx.id)})
-            AND "perfixPath" != ''
-            AND LOWER("perfixPath") LIKE ${`%${searchText?.toLowerCase() || ''}%`}
-          
-          UNION ALL
-          
-          SELECT 
-            id,
-            path,
-            name,
-            size,
-            type,
-            "isShare",
-            "sharePassword",
-            "noteId",
-            "sortOrder",
-            "createdAt",
-            "updatedAt",
-            false as is_folder,
-            NULL as folder_name
-          FROM attachments
-          WHERE ("noteId" IN (
-            SELECT id FROM notes WHERE "accountId" = ${Number(ctx.id)}
-          ) OR "accountId" = ${Number(ctx.id)})
-            AND depth = 0
-            AND LOWER(path) LIKE ${`%${searchText?.toLowerCase() || ''}%`}
-        )
-        SELECT *
-        FROM combined_items
-        ORDER BY is_folder DESC, "sortOrder" ASC, "updatedAt" DESC NULLS LAST
-        LIMIT ${size}
-        OFFSET ${skip};
-      `;
-
-      const results = await prisma.$queryRaw<any[]>(rawQuery);
-      return results.map(mapAttachmentResult);
+      return {
+        items: results.map(mapAttachmentResult),
+        total
+      };
     }),
 
   rename: authProcedure
@@ -265,228 +102,51 @@ export const attachmentsRouter = router({
         throw new Error('File names cannot contain path separators');
       }
 
-      return await prisma.$transaction(async (tx) => {
-        if (isFolder && oldFolderPath) {
-          const attachments = await tx.attachments.findMany({
-            where: {
-              OR: [
-                {
-                  note: {
-                    accountId: Number(ctx.id)
-                  },
-                },
-                {
-                  accountId: Number(ctx.id)
-                }
-              ],
-              perfixPath: {
-                startsWith: oldFolderPath
-              }
-            }
-          });
+      if (isFolder && oldFolderPath) {
+        const folders = oldFolderPath.split(',');
+        folders[folders.length - 1] = newName;
+        const newFolderPath = folders.join(',');
 
-          try {
-            for (const attachment of attachments) {
-              const newPerfixPath = attachment.perfixPath?.replace(oldFolderPath, newName);
-              const oldPath = attachment.path;
-              const isS3File = oldPath.startsWith('/api/s3file/');
-              const baseUrl = isS3File ? '/api/s3file/' : '/api/file/';
+        // Update all attachments that are in this folder or subfolders
+        await prisma.$executeRaw`
+          UPDATE attachments 
+          SET "perfixPath" = REPLACE("perfixPath", ${oldFolderPath}, ${newFolderPath})
+          WHERE "perfixPath" LIKE ${oldFolderPath + '%'}
+          AND "accountId" = ${Number(ctx.id)}
+        `;
 
-              const newPath = attachment.path.replace(
-                `${baseUrl}${oldFolderPath.split(',').join('/')}`,
-                `${baseUrl}${newName.split(',').join('/')}`
-              );
+        return { success: true };
+      }
 
-              await FileService.moveFile(oldPath, newPath);
-
-              await tx.attachments.update({
-                where: { id: attachment.id },
-                data: {
-                  perfixPath: newPerfixPath,
-                  path: newPath,
-                  depth: newPerfixPath?.split(',').length
-                }
-              });
-            }
-            return { success: true };
-          } catch (error) {
-            throw new Error(`Failed to rename folder: ${error.message}`);
-          }
-        }
-
-        const attachment = await tx.attachments.findFirst({
-          where: {
-            id,
-            note: {
-              accountId: Number(ctx.id)
-            }
-          }
-        });
-
-        if (!attachment) {
-          throw new Error('Attachment not found');
-        }
-
-        try {
-          await FileService.renameFile(attachment.path, input.newName);
-          return await tx.attachments.update({
-            where: { id: input.id },
-            data: {
-              name: input.newName,
-              path: attachment.path.replace(attachment.name, input.newName)
-            }
-          });
-        } catch (error) {
-          throw new Error(`Failed to rename file: ${error.message}`);
-        }
-      });
-    }),
-
-  move: authProcedure
-    .input(z.object({
-      sourceIds: z.array(z.number()),
-      targetFolder: z.string(),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      const { sourceIds, targetFolder } = input;
-
-      return await prisma.$transaction(async (tx) => {
-        const attachments = await tx.attachments.findMany({
-          where: {
-            id: { in: sourceIds },
-            note: {
-              accountId: Number(ctx.id)
-            }
-          }
-        });
-
-        if (attachments.length === 0) {
-          throw new Error('Attachments not found');
-        }
-
-        try {
-          for (const attachment of attachments) {
-            const newPerfixPath = targetFolder;
-            const oldPath = attachment.path;
-            const isS3File = oldPath.startsWith('/api/s3file/');
-            const baseUrl = isS3File ? '/api/s3file/' : '/api/file/';
-
-            const newPath = targetFolder 
-              ? `${baseUrl}${targetFolder.split(',').join('/')}/${attachment.name}`
-              : `${baseUrl}${attachment.name}`;
-
-            await FileService.moveFile(oldPath, newPath);
-
-            await tx.attachments.update({
-              where: { id: attachment.id },
-              data: {
-                perfixPath: newPerfixPath,
-                depth: newPerfixPath ? newPerfixPath.split(',').length : 0,
-                path: newPath
-              }
-            });
-          }
-          
-          return {
-            success: true,
-            message: 'Files moved successfully'
-          };
-        } catch (error) {
-          console.error('Move file error:', error);
-          throw new Error(`Failed to move files: ${error.message}`);
-        }
+      return await prisma.attachments.update({
+        where: { id, accountId: Number(ctx.id) },
+        data: { name: newName }
       });
     }),
 
   delete: authProcedure
     .input(z.object({
-      id: z.union([z.number(),z.null()]).optional(),
+      id: z.number().optional(),
       isFolder: z.boolean().optional(),
       folderPath: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const { id, isFolder, folderPath } = input;
 
-      return await prisma.$transaction(async (tx) => {
-        if (isFolder && folderPath) {
-          const attachments = await tx.attachments.findMany({
-            where: {
-              note: {
-                accountId: Number(ctx.id)
-              },
-              perfixPath: {
-                startsWith: folderPath
-              }
-            }
-          });
-
-          if (attachments.length === 0) {
-            return { success: true, message: 'Folder deleted successfully' };
-          }
-
-          try {
-            for (const attachment of attachments) {
-              await FileService.deleteFile(attachment.path);
-            }
-            return { success: true, message: 'Folder and its contents deleted successfully' };
-          } catch (error) {
-            throw new Error(`Failed to delete folder: ${error.message}`);
-          }
-        }
-
-        const attachment = await tx.attachments.findFirst({
+      if (isFolder && folderPath) {
+        await prisma.attachments.deleteMany({
           where: {
-            id: id!,
-            OR: [
-              {
-                note: {
-                  accountId: Number(ctx.id)
-                }
-              },
-              {
-                accountId: Number(ctx.id)
-              }
-            ]
+            perfixPath: {
+              startsWith: folderPath
+            },
+            accountId: Number(ctx.id)
           }
         });
+        return { success: true };
+      }
 
-        if (!attachment) {
-          throw new Error('Attachment not found or you do not have permission to delete it');
-        }
-
-        try {
-          await FileService.deleteFile(attachment.path);
-          return {
-            success: true,
-            message: 'File deleted successfully'
-          };
-        } catch (error) {
-          throw new Error(`Failed to delete file: ${error.message}`);
-        }
+      return await prisma.attachments.delete({
+        where: { id, accountId: Number(ctx.id) }
       });
-    }),
-    deleteMany: authProcedure
-    .input(z.object({
-      ids: z.array(z.number()),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      const { ids } = input;
-      // Security fix: Only allow deleting attachments owned by the user
-      await prisma.attachments.deleteMany({
-        where: {
-          id: { in: ids },
-          OR: [
-            {
-              note: {
-                accountId: Number(ctx.id)
-              }
-            },
-            {
-              accountId: Number(ctx.id)
-            }
-          ]
-        }
-      });
-      return { success: true, message: 'Files deleted successfully' };
     }),
 });

@@ -1,9 +1,8 @@
 import { z } from "zod"
-import { Prisma } from "@prisma/client"
 import dayjs from "@shared/lib/dayjs"
-
 import { router, authProcedure } from "../middleware"
 import { prisma } from "../prisma"
+import { dailyNoteCount, monthlyWordStats } from "@server/generated/client/sql"
 
 export const analyticsRouter = router({
   dailyNoteCount: authProcedure
@@ -14,19 +13,10 @@ export const analyticsRouter = router({
       count: z.number()
     })))
     .mutation(async function ({ ctx }) {
-      const dailyStats = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-        SELECT 
-          to_char("createdAt"::date, 'YYYY-MM-DD') as date,
-          COUNT(*) as count
-        FROM "notes"
-        WHERE "accountId" = ${parseInt(ctx.id)}
-          AND "createdAt" >= NOW() - INTERVAL '1 year'
-        GROUP BY "createdAt"::date
-        ORDER BY "createdAt"::date ASC
-      `;
+      const dailyStats = await prisma.$queryRawTyped(dailyNoteCount(Number(ctx.id)));
 
       return dailyStats.map(stat => ({
-        date: stat.date,
+        date: stat.date!,
         count: Number(stat.count)
       }));
     }),
@@ -47,12 +37,13 @@ export const analyticsRouter = router({
       })).optional()
     }))
     .mutation(async function ({ ctx, input }) {
+      const accountId = Number(ctx.id);
       const startDate = dayjs(input.month).startOf('month').toDate()
       const endDate = dayjs(input.month).endOf('month').toDate()
 
       const noteCount = await prisma.notes.count({
         where: {
-          accountId: parseInt(ctx.id),
+          accountId,
           createdAt: {
             gte: startDate,
             lte: endDate
@@ -60,29 +51,19 @@ export const analyticsRouter = router({
         }
       })
 
-      const wordStats = await prisma.$queryRaw<Array<{ date: string; words: bigint }>>`
-        SELECT 
-          to_char("createdAt"::date, 'YYYY-MM-DD') as date,
-          SUM(LENGTH(content)) as words
-        FROM "notes"
-        WHERE "accountId" = ${parseInt(ctx.id)}
-          AND "createdAt" >= ${startDate}
-          AND "createdAt" <= ${endDate}
-        GROUP BY "createdAt"::date
-        ORDER BY words DESC
-      `
+      const wordStats = await prisma.$queryRawTyped(monthlyWordStats(accountId, startDate));
 
-      const totalWords = wordStats.reduce((sum, stat) => sum + Number(stat.words), 0)
-      const maxDailyWords = wordStats.length > 0 ? Number(wordStats[0]!.words) : 0
+      const totalWords = wordStats.reduce((sum, stat) => sum + Number(stat.count || 0), 0)
+      const maxDailyWords = wordStats.length > 0 ? Number(wordStats[0]!.count || 0) : 0
       const activeDays = wordStats.length
 
       const tagStats = await prisma.tag.findMany({
         where: {
-          accountId: parseInt(ctx.id),
+          accountId,
           tagsToNote: {
             some: {
               note: {
-                accountId: parseInt(ctx.id)
+                accountId
               }
             }
           }
@@ -105,7 +86,7 @@ export const analyticsRouter = router({
       const validTags = tagStats.filter(tag => tag._count.tagsToNote > 0)
       const TOP_TAG_COUNT = 10
       const topTags = validTags.slice(0, TOP_TAG_COUNT)
-      
+
       const otherTagsCount = validTags.slice(TOP_TAG_COUNT).reduce((sum, tag) => sum + tag._count.tagsToNote, 0)
 
       const finalTagStats = [

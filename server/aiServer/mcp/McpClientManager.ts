@@ -3,7 +3,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { prisma } from '@server/prisma';
-import type { mcpServers } from '@prisma/client';
+import type { mcpServers } from '@server/generated/client';
 
 export interface McpTool {
   name: string;
@@ -50,7 +50,7 @@ export class McpClientManager {
 
   private startCleanupTimer(): void {
     if (this.cleanupTimer) return;
-    
+
     this.cleanupTimer = setInterval(() => {
       this.cleanupIdleConnections();
     }, CLEANUP_INTERVAL);
@@ -246,7 +246,7 @@ export class McpClientManager {
    * Disconnect all connections
    */
   async disconnectAll(): Promise<void> {
-    const disconnectPromises = Array.from(this.connections.keys()).map(id => 
+    const disconnectPromises = Array.from(this.connections.keys()).map(id =>
       this.disconnect(id)
     );
     await Promise.all(disconnectPromises);
@@ -269,7 +269,7 @@ export class McpClientManager {
     });
 
     const allTools: McpTool[] = [];
-    
+
     for (const server of enabledServers) {
       try {
         const tools = await this.getTools(server.id);

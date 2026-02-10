@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { prisma } from '../prisma';
 import { router, authProcedure, publicProcedure } from '../middleware';
+import { uint8ArrayToBase64, base64ToUint8Array } from 'uint8array-extras';
 
-// Helper to convert Buffer to base64 string for JSON transmission
-function bufferToBase64(buffer: Buffer | Uint8Array | null | undefined): string | null {
+// Helper to convert Uint8Array to base64 string for JSON transmission
+function bufferToBase64(buffer: Uint8Array | null | undefined): string | null {
   if (!buffer) return null;
-  return Buffer.from(buffer).toString('base64');
+  return uint8ArrayToBase64(buffer);
 }
 
 // Helper to transform font from DB to API response
@@ -246,8 +247,8 @@ export const fontRouter = router({
         throw new Error('Unauthorized: Only superadmin can upload fonts');
       }
 
-      // Decode base64 to Buffer
-      const fileBuffer = Buffer.from(input.fileData, 'base64');
+      // Decode base64 to Uint8Array
+      const fileBuffer = base64ToUint8Array(input.fileData);
 
       // Validate file size (max 10MB to prevent memory issues)
       const MAX_FONT_SIZE = 10 * 1024 * 1024; // 10MB

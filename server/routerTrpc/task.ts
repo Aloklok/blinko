@@ -12,6 +12,7 @@ import fs from 'fs';
 import { MarkdownImporter } from '../jobs/markdownJob';
 import { getPgBoss } from '../lib/pgBoss';
 import { prisma } from '../prisma';
+import { getPgBossLastRun } from "@server/generated/client/sql";
 
 // Schema for task info compatible with frontend
 const taskInfoSchema = z.object({
@@ -33,30 +34,24 @@ export const taskRouter = router({
     .query(async () => {
       const boss = await getPgBoss();
       const schedules = await boss.getSchedules();
-      
+
       // Get last completed jobs for each scheduled task
       const results = await Promise.all(schedules.map(async (s) => {
         // Get the most recent completed job for this queue
         let lastRun: Date | null = null;
         let output: any = null;
-        
+
         try {
           // Query pgboss.job table for the last completed job
-          const lastJob = await prisma.$queryRaw<{ completed_on: Date | null }[]>`
-            SELECT "completed_on" 
-            FROM pgboss.job 
-            WHERE name = ${s.name} AND state = 'completed'
-            ORDER BY "completed_on" DESC 
-            LIMIT 1
-          `;
-          
+          const lastJob = await prisma.$queryRawTyped(getPgBossLastRun(s.name));
+
           if (lastJob.length > 0 && lastJob[0].completed_on) {
             lastRun = lastJob[0].completed_on;
           }
         } catch (e) {
           // pgboss tables might not exist yet, ignore
         }
-        
+
         // Get output from cache for backup task
         if (s.name === DBBAK_TASK_NAME) {
           const cached = await prisma.cache.findUnique({
@@ -66,7 +61,7 @@ export const taskRouter = router({
             output = cached.value;
           }
         }
-        
+
         return {
           name: s.name,
           schedule: s.cron,
@@ -75,7 +70,7 @@ export const taskRouter = router({
           output,
         };
       }));
-      
+
       return results;
     }),
   upsertTask: authProcedure.use(superAdminAuthMiddleware)
@@ -224,4 +219,4 @@ export const taskRouter = router({
         fileCount: result.fileCount
       };
     }),
-})
+});

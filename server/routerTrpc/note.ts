@@ -1,7 +1,8 @@
 
 import { z } from 'zod';
 import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@server/generated/client';
+import { randomNotes } from "@server/generated/client/sql";
 import { helper, TagTreeNode } from '@shared/lib/helper';
 import { _ } from '@shared/lib/lodash';
 import { NoteType } from '../../shared/lib/types';
@@ -669,22 +670,14 @@ export const noteRouter = router({
     .query(async function ({ input, ctx }) {
       const { limit } = input;
 
-      const randomNotes = await prisma.$queryRaw`
-        SELECT n.* 
-        FROM "notes" n
-        WHERE n."isArchived" = false 
-        AND n."isRecycle" = false
-        AND n."accountId" = ${Number(ctx.id)}
-        ORDER BY RANDOM()
-        LIMIT ${limit}
-      `;
+      const randomNotesData = await prisma.$queryRawTyped(randomNotes(Number(ctx.id), limit));
 
-      const noteIds = (randomNotes as any[]).map(note => note.id);
+      const noteIds = randomNotesData.map(note => note.id);
       const attachments = await prisma.attachments.findMany({
         where: { noteId: { in: noteIds } }
       });
 
-      return (randomNotes as any[]).map(note => ({
+      return randomNotesData.map(note => ({
         id: note.id,
         type: note.type,
         content: note.content,

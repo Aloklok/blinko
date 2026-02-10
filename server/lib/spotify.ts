@@ -1,5 +1,6 @@
 // import axios from 'axios'; // Removed
 import { getWithProxy, postWithProxy } from './proxy';
+import { uint8ArrayToBase64, stringToUint8Array } from 'uint8array-extras';
 
 interface SpotifyConfig {
   consumer: {
@@ -58,7 +59,7 @@ export class SpotifyClient {
   private async getToken(): Promise<string> {
     if (this.token) return this.token;
 
-    const auth = Buffer.from(`${this.config.consumer.key}:${this.config.consumer.secret}`).toString('base64');
+    const auth = uint8ArrayToBase64(stringToUint8Array(`${this.config.consumer.key}:${this.config.consumer.secret}`));
 
     try {
       const response = await postWithProxy('https://accounts.spotify.com/api/token', 'grant_type=client_credentials', {

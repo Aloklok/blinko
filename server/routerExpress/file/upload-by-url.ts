@@ -3,6 +3,7 @@ import path from 'path';
 import { FileService } from '../../lib/files';
 import { getTokenFromRequest } from '../../lib/helper';
 import cors from 'cors';
+import { uint8ArrayToBase64 } from 'uint8array-extras';
 
 const router = express.Router();
 
@@ -105,7 +106,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: "Failed to fetch file from URL" });
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const buffer = new Uint8Array(await response.arrayBuffer());
 
     const urlPath = new URL(url).pathname;
     const originalName = path.basename(urlPath).replace(/\s+/g, "_");

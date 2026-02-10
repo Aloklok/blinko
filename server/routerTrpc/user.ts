@@ -2,9 +2,9 @@ import { router, publicProcedure, authProcedure, superAdminAuthMiddleware, demoA
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@server/generated/client';
 import { accountsSchema } from '@shared/lib/prismaZodType';
-import { hashPassword, verifyPassword } from '@prisma/seed';
+import { hashPassword, verifyPassword } from '../lib/helper';
 import { generateTOTP, generateTOTPQRCode, getNextAuthSecret, verifyTOTP } from "@server/lib/helper";
 import { deleteNotes } from './note';
 import { createSeed } from '@prisma/seedData';
@@ -438,7 +438,7 @@ export const userRouter = router({
         const update: Prisma.accountsUpdateInput = {}
         if (id) {
           const targetId = id;
-          
+
           // Security fix: Ownership check - only allow updating own account unless superadmin
           if (targetId !== currentUserId && currentUser.role !== 'superadmin') {
             throw new TRPCError({

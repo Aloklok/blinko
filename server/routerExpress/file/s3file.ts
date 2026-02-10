@@ -38,7 +38,8 @@ async function generateThumbnail(s3ClientInstance: any, config: any, fullPath: s
 
     // In Bun, this is the most reliable way to read the stream from AWS SDK
     const bodyContents = await (response.Body as any).transformToByteArray();
-    const buffer = Buffer.from(bodyContents);
+    // In Bun/Node, sharp accepts Uint8Array directly
+    const buffer = bodyContents;
 
     console.log(`[Thumbnail] Read ${buffer.length} bytes for ${fullPath}.`);
 
