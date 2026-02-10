@@ -14,11 +14,10 @@ export async function getPgBoss(): Promise<PgBoss> {
       throw new Error('DATABASE_URL environment variable is not set');
     }
 
-    // Supabase specific fix: pg-boss requires session mode (port 5432) not transaction mode (port 6543)
-    // If we're using the pooler port (6543), try to switch to 5432 for pg-boss
+    // Use DIRECT_URL directly if available, otherwise apply Supabase fix
     let bossConnectionString = connectionString;
-    if (connectionString.includes('pooler.supabase.com') && connectionString.includes('6543')) {
-      console.log('[pg-boss] Detected Supabase Transaction Pooler (6543). Switching to Session Mode (5432) for pg-boss...');
+    if (!process.env.DIRECT_URL && connectionString.includes('pooler.supabase.com') && connectionString.includes('6543')) {
+      console.log('[pg-boss] DIRECT_URL not set. Detected Supabase Transaction Pooler (6543) in DATABASE_URL. Switching to Session Mode (5432) for pg-boss...');
       try {
         const url = new URL(connectionString);
         url.port = '5432';
@@ -28,6 +27,8 @@ export async function getPgBoss(): Promise<PgBoss> {
         console.warn('[pg-boss] Failed to parse connection string, falling back to string replacement', e);
         bossConnectionString = connectionString.replace('6543', '5432').replace('?pgbouncer=true', '').replace('&pgbouncer=true', '');
       }
+    } else if (process.env.DIRECT_URL) {
+      console.log('[pg-boss] Using DIRECT_URL for stable connection.');
     }
 
     boss = new PgBoss({
