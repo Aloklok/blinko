@@ -1,6 +1,6 @@
 import { eventBus } from "@/lib/event";
 import { useIsIOS } from "@/lib/hooks";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMediaQuery } from "usehooks-ts";

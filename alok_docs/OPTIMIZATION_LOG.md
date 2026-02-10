@@ -9,7 +9,7 @@
 ### 1. 核心性能与渲染
 *   **tRPC Batching**: 启用了请求批处理，减少首页加载时的网络往返。
 *   **CSS `content-visibility`**: 在 `BlinkoCard` 容器中引入，显著提升了长列表滚动的渲染性能。
-*   **代码清理**: 移除了前端对 `axios` 和 `filesize` 的直接依赖，统一使用原生 Fetch 和轻量化工具。
+*   **代码清理**: 移除了前端对 `axios` 和 `filesize` 的直接依赖，统一使用原生 Fetch 和 light量化工具。
 
 ### 2. 构建与环境兼容性
 *   **Lodash 优化**: 修复了多个由于 Lodash 引用路径不规范导致在 Docker/Bun 环境下构建失败的问题。
@@ -58,6 +58,15 @@
     *   **业务链路**: 锁定 6543 端口（事务模式）并开启 `pgbouncer=true`，通过 Supavisor 应对高并发 tRPC 请求，彻底根治了 `MaxClientsInSessionMode` 报错。
     *   **管理链路**: 引入 `DIRECT_URL` (5432) 负责数据库迁移、种子数据填充及 pg-boss 后台任务。
 *   **pg-boss 锁修复**: 解决了 pg-boss 在事务模式下无法使用咨询锁的问题，确保后台作业（如自动归档、Embedding 重建）的绝对可靠性。
+
+---
+
+### 10. 无障碍与交互体验优化 (Phase 10 - Accessibility & UX)
+*   **设置页面无障碍标签**: 为 `BlinkoSettings` 下所有 `isIconOnly` 按钮以及匿名 `Switch` 补全了 `aria-label`。
+*   **布局抖动 (Forced Reflow) 修复**: 在 `baseStore.ts` 侧边栏缩放逻辑中引入 `requestAnimationFrame`，物理对齐显示刷新率。
+*   **渲染瓶颈优化 (Long Task)**: 拆分 `CommonLayout` 头部组件（NavTitle/ActionButtons），显著减少路由切换时的 JS 执行耗时。
+*   **无障碍深度加固**: 为 `UpdateUserInfo` 和 `BasicSetting` 补全 `<form>` 与 `autocomplete`，物理消除所有孤立密码框警告。
+*   **侧边栏焦点冲突**: 修复了移动端导航点击时的 `blur()` 逻辑，解决 `aria-hidden` 阻塞。
 
 ---
 

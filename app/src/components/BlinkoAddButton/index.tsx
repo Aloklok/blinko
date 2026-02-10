@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { observer } from 'mobx-react-lite';
 import { ShowEditBlinkoModel } from '../BlinkoRightClickMenu';
