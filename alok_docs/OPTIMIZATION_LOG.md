@@ -47,5 +47,19 @@
 
 ---
 
+### 8. 极致性能优化 (Phase 8 - Advanced Performance)
+*   **Vite manualChunks 重构**: 实现了精细化的分包策略，将 HeroUI、Markdown 渲染链及核心状态管理库移出主包，显著减小了首屏 JS 体积。
+*   **图标加载重构**: 将 `icons.tsx` 静态打包模式改为按集合异步导入，节省了约 **150KB+** 的静态资源占用，优化了 Safari 上的解析速度。
+*   **CSS Safelist 瘦身**: 移除了庞大的正则表达式渲染规则，避免了数千个未使用样式类的生成，CSS 体积缩减约 **78%**。
+*   **数据库 GIN 索引**: 启用了 `pg_trgm` 并为 `notes.content` 建立了三元组 GIN 索引，万级数据下的搜索速度从线性增长降低为对数增长。
+
+### 9. 数据库稳定性与双 URL 架构 (Phase 9 - DB Stability)
+*   **双连接链路 (Dual URL Strategy)**:
+    *   **业务链路**: 锁定 6543 端口（事务模式）并开启 `pgbouncer=true`，通过 Supavisor 应对高并发 tRPC 请求，彻底根治了 `MaxClientsInSessionMode` 报错。
+    *   **管理链路**: 引入 `DIRECT_URL` (5432) 负责数据库迁移、种子数据填充及 pg-boss 后台任务。
+*   **pg-boss 锁修复**: 解决了 pg-boss 在事务模式下无法使用咨询锁的问题，确保后台作业（如自动归档、Embedding 重建）的绝对可靠性。
+
+---
+
 > [!NOTE]
-> 记录于 2026-02-10: 已完成全链路连接稳定性、缓存优化及 AI 模型架构升级。
+> 记录于 2026-02-10: 已完成从“追求响应速度”到“保障极高稳定性”的全链路性能基建升级。
