@@ -1,6 +1,6 @@
 import { Card, Button } from "@heroui/react";
 import { Icon } from '@/components/Common/Iconify/icons';
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, ReactNode, useEffect } from "react";
 
 interface CollapsibleCardProps {

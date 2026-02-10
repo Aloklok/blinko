@@ -8,7 +8,7 @@ import i18n from './i18n'
 import { UserStore } from '@/store/user'
 import { download } from '@tauri-apps/plugin-upload'
 import { downloadDir, publicDir } from '@tauri-apps/api/path'
-import { setStatusBarColor } from 'tauri-plugin-blinko-api'
+import { setStatusBarColor, openAppSettings } from 'tauri-plugin-blinko-api'
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -31,7 +31,7 @@ export function isAndroid() {
 
 export function isDesktop() {
     try {
-       return platform() === 'macos' || platform() === 'windows' || platform() === 'linux';
+        return platform() === 'macos' || platform() === 'windows' || platform() === 'linux';
     } catch (error) {
         return false
     }
@@ -151,9 +151,9 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
 
         // Check current platform
         const currentPlatform = isInTauri() ? platform() : 'web';
-        
+
         // Try to request permission first
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+        const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
                 noiseSuppression: true,
@@ -163,7 +163,7 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
             console.error('getUserMedia error:', error);
             return null;
         });
-        
+
         if (stream) {
             // Permission granted, stop the stream immediately
             stream.getTracks().forEach(track => track.stop());
@@ -171,7 +171,7 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
             localStorage.setItem('microphone_permission_granted', 'true');
             return true;
         }
-        
+
         // Handle platform-specific permission denied scenarios
         if (isAndroid()) {
             const shouldShowSettings = confirm(
@@ -179,10 +179,9 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
                 'Please grant microphone permission in the app settings.\n\n' +
                 'Would you like to open settings now?'
             );
-            
+
             if (shouldShowSettings) {
                 try {
-                    const { openAppSettings } = await import('tauri-plugin-blinko-api');
                     await openAppSettings();
                 } catch (error) {
                     console.error('Failed to open app settings:', error);
@@ -211,7 +210,7 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
                 'Please ensure your microphone is properly configured and permissions are granted.'
             );
         }
-        
+
         // Clear cache when permission denied
         localStorage.removeItem('microphone_permission_granted');
         return false;
@@ -278,10 +277,10 @@ export const usePermissions = () => {
     useEffect(() => {
         const checkPermissions = async () => {
             setLoading(true);
-            
+
             try {
                 const audioPermission = await checkMicrophonePermission();
-                
+
                 setPermissions({
                     audio: audioPermission,
                     camera: false, // Camera permission check can be added later

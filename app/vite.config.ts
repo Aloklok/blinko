@@ -134,60 +134,52 @@ export default defineConfig({
     outDir: "../dist/public",
     emptyOutDir: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 4000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // Platform Core (Merged to eliminate circular dependencies: framework <-> ui <-> content)
           if (id.includes('node_modules/react') ||
             id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/react-router-dom')) {
-            return 'react-core';
-          }
-
-          if (id.includes('node_modules/@heroui')) {
-            return 'heroui-vendor';
-          }
-
-          if (id.includes('node_modules/mobx') || id.includes('node_modules/mobx-react-lite')) {
-            return 'state-vendor';
-          }
-
-          if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
-            return 'three-vendor';
-          }
-
-          if (id.includes('node_modules/echarts')) {
-            return 'echarts-vendor';
-          }
-
-          if (id.includes('node_modules/mermaid')) {
-            return 'mermaid-vendor';
-          }
-
-          if (id.includes('node_modules/vditor') ||
+            id.includes('node_modules/react-router-dom') ||
+            id.includes('node_modules/next-themes') ||
+            id.includes('node_modules/@heroui') ||
+            id.includes('node_modules/framer-motion') ||
+            id.includes('node_modules/motion') ||
+            id.includes('node_modules/vditor') ||
             id.includes('node_modules/react-markdown') ||
             id.includes('node_modules/remark-') ||
             id.includes('node_modules/rehype-') ||
             id.includes('node_modules/katex')) {
-            return 'markdown-vendor';
+            return 'platform-vendor';
           }
 
-          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) {
-            return 'animation-vendor';
-          }
-
-          if (id.includes('node_modules/zod') ||
+          // State and Common utilities
+          if (id.includes('node_modules/mobx') || id.includes('node_modules/mobx-react-lite') ||
+            id.includes('node_modules/zod') ||
             id.includes('node_modules/i18next') ||
             id.includes('node_modules/dayjs') ||
             id.includes('node_modules/lodash-es') ||
-            id.includes('node_modules/zustand')) {
-            return 'common-vendor';
+            id.includes('node_modules/zustand') ||
+            id.includes('node_modules/axios')) {
+            return 'lib-vendor';
           }
 
+          // Heavy Visual Libraries (Separated to reduce initial load)
+          if (id.includes('node_modules/echarts')) {
+            return 'visual-echarts';
+          }
+          if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
+            return 'visual-three';
+          }
+          if (id.includes('node_modules/mermaid')) {
+            return 'visual-mermaid';
+          }
+
+          // Platform specifics
           if (id.includes('node_modules/@tauri-apps')) {
             return 'tauri-vendor';
           }
-
           if (id.includes('node_modules/@dnd-kit')) {
             return 'dnd-vendor';
           }

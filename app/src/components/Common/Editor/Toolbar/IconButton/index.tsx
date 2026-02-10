@@ -1,6 +1,6 @@
 import { Icon } from '@/components/Common/Iconify/icons';
 import { Tooltip } from "@heroui/react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from 'react-i18next';
 import React, { forwardRef } from 'react';
