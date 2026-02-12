@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from './generated/client/index';
+import { PrismaClient } from './generated/client/index.js';
 
 const prismaGlobal = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
