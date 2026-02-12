@@ -1,13 +1,15 @@
 # Build Stage
-FROM oven/bun:1.2.8 AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
+
+# Install Bun 1.2.8
+RUN npm install -g bun@1.2.8
 
 # Set Sharp environment variables
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
 # Set Prisma environment variables to optimize installation
-# Note: No mirror needed for overseas deployment
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
 # Copy Project Files
@@ -15,6 +17,7 @@ COPY . .
 RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
+# Bun will now run in a Node 22 environment, satisfying Prisma 7's version check
 RUN bun install --unsafe-perm
 RUN bunx prisma generate
 RUN bun run build:web
@@ -33,8 +36,8 @@ RUN wget -qO /app/dumb-init https://github.com/Yelp/dumb-init/releases/download/
     rm -rf /var/cache/apk/*
 
 
-# Runtime Stage - Using Alpine as required
-FROM node:20-alpine AS runner
+# Runtime Stage - Using Node 22 to fully support Prisma 7
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
