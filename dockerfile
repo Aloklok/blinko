@@ -72,7 +72,7 @@ RUN chmod +x ./start.sh
 # Install production dependencies
 # Align Prisma version to project v7.3.0
 RUN echo "Installing additional dependencies..." && \
-    npm install @node-rs/crc32 lightningcss sharp@0.34.1 prisma@7.3.0 @prisma/client@7.3.0 pg @prisma/adapter-pg@7.3.0 && \
+    npm install @node-rs/crc32 lightningcss sharp@0.34.1 prisma@7.3.0 @prisma/client@7.3.0 pg @prisma/adapter-pg@7.3.0 uint8array-extras lru-cache@11.1.0 && \
     npm install -g prisma@7.3.0 && \
     npm install sqlite3@5.1.7 && \
     npm install llamaindex @langchain/community@0.3.40 && \
