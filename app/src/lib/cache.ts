@@ -1,10 +1,13 @@
 import { LRUCache } from 'lru-cache'
 
+const ResolvedLRUCache = (LRUCache as any)?.LRUCache || LRUCache;
+
 export class memoryCache {
   cache: LRUCache<string, { value: any, expiration: number }>
 
   constructor(options = {}) {
-    this.cache = new LRUCache({
+    // @ts-ignore
+    this.cache = new ResolvedLRUCache({
       maxSize: 30 * 1024 * 1024,
       max: 10000,
       sizeCalculation: (value, key) => {

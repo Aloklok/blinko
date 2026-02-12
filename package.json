@@ -22,8 +22,8 @@
     "prisma:migrate:dev": "cd prisma && prisma migrate dev",
     "prisma:migrate:deploy": "cd prisma && prisma migrate deploy",
     "prisma:studio": "cd prisma && prisma studio",
-    "build:seed": "tsup prisma/seed.ts --outDir dist",
-    "seed": "bun dist/seed.js",
+    "build:seed": "tsup prisma/seed.ts --outDir dist --format esm --clean",
+    "seed": "bun dist/seed.mjs",
     "build:blinko:types": "tsc -p tsconfig.blinko.json"
   },
   "devDependencies": {
