@@ -25,7 +25,7 @@
       ],
       "cache": false,
       "outputs": [
-        "node_modules/.prisma/**"
+        "server/generated/client/**"
       ]
     },
     "build:iconify:icons": {
