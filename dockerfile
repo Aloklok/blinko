@@ -22,7 +22,7 @@ RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
 RUN bun install --unsafe-perm
-RUN bunx prisma generate
+RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
 
