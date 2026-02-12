@@ -3,8 +3,12 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install Bun 1.2.8
-RUN npm install -g bun@1.2.8
+# Install Bun 1.2.8 via official script for better architecture compatibility (ARM64/x64)
+RUN apk add --no-cache curl unzip bash && \
+    curl -fsSL https://bun.sh/install | bash -s -- bun-v1.2.8
+
+# Set Bun path
+ENV PATH="/root/.bun/bin:${PATH}"
 
 # Set Sharp environment variables
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
@@ -17,7 +21,6 @@ COPY . .
 RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
-# Bun will now run in a Node 22 environment, satisfying Prisma 7's version check
 RUN bun install --unsafe-perm
 RUN bunx prisma generate
 RUN bun run build:web
