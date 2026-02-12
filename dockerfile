@@ -81,7 +81,7 @@ COPY server/package.json ./package.json
 #    - prisma: CLI needed for migration script
 RUN echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
-    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 --save-exact && \
+    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 --save-exact --legacy-peer-deps && \
     npx prisma generate && \
     rm -rf /tmp/* && \
     apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
