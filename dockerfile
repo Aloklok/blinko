@@ -70,13 +70,18 @@ COPY --from=builder /app/server/vditor ./server/vditor
 RUN chmod +x ./start.sh
 
 # Install production dependencies
-# Align Prisma version to project v7.3.0
-RUN echo "Installing additional dependencies..." && \
-    npm install @node-rs/crc32 lightningcss sharp@0.34.1 prisma@7.3.0 @prisma/client@7.3.0 pg @prisma/adapter-pg@7.3.0 uint8array-extras lru-cache@11.1.0 && \
-    npm install -g prisma@7.3.0 && \
-    npm install sqlite3@5.1.7 && \
-    npm install llamaindex @langchain/community@0.3.40 && \
-    npm install @libsql/client @libsql/core && \
+# Install production dependencies
+# Copy server package.json to install all required dependencies (passport, express, etc.)
+COPY server/package.json ./package.json
+
+# 1. Install dependencies from package.json
+# 2. Manually add dependencies that are missing from server/package.json but needed:
+#    - pg: Implicit dependency from monorepo root used by server/prisma.ts
+#    - lru-cache & uint8array-extras: Used by seed script (from root)
+#    - prisma: CLI needed for migration script
+RUN echo "Installing production dependencies..." && \
+    npm install --omit=dev && \
+    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 --save-exact && \
     npx prisma generate && \
     rm -rf /tmp/* && \
     apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
