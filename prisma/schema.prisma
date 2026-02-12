@@ -10,9 +10,7 @@ generator client {
 // }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model accounts {
@@ -306,7 +304,7 @@ model aiModels {
   @@index([providerId])
 }
 
-model aiScheduledTask {
+model aiScheduledTask    {
   id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(255)
   prompt      String   @db.Text
