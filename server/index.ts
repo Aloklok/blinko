@@ -91,7 +91,7 @@ async function initializeJobs() {
 
 // Server configuration
 const app = express();
-const PORT = 1111;
+const PORT = parseInt(process.env.PORT || '1111');
 const appRootDev = path.resolve(__dirname, '../app');
 const appRootProd = path.resolve(__dirname, '../server');
 let server: any = null;
