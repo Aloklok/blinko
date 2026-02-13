@@ -216,7 +216,7 @@ function detectFontCategory(fontName: string): string {
 }
 
 // Only run if this file is the main entry point
-const isDirectRun = process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js');
+const isDirectRun = process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js') || process.argv[1]?.endsWith('seed.mjs');
 
 if (isDirectRun) {
   main()
