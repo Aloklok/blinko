@@ -25,6 +25,8 @@ RUN bun install --unsafe-perm
 RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
+# Pre-compile prisma config to JS to avoid runtime TS resolution issues
+RUN bun build prisma.config.ts --outfile=prisma.config.js --target=node
 
 RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nprisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
@@ -61,8 +63,7 @@ COPY --from=builder /app/server/lute.min.js ./server/lute.min.js
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
-COPY prisma.config.ts ./
-COPY tsconfig.json tsconfig.node.json ./
+COPY --from=builder /app/prisma.config.js ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
@@ -84,7 +85,7 @@ COPY server/package.json ./package.json
 RUN echo "Installing production dependencies..." && \
     npm install -g prisma@7.3.0 --legacy-peer-deps && \
     npm install --omit=dev --legacy-peer-deps && \
-    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 tsx typescript --save-exact --legacy-peer-deps && \
+    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 tsx --save-exact --legacy-peer-deps && \
     prisma generate && \
     rm -rf /tmp/* && \
     apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
