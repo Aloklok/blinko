@@ -22,11 +22,11 @@ RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
 RUN bun install --unsafe-perm
+# Generate minimal ESM prisma.config.js without dependencies to avoid runtime TS/bundling issues
+RUN printf "export default {\n  datasource: {\n    url: process.env.DATABASE_URL,\n    directUrl: process.env.DIRECT_URL\n  }\n}" > prisma.config.js
 RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
-# Pre-compile prisma config to JS to avoid runtime TS resolution issues
-RUN bun build prisma.config.ts --outfile=prisma.config.js --target=node --external 'prisma/config' --external dotenv --external path
 
 RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nprisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
