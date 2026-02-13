@@ -33,7 +33,7 @@ RUN bun run build:web
 RUN bun run build:seed
 
 # Create startup script
-RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nDATABASE_URL=$DIRECT_URL npx prisma migrate deploy\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\nnode server/index.js\n' > start.sh && \
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nDATABASE_URL=$DIRECT_URL npx prisma migrate deploy\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\nDATABASE_URL=$DIRECT_URL node server/index.js\n' > start.sh && \
     chmod +x start.sh
 
 

@@ -3,7 +3,6 @@ import { promises as fs } from 'fs';
 import { randomBytes, pbkdf2 } from 'crypto';
 import * as path from 'path';
 import { FontSeed, systemDefaultFont, cdnFonts } from './defaultFonts';
-
 import { hashPassword, verifyPassword } from '../server/lib/helper';
 
 async function main() {
@@ -23,9 +22,6 @@ async function main() {
     }
     await prisma.notes.updateMany({ where: { accountId: null }, data: { accountId: account.id } })
   }
-  // if (!account && process.env.NODE_ENV === 'development') {
-  //   await prisma.accounts.create({ data: { name: 'admin', password: await hashPassword('123456'), role: 'superadmin' } })
-  // }
 
   //database password hash
   const accounts = await prisma.accounts.findMany()
