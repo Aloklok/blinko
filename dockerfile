@@ -26,7 +26,7 @@ RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
 
-RUN printf '#!/bin/sh\necho "Current Environment: $NODE_ENV"\nnpx prisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
+RUN printf '#!/bin/sh\necho "Current Environment: $NODE_ENV"\n./node_modules/.bin/prisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
 
 
