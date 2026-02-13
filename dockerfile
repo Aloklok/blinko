@@ -62,6 +62,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
 COPY prisma.config.ts ./
+COPY tsconfig.json tsconfig.node.json ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
