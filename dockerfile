@@ -26,7 +26,7 @@ RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
 
-RUN printf '#!/bin/sh\necho "Current Environment: $NODE_ENV"\n./node_modules/.bin/prisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nprisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
 
 
@@ -80,9 +80,10 @@ COPY server/package.json ./package.json
 #    - lru-cache & uint8array-extras: Used by seed script (from root)
 #    - prisma: CLI needed for migration script
 RUN echo "Installing production dependencies..." && \
+    npm install -g prisma@7.3.0 --legacy-peer-deps && \
     npm install --omit=dev --legacy-peer-deps && \
-    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 --save-exact --legacy-peer-deps && \
-    npx prisma generate && \
+    npm install pg lru-cache@11.1.0 uint8array-extras --save-exact --legacy-peer-deps && \
+    prisma generate && \
     rm -rf /tmp/* && \
     apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
     rm -rf /var/cache/apk/* /root/.npm /root/.cache
