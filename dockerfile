@@ -82,7 +82,7 @@ RUN echo "Installing production dependencies..." && \
     # We need prisma CLI for 'npx prisma migrate deploy' in start.sh, so we install it locally
     npm install prisma@7.3.0 --save-exact --legacy-peer-deps && \
     # Add dependencies referenced in start.sh/server if not in package.json
-    npm install pg lru-cache@11.1.0 uint8array-extras tsx --save-exact --legacy-peer-deps && \
+    npm install pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
 
