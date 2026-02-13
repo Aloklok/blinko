@@ -22,15 +22,17 @@ RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
 RUN bun install --unsafe-perm
-# Generate minimal ESM prisma.config.js without dependencies to avoid runtime TS/bundling issues
-# Use .mjs to force ESM parsing and avoid CJS/ESM ambiguity
-RUN printf "export default {\n  datasource: {\n    url: process.env.DATABASE_URL,\n    directUrl: process.env.DIRECT_URL\n  }\n}" > prisma.config.mjs && \
-    rm -f prisma.config.ts
+
+# Generate Prisma Client (Includes both native and linux-musl targets)
+# Config is loaded from prisma.config.mjs which is copied with COPY . .
 RUN bun x prisma generate
+
+# Build Web App
 RUN bun run build:web
 RUN bun run build:seed
 
-RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nprisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
+# Create startup script
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nnpx prisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
 
 
@@ -57,12 +59,14 @@ ENV TRUST_PROXY=1
 # Set Sharp environment variables
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-RUN apk add --no-cache openssl vips-dev python3 py3-setuptools make g++ gcc libc-dev linux-headers
+# Install runtime dependencies (openssl is required for Prisma)
+RUN apk add --no-cache openssl vips-dev
 
-# Copy Build Artifacts and Necessary Files
+# Copy Build Artifacts
 COPY --from=builder /app/dist ./server
 COPY --from=builder /app/server/lute.min.js ./server/lute.min.js
 COPY --from=builder /app/prisma ./prisma
+# Copy the pre-generated client from builder
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
 COPY --from=builder /app/prisma.config.mjs ./
@@ -75,23 +79,21 @@ COPY --from=builder /app/server/vditor ./server/vditor
 RUN chmod +x ./start.sh
 
 # Install production dependencies
-# Install production dependencies
-# Copy server package.json to install all required dependencies (passport, express, etc.)
 COPY server/package.json ./package.json
 
-# 1. Install dependencies from package.json
-# 2. Manually add dependencies that are missing from server/package.json but needed:
-#    - pg: Implicit dependency from monorepo root used by server/prisma.ts
-#    - lru-cache & uint8array-extras: Used by seed script (from root)
-#    - prisma: CLI needed for migration script
+# 1. Install dependencies from package.json (production only)
+# 2. Add dependencies needed for runtime but missing from server/package.json if any
+# NOTE: We use npm here to ensure compatibility with standard node modules, 
+# but we could use bun if we copied it. Sticking to npm for runner stability as per original.
+# We DO NOT install global prisma or build tools anymore.
 RUN echo "Installing production dependencies..." && \
-    npm install -g prisma@7.3.0 --legacy-peer-deps && \
     npm install --omit=dev --legacy-peer-deps && \
-    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 tsx --save-exact --legacy-peer-deps && \
-    prisma generate && \
+    # We need prisma CLI for 'npx prisma migrate deploy' in start.sh, so we install it locally
+    npm install prisma@7.3.0 --save-exact --legacy-peer-deps && \
+    # Add missing deps referenced in start.sh/server if not in package.json
+    npm install pg lru-cache@11.1.0 uint8array-extras tsx --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
-    apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
-    rm -rf /var/cache/apk/* /root/.npm /root/.cache
+    rm -rf /root/.npm /root/.cache
 
 # Expose Port
 EXPOSE 1111

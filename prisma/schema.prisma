@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   output          = "../server/generated/client"
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
   compilerBuild   = "fast"
   previewFeatures = ["typedSql"]
 }
