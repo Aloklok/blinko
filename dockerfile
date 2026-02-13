@@ -22,8 +22,10 @@ RUN mkdir -p /app/plugins
 
 # Install Dependencies and Build App
 RUN bun install --unsafe-perm
-# Generate minimal CommonJS prisma.config.js without dependencies to avoid runtime TS/bundling issues
-RUN printf "module.exports = {\n  datasource: {\n    url: process.env.DATABASE_URL,\n    directUrl: process.env.DIRECT_URL\n  }\n}" > prisma.config.js
+# Generate minimal ESM prisma.config.js without dependencies to avoid runtime TS/bundling issues
+# Use .mjs to force ESM parsing and avoid CJS/ESM ambiguity
+RUN printf "export default {\n  datasource: {\n    url: process.env.DATABASE_URL,\n    directUrl: process.env.DIRECT_URL\n  }\n}" > prisma.config.mjs && \
+    rm -f prisma.config.ts
 RUN bun x prisma generate
 RUN bun run build:web
 RUN bun run build:seed
@@ -63,7 +65,7 @@ COPY --from=builder /app/server/lute.min.js ./server/lute.min.js
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
-COPY --from=builder /app/prisma.config.js ./
+COPY --from=builder /app/prisma.config.mjs ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
