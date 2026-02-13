@@ -61,7 +61,7 @@ COPY --from=builder /app/prisma ./prisma
 # Copy the pre-generated client from builder
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
-COPY --from=builder /app/prisma.config.js ./
+COPY --from=builder /app/prisma.config.ts ./
 
 # Copy built-in plugins
 COPY --from=builder /app/plugins ./plugins
