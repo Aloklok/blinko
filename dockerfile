@@ -24,8 +24,9 @@ RUN mkdir -p /app/plugins
 RUN bun install --unsafe-perm
 
 # Generate Prisma Client (Includes both native and linux-musl targets)
-# Config is loaded from prisma.config.mjs which is copied with COPY . .
-RUN bun x prisma generate
+# Config is loaded from prisma.config.js which is copied with COPY . .
+# Use npx (Node) to avoid Bun's ESM enforcement in hybrid environments
+RUN npx prisma generate
 
 # Build Web App
 RUN bun run build:web
@@ -69,7 +70,7 @@ COPY --from=builder /app/prisma ./prisma
 # Copy the pre-generated client from builder
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
-COPY --from=builder /app/prisma.config.mjs ./
+COPY --from=builder /app/prisma.config.js ./
 COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
