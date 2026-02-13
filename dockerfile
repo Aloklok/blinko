@@ -24,7 +24,7 @@ RUN mkdir -p /app/plugins
 RUN bun install --unsafe-perm
 
 # Generate Prisma Client (Includes both native and linux-musl targets)
-# Config is loaded from prisma.config.js which is copied with COPY . .
+# Config is loaded from prisma.config.ts which is copied with COPY . .
 # Use npx (Node) to avoid Bun's ESM enforcement in hybrid environments
 RUN npx prisma generate
 
@@ -35,15 +35,6 @@ RUN bun run build:seed
 # Create startup script
 RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nnpx prisma migrate deploy\nnode server/seed.mjs\nnode server/index.js\n' > start.sh && \
     chmod +x start.sh
-
-
-FROM node:20-alpine as init-downloader
-
-WORKDIR /app
-
-RUN wget -qO /app/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_$(uname -m) && \
-    chmod +x /app/dumb-init && \
-    rm -rf /var/cache/apk/*
 
 
 # Runtime Stage - Using Node 22 to fully support Prisma 7
@@ -60,8 +51,8 @@ ENV TRUST_PROXY=1
 # Set Sharp environment variables
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-# Install runtime dependencies (openssl is required for Prisma)
-RUN apk add --no-cache openssl vips-dev
+# Install runtime dependencies (openssl is required for Prisma, dumb-init for signal handling)
+RUN apk add --no-cache openssl vips-dev dumb-init
 
 # Copy Build Artifacts
 COPY --from=builder /app/dist ./server
@@ -71,7 +62,6 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server/generated/client ./server/generated/client
 COPY --from=builder /app/start.sh ./
 COPY --from=builder /app/prisma.config.js ./
-COPY --from=init-downloader /app/dumb-init /usr/local/bin/dumb-init
 
 # Copy built-in plugins
 COPY --from=builder /app/plugins ./plugins
@@ -91,7 +81,7 @@ RUN echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
     # We need prisma CLI for 'npx prisma migrate deploy' in start.sh, so we install it locally
     npm install prisma@7.3.0 --save-exact --legacy-peer-deps && \
-    # Add missing deps referenced in start.sh/server if not in package.json
+    # Add dependencies referenced in start.sh/server if not in package.json
     npm install pg lru-cache@11.1.0 uint8array-extras tsx --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
@@ -99,4 +89,4 @@ RUN echo "Installing production dependencies..." && \
 # Expose Port
 EXPOSE 1111
 
-CMD ["/usr/local/bin/dumb-init", "--", "/bin/sh", "-c", "./start.sh"]
+CMD ["dumb-init", "--", "/bin/sh", "-c", "./start.sh"]
