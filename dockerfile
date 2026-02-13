@@ -84,7 +84,7 @@ COPY server/package.json ./package.json
 RUN echo "Installing production dependencies..." && \
     npm install -g prisma@7.3.0 --legacy-peer-deps && \
     npm install --omit=dev --legacy-peer-deps && \
-    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 tsx --save-exact --legacy-peer-deps && \
+    npm install pg lru-cache@11.1.0 uint8array-extras prisma@7.3.0 tsx typescript --save-exact --legacy-peer-deps && \
     prisma generate && \
     rm -rf /tmp/* && \
     apk del python3 py3-setuptools make g++ gcc libc-dev linux-headers && \
