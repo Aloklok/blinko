@@ -178,7 +178,7 @@ export const aiRouter = router({
     .input(z.object({
       content: z.string()
     }))
-    .mutation(async function ({ input }) {
+    .mutation(async function ({ input, ctx }) {
       const config = await AiModelFactory.globalConfig();
       const { content } = input
       const tagAgent = await AiModelFactory.TagAgent(config.aiTagsPrompt || undefined);
