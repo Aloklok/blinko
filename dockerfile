@@ -25,15 +25,15 @@ RUN bun install --unsafe-perm
 
 # Generate Prisma Client (Includes both native and linux-musl targets)
 # Config is loaded from prisma.config.ts which is copied with COPY . .
-# Use npx (Node) to avoid Bun's ESM enforcement in hybrid environments
-RUN npx prisma generate
+# Use local binary to avoid npx version mismatch
+RUN ./node_modules/.bin/prisma generate
 
 # Build Web App
 RUN bun run build:web
 RUN bun run build:seed
 
 # Create startup script
-RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\n\n# 1. Force CommonJS mode (Fixes Negotiator crash)\nif [ -f "server/index.js" ]; then\n  mv server/index.js server/index.cjs\nfi\n\n# 2. Database Tasks: Direct Connection (5432) + Locked 7.3.0 Version\necho "🚀 Executing DB Migration (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL npx --no-install prisma migrate deploy\n\necho "📝 Executing Seed (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\n\n# 3. Start App: Pooler Connection (6543) + Zeabur Config\necho "✅ Starting App (Pooler URL)..."\nnode server/index.cjs\n' > start.sh && \
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\n\n# 1. Force CommonJS mode (Fixes Negotiator crash)\nif [ -f "server/index.js" ]; then\n  mv server/index.js server/index.cjs\nfi\n\n# 2. Database Tasks: Direct Connection (5432) + Local Source Execution\necho "🚀 Executing DB Migration (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node node_modules/prisma/build/index.js migrate deploy\n\necho "📝 Executing Seed (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\n\n# 3. Start App: Pooler Connection (6543) + Zeabur Config\necho "✅ Starting App (Pooler URL)..."\nnode server/index.cjs\n' > start.sh && \
     chmod +x start.sh
 
 
@@ -79,7 +79,9 @@ COPY server/package.json ./package.json
 # We DO NOT install global prisma or build tools anymore.
 RUN echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
+    # Explicitly install Prisma dependencies (Driver Adapter & CLI)
     npm install prisma@7.3.0 @prisma/adapter-pg@7.3.0 --save-exact --legacy-peer-deps && \
+    # Install runtime utilities
     npm install pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
