@@ -102,6 +102,16 @@ Mac Safari 录制的音频文件（WebM 格式）无法在 iOS Safari 中播放�
 
 ---
 
+## 9. iOS Safari 录音截断修复 (Audio Recording Fix)
+
+*   **🔴 问题**: iOS Safari (AVPlayer) 对 MP4 时间戳要求极其严格。原代码中使用 `recorder.start(100)` 切片录制，导致生成的 MP4 文件包含大量 Fragment，首帧时间戳往往非零（如 0.5s）。iOS 播放时会强制在 0-0.5s 填充静音，导致 6秒 的语音前段静音、后段被截断。
+*   **🟢 我们的方案**:
+    *   **移除 Time Slice**: 修改 `hook.ts`，改为 `recorder.start()`（无参数）。
+    *   **原理**: 让浏览器一次性封装完整的 MP4 文件，确保元数据紧凑且时间戳从 0 开始。
+    *   **结果**: 彻底解决了 iOS 端的“前段导致静音/后段截断”问题，且不影响 PC/Android 兼容性。
+
+---
+
 ## 💡 功能优化说明
 
 关于 **AI 功能增强、插件系统桥接、UI/UX 性能优化** 的具体记录已迁移至：

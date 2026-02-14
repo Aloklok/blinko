@@ -177,7 +177,8 @@ const useAudioRecorder: (
         };
 
         // Set more frequent data collection for better visualization
-        recorder.start(100); // Collect data every 100ms
+        // remove timeslice 100ms to fix iOS safari timestamp bug
+        recorder.start();
         console.log("MediaRecorder started, state:", recorder.state);
 
         setMediaRecorder(recorder);
