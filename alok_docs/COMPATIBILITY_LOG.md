@@ -109,6 +109,7 @@ Mac Safari 录制的音频文件（WebM 格式）无法在 iOS Safari 中播放�
     *   **移除 Time Slice**: 修改 `hook.ts`，改为 `recorder.start()`（无参数）。
     *   **原理**: 让浏览器一次性封装完整的 MP4 文件，确保元数据紧凑且时间戳从 0 开始。
     *   **结果**: 彻底解决了 iOS 端的“前段导致静音/后段截断”问题，且不影响 PC/Android 兼容性。
+    *   **性能优化**: 将 `<audio>` 预加载策略调整为 `preload="metadata"`，消除 iOS 下首个请求的握手延迟（3s+），实现点击即播。
 
 ---
 
