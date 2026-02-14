@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { reaction } from "mobx";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { ThemeProvider } from 'next-themes';
 import { Inspector, InspectParams } from 'react-dev-inspector';
@@ -268,7 +269,15 @@ function App() {
   }
 
   useEffect(() => {
-    RootStore.Get(PluginManagerStore).initInstalledPlugins();
+    return reaction(
+      () => RootStore.Get(UserStore).isLogin,
+      (isLogin) => {
+        if (isLogin) {
+          RootStore.Get(PluginManagerStore).initInstalledPlugins();
+        }
+      },
+      { fireImmediately: true }
+    );
   }, []);
 
   return (

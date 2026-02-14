@@ -21,7 +21,7 @@
     "prisma:generate": "prisma generate --sql --schema=prisma/schema.prisma",
     "prisma:migrate:dev": "cd prisma && prisma migrate dev",
     "prisma:migrate:deploy": "cd prisma && prisma migrate deploy",
-    "prisma:studio": "cd prisma && prisma studio",
+    "prisma:studio": "prisma studio",
     "build:seed": "tsup --config tsup.seed.ts",
     "seed": "bun dist/seed.mjs",
     "build:blinko:types": "tsc -p tsconfig.blinko.json"
