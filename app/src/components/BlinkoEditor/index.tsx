@@ -175,10 +175,15 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
             refresh: true // Ensure list is refreshed after update
           })
           try {
-            const index = blinko.editAttachmentsStorage.list?.findIndex(i => i.id == blinko.curSelectedNote!.id)
-            if (index != -1) {
-              blinko.editAttachmentsStorage.remove(index)
-              blinko.editContentStorage.remove(index)
+            // [FIX] Independently clean up attachment and content storage
+            const attachIndex = blinko.editAttachmentsStorage.list?.findIndex(i => Number(i.id) == Number(blinko.curSelectedNote!.id))
+            if (attachIndex != -1) {
+              blinko.editAttachmentsStorage.remove(attachIndex)
+            }
+
+            const contentIndex = blinko.editContentStorage.list?.findIndex(i => Number(i.id) == Number(blinko.curSelectedNote!.id))
+            if (contentIndex != -1) {
+              blinko.editContentStorage.remove(contentIndex)
             }
           } catch (error) {
             console.error(error)

@@ -265,6 +265,13 @@ export class BlinkoStore implements Store {
       }
 
       refresh && this.updateTicker++
+
+      // [Feature] Smart Polling for AI Tags
+      // If AI Post Processing is enabled, start polling for tags
+      if (res && res.id && this.config.value?.isUseAiPostProcessing) {
+        this.startPolling(res.id);
+      }
+
       return res
     }
   })
@@ -776,6 +783,75 @@ export class BlinkoStore implements Store {
   removeCreateAttachments(file: { name: string, }) {
     this.createAttachmentsStorage.removeByFind(f => f.name === file.name);
     this.updateTicker++;
+  }
+
+  updateLocalList(note: Note) {
+    // Helper to update a note in a specific list
+    const updateList = (list: Note[]) => {
+      const index = list.findIndex(n => n.id === note.id);
+      if (index !== -1) {
+        // In-place update using MobX
+        list[index] = { ...list[index], ...note };
+      }
+    };
+
+    if (this.blinkoList.value) updateList(this.blinkoList.value);
+    if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
+    if (this.todoList.value) updateList(this.todoList.value);
+    if (this.noteList.value) updateList(this.noteList.value);
+    if (this.curSelectedNote?.id === note.id) {
+      this.curSelectedNote = { ...this.curSelectedNote, ...note };
+    }
+  }
+
+  pollingMap = new Map<number, NodeJS.Timeout>();
+
+  startPolling(noteId: number) {
+    this.stopPolling(noteId);
+    let attempts = 0;
+    const maxAttempts = 15; // 30s total (2s interval)
+
+    const timer = setInterval(async () => {
+      attempts++;
+
+      // [Safety Guard] If user is editing this note (has local draft), stop polling immediately
+      // to avoid overwriting their work with server data.
+      const isEditing = this.editContentStorage.list?.some(i => i.id === noteId);
+      if (isEditing || attempts > maxAttempts) {
+        this.stopPolling(noteId);
+        return;
+      }
+
+      try {
+        const freshNote = await api.notes.detail.mutate({ id: noteId }, { context: { skipBatch: true } });
+
+        // Check if tags have been generated (assuming 0 tags initially or just checking if any exist now)
+        // We also check if the fresh note actually has tags. 
+        if (freshNote && freshNote.tags && freshNote.tags.length > 0) {
+          // If we previously had 0 tags, and now we have some, it's an update!
+          // Or if we just want to ensure we get the latest AI tags.
+
+          this.updateLocalList(freshNote as unknown as Note);
+          this.stopPolling(noteId);
+          RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Tags Updated");
+
+          // Update local cache as well
+          db.putNotes([freshNote as unknown as Note]).catch(console.error);
+        }
+      } catch (e) {
+        // Ignore network errors during polling
+        console.warn('Polling error:', e);
+      }
+    }, 2000);
+
+    this.pollingMap.set(noteId, timer);
+  }
+
+  stopPolling(noteId: number) {
+    if (this.pollingMap.has(noteId)) {
+      clearInterval(this.pollingMap.get(noteId));
+      this.pollingMap.delete(noteId);
+    }
   }
 
   updateTagFilter(tagId: number) {

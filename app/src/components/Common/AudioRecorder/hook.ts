@@ -107,6 +107,16 @@ const useAudioRecorder: (
           }
         });
 
+        // [FIX] Check if recording was stopped while waiting for permission (Race Condition)
+        if (hasStoppedRef.current) {
+          console.warn("Recording stopped during initialization, releasing resources...");
+          stream.getTracks().forEach(track => {
+            track.stop();
+            track.enabled = false;
+          });
+          return undefined;
+        }
+
         // Save stream reference for later cleanup
         mediaStreamRef.current = stream;
 
