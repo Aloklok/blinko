@@ -33,7 +33,7 @@ RUN bun run build:web
 RUN bun run build:seed
 
 # Create startup script
-RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\nDATABASE_URL=$DIRECT_URL ./node_modules/.bin/prisma migrate deploy\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\nmv server/index.js server/index.cjs && node server/index.cjs\n' > start.sh && \
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\n\n# 1. Idempotent: Rename index.js to index.cjs if it exists (avoids crash on restart)\nif [ -f "server/index.js" ]; then\n  mv server/index.js server/index.cjs\nfi\n\n# 2. Execute Migration (Direct URL)\necho "🚀 Executing DB Migration (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL npx prisma migrate deploy\n\necho "📝 Executing Seed (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\n\n# 3. Start App (Pooler URL)\necho "✅ Starting App (Pooler URL)..."\nnode server/index.cjs\n' > start.sh && \
     chmod +x start.sh
 
 
