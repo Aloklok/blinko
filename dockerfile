@@ -79,9 +79,7 @@ COPY server/package.json ./package.json
 # We DO NOT install global prisma or build tools anymore.
 RUN echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
-    # We need prisma CLI for 'npx prisma migrate deploy' in start.sh, so we install it locally
     npm install prisma@7.3.0 --save-exact --legacy-peer-deps && \
-    # Add dependencies referenced in start.sh/server if not in package.json
     npm install pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
