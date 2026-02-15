@@ -405,3 +405,17 @@ html:not(.dark) {
   font-weight: 400 !important;
   -webkit-font-smoothing: antialiased;
 }
+/* Fix for HeroUI Switch Input visibility issue (Accessibility Checkbox showing up) */
+/* This input is supposed to be visually hidden but key/screen-reader accessible. */
+input[type="checkbox"][role="switch"][data-react-aria-pressable="true"] {
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: absolute !important;
+  clip: rect(0 0 0 0) !important;
+  margin: -1px !important;
+  pointer-events: none !important;
+  z-index: -10 !important;
+}

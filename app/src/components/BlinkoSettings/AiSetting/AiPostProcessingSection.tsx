@@ -96,22 +96,39 @@ export const AiPostProcessingSection = observer(() => {
                   setAiPostProcessingMode(value);
                   updateConfig('aiPostProcessingMode', value);
                 }}
+                renderValue={(items) => {
+                  return items.map((item) => {
+                    const iconMap: Record<string, string> = {
+                      comment: 'tabler:message',
+                      tags: 'tabler:tags',
+                      smartEdit: 'tabler:robot',
+                      both: 'tabler:analyze',
+                      custom: 'tabler:code',
+                    };
+                    return (
+                      <div key={item.key} className="flex items-center gap-2">
+                        <Icon icon={iconMap[item.key as string]} />
+                        <span>{item.textValue}</span>
+                      </div>
+                    );
+                  });
+                }}
                 size="sm"
                 className="w-[200px]"
               >
-                <SelectItem key="comment" startContent={<Icon icon="tabler:message" />}>
+                <SelectItem key="comment" textValue={t('add-as-comment')} startContent={<Icon icon="tabler:message" />}>
                   {t('add-as-comment')}
                 </SelectItem>
-                <SelectItem key="tags" startContent={<Icon icon="tabler:tags" />}>
+                <SelectItem key="tags" textValue={t('auto-add-tags')} startContent={<Icon icon="tabler:tags" />}>
                   {t('auto-add-tags')}
                 </SelectItem>
-                <SelectItem key="smartEdit" startContent={<Icon icon="tabler:robot" />}>
+                <SelectItem key="smartEdit" textValue={t('smart-edit')} startContent={<Icon icon="tabler:robot" />}>
                   {t('smart-edit')}
                 </SelectItem>
-                <SelectItem key="both" startContent={<Icon icon="tabler:analyze" />}>
+                <SelectItem key="both" textValue={t('both')} startContent={<Icon icon="tabler:analyze" />}>
                   {t('both')}
                 </SelectItem>
-                <SelectItem key="custom" startContent={<Icon icon="tabler:code" />}>
+                <SelectItem key="custom" textValue={t('custom')} startContent={<Icon icon="tabler:code" />}>
                   {t('custom')}
                 </SelectItem>
               </Select>
