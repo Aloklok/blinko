@@ -457,7 +457,7 @@ export class AiService {
           } else {
             tagAgent = await AiModelFactory.TagAgent();
           }
-          const tags = await getAllPathTags(note.accountId ?? 0);
+          const tags = await getAllPathTags(note.accountId ?? 0, true);
           const result = await tagAgent.generate(
             `Existing tags list: [${tags.join(', ')}]\nNote content:\n${note.content}`
           );

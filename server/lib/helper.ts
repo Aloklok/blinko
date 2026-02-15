@@ -208,7 +208,7 @@ export const getTokenFromRequest = async (req: ExpressRequest) => {
   }
 }
 
-export const getAllPathTags = async (accountId: number) => {
+export const getAllPathTags = async (accountId: number, onlyLeaves: boolean = false) => {
   const flattenTags = await prisma.tag.findMany({ where: { accountId } });
   const hasHierarchy = flattenTags.some(tag => tag.parent != null && tag.parent !== 0);
   if (hasHierarchy) {
@@ -236,9 +236,16 @@ export const getAllPathTags = async (accountId: number) => {
 
     const generateTagPaths = (node: any, parentPath = '') => {
       const currentPath = parentPath ? `${parentPath}/${node.name}` : `#${node.name}`;
-      const paths = [currentPath];
+      const paths: string[] = [];
 
-      if (node.children && node.children.length > 0) {
+      const hasChildren = node.children && node.children.length > 0;
+
+      // If NOT only-leaves, OR it's a leaf node, add it.
+      if (!onlyLeaves || !hasChildren) {
+        paths.push(currentPath);
+      }
+
+      if (hasChildren) {
         node.children.forEach((child: any) => {
           const childPaths = generateTagPaths(child, currentPath);
           paths.push(...childPaths);
@@ -264,6 +271,27 @@ export const getAllPathTags = async (accountId: number) => {
       tagSet.add(tagName);
       tagPathMap.set(tagName, `#${tagName}`);
     });
+
+    // If onlyLeaves is true, we should filter out tags that imply a parent relationship
+    // For flat text tags like "A" and "A/B", "A" is a parent of "A/B".
+    if (onlyLeaves) {
+      const sortedTags = [...tagSet].sort();
+      const leafTags: string[] = [];
+
+      // Simple heuristic: if "A" and "A/B" exist, "A/B" starts with "A/".
+      for (let i = 0; i < sortedTags.length; i++) {
+        const current = sortedTags[i];
+        const next = sortedTags[i + 1];
+
+        // If next exists and starts with current + '/', then current is a parent.
+        if (next && next.startsWith(current + '/')) {
+          continue; // Skip current (parent)
+        }
+        leafTags.push(`#${current}`);
+      }
+      return leafTags;
+    }
+
     const pathTags: string[] = [];
     tagSet.forEach((tag: string) => {
       pathTags.push(`#${tag}`);

@@ -182,7 +182,7 @@ export const aiRouter = router({
       const config = await AiModelFactory.globalConfig();
       const { content } = input
       const tagAgent = await AiModelFactory.TagAgent(config.aiTagsPrompt || undefined);
-      const tags = await getAllPathTags(Number(ctx.id));
+      const tags = await getAllPathTags(Number(ctx.id), true);
       const result = await tagAgent.generate(
         `Existing tags list: [${tags.join(', ')}]\nNote content: ${content}\nPlease suggest appropriate tags for this content. Include full hierarchical paths for tags like #Parent/Child instead of just #Child.`
       )
