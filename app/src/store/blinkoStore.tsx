@@ -404,9 +404,18 @@ export class BlinkoStore extends Store {
   constructor() {
     super()
     makeAutoObservable(this)
-    eventBus.on('user:signout', () => {
-      this.clear()
-    })
+  }
+
+  use() {
+    useEffect(() => {
+      const handleSignout = () => {
+        this.clear()
+      }
+      eventBus.on('user:signout', handleSignout)
+      return () => {
+        eventBus.off('user:signout', handleSignout)
+      }
+    }, [])
   }
 
   removeCreateAttachments(file: { name: string, }) {
