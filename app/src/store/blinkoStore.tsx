@@ -402,6 +402,7 @@ export class BlinkoStore extends Store {
   settingsSearchText: string = '';
 
   constructor() {
+    super()
     makeAutoObservable(this)
     eventBus.on('user:signout', () => {
       this.clear()
