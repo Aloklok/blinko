@@ -6,15 +6,19 @@ import { Feed } from "feed";
 import jwt from 'jsonwebtoken';
 import { prisma } from "@server/prisma";
 import { User } from "@server/context";
-import { Request as ExpressRequest } from 'express';
-import { getGlobalConfig } from "@server/routerTrpc/config";
+// import { getGlobalConfig } from "@server/routerTrpc/config";
 import { uint8ArrayToBase64, uint8ArrayToHex } from 'uint8array-extras';
 
 export const SendWebhook = async (data: any, webhookType: string, ctx: any) => {
   try {
-    const globalConfig = await getGlobalConfig({ ctx })
-    if (globalConfig.webhookEndpoint) {
-      await ServerFetch.post(globalConfig.webhookEndpoint, { data, webhookType, activityType: `blinko.note.${webhookType}` })
+    const configItem = await prisma.config.findFirst({ where: { key: 'webhookEndpoint' } });
+    if (!configItem) return;
+
+    // @ts-ignore
+    const webhookEndpoint = configItem.config?.value as string;
+
+    if (webhookEndpoint) {
+      await ServerFetch.post(webhookEndpoint, { data, webhookType, activityType: `blinko.note.${webhookType}` })
     }
   } catch (error) {
     console.log('request webhook error:', error)
