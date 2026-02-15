@@ -18,6 +18,7 @@ import { StorageState } from './standard/StorageState';
 import _ from '@/lib/lodash';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { db } from '@/lib/db';
+import dayjs from '@/lib/dayjs';
 
 type filterType = {
   label: string;
@@ -269,7 +270,7 @@ export class BlinkoStore implements Store {
       // [Feature] Smart Polling for AI Tags
       // If AI Post Processing is enabled, start polling for tags
       if (res && res.id && this.config.value?.isUseAiPostProcessing) {
-        this.startPolling(res.id);
+        this.startPolling(res.id, res.updatedAt);
       }
 
       return res
