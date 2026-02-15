@@ -31,6 +31,20 @@ export const FilterType: filterType[] = [
   { label: 'blinko', value: 1 },
 ];
 
+type UpsertNoteParams = {
+  id?: number,
+  content?: string,
+  type?: NoteType,
+  isArchived?: boolean,
+  isTop?: boolean,
+  attachments?: Array<{ name: string, path: string, size?: number, type?: string }>,
+  references?: number[],
+  metadata?: any,
+  date?: Date,
+  refresh?: boolean
+}
+
+
 export class BlinkoStore extends Store {
   noteContent: string = '';
   // isCreateMode: boolean = true;
@@ -244,251 +258,240 @@ export class BlinkoStore extends Store {
     this.noteList.resetAndCall({});
   }
 
-  type UpsertNoteParams = {
-    id?: number,
-    content?: string,
-    type?: NoteType,
-    isArchived?: boolean,
-    isTop?: boolean,
-    attachments?: Array<{ name: string, path: string, size?: number, type?: string }>,
-    references?: number[],
-    metadata?: any,
-    date?: Date,
-    refresh?: boolean
-  }
 
-upsertNote = new PromiseState({
-  eventKey: 'upsertNote',
-  function: async (params: UpsertNoteParams) => {
-    const { id, content, type, isArchived, isTop, attachments, references, metadata, date, refresh = true } = params
-    const res = await api.notes.upsert.mutate({
-      id,
-      content,
-      // @ts-ignore
-      type,
-      isArchived,
-      isTop,
-      attachments,
-      references,
-      metadata: metadata ? JSON.stringify(metadata) : undefined,
-      date
-    });
-    eventBus.emit('editor:clear')
-    showToast && RootStore.Get(ToastPlugin).success(id ? i18n.t("update-successfully") : i18n.t("create-successfully"))
 
-    if (id) {
-      // Fix: Ensure all lists are updated to reflect the changes, especially for archive/top status
-      this.updateLocalNote(res as unknown as Note);
-      // Refresh detail view if open
-      if (this.curSelectedNote?.id === id) {
-        const detail = await api.notes.detail.mutate({ id });
-        this.curSelectedNote = detail as unknown as Note;
+  upsertNote = new PromiseState({
+    eventKey: 'upsertNote',
+    function: async (params: UpsertNoteParams) => {
+      const { id, content, type, isArchived, isTop, attachments, references, metadata, date, refresh = true } = params
+      const res = await api.notes.upsert.mutate({
+        id,
+        content,
+        // @ts-ignore
+        type,
+        isArchived,
+        isTop,
+        attachments,
+        references,
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        date
+      });
+      eventBus.emit('editor:clear')
+      showToast && RootStore.Get(ToastPlugin).success(id ? i18n.t("update-successfully") : i18n.t("create-successfully"))
+
+      if (id) {
+        // Fix: Ensure all lists are updated to reflect the changes, especially for archive/top status
+        this.updateLocalNote(res as unknown as Note);
+        // Refresh detail view if open
+        if (this.curSelectedNote?.id === id) {
+          const detail = await api.notes.detail.mutate({ id });
+          this.curSelectedNote = detail as unknown as Note;
+        }
       }
-    }
 
-    refresh && this.updateTicker++
+      refresh && this.updateTicker++
 
-    // [Feature] Smart Polling for AI Tags
-    // If AI Post Processing is enabled, start polling for tags
-    if (res && res.id && this.config.value?.isUseAiPostProcessing) {
-      this.startPolling(res.id, res.updatedAt);
-    }
-
-    return res
-  }
-})
-
-updateLocalNote(note: Note) {
-  const updateList = (list: Note[]) => {
-    const index = list?.findIndex(i => i.id === note.id);
-    if (index !== -1 && list) {
-      list[index] = { ...list[index], ...note };
-    }
-  }
-
-  if (this.blinkoList.value) updateList(this.blinkoList.value);
-  if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
-  if (this.todoList.value) updateList(this.todoList.value);
-  if (this.noteList.value) updateList(this.noteList.value);
-  if (this.curSelectedNote?.id === note.id) {
-    this.curSelectedNote = { ...this.curSelectedNote, ...note };
-  }
-}
-
-deleteNote = new PromiseState({
-  function: async (id: number) => {
-    await api.notes.delete.mutate({ id });
-    RootStore.Get(ToastPlugin).success(i18n.t("delete-successfully"))
-    this.updateTicker++
-  }
-})
-
-clear() {
-  this.noteContent = ''
-  this.createContentStorage.clear()
-  this.createAttachmentsStorage.clear()
-  this.editContentStorage.clear()
-  this.editAttachmentsStorage.clear()
-}
-
-forceQuery: number = 0;
-
-useQuery() {
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-
-  useEffect(() => {
-    const type = searchParams.get('type')
-    const tagId = searchParams.get('tagId')
-    const startAt = searchParams.get('startAt')
-    const endAt = searchParams.get('endAt')
-    const isArchived = searchParams.get('isArchived')
-    const isOffline = searchParams.get('isOffline')
-    const withLink = searchParams.get('withLink')
-    const withFile = searchParams.get('withFile')
-    const hasTodo = searchParams.get('hasTodo')
-    const searchText = searchParams.get('searchText')
-
-    // reset filter
-    this.noteListFilterConfig = {
-      type: -1
-    }
-    this.searchText = ''
-
-    if (type) {
-      this.noteListFilterConfig.type = Number(type)
-    }
-    if (tagId) {
-      this.noteListFilterConfig.tagId = Number(tagId)
-    }
-    if (startAt && endAt) {
-      this.noteListFilterConfig.dateRange = {
-        from: new Date(Number(startAt)),
-        to: new Date(Number(endAt))
+      // [Feature] Smart Polling for AI Tags
+      // If AI Post Processing is enabled, start polling for tags
+      if (res && res.id && this.config.value?.isUseAiPostProcessing) {
+        this.startPolling(res.id, res.updatedAt);
       }
-    }
-    if (isArchived) {
-      this.noteListFilterConfig.isArchived = true
-    }
-    if (isOffline) {
-      this.noteListFilterConfig.isOffline = true
-    }
-    if (withLink) {
-      this.noteListFilterConfig.withLink = true
-    }
-    if (withFile) {
-      this.noteListFilterConfig.withFile = true
-    }
-    if (hasTodo) {
-      this.noteListFilterConfig.hasTodo = true
-    }
-    if (searchText) {
-      this.searchText = searchText as string;
-    } else {
-      this.searchText = '';
-    }
-  }, [this.forceQuery, location.pathname, searchParams])
-}
 
-excludeEmbeddingTagId: number | null = null;
-
-setExcludeEmbeddingTagId(tagId: number | null) {
-  this.excludeEmbeddingTagId = tagId;
-}
-
-settingsSearchText: string = '';
-
-constructor() {
-  makeAutoObservable(this)
-  eventBus.on('user:signout', () => {
-    this.clear()
+      return res
+    }
   })
-}
 
-removeCreateAttachments(file: { name: string, }) {
-  this.createAttachmentsStorage.removeByFind(f => f.name === file.name);
-  this.updateTicker++;
-}
-
-updateLocalList(note: Note) {
-  // Helper to update a note in a specific list
-  const updateList = (list: Note[]) => {
-    const index = list.findIndex(n => n.id === note.id);
-    if (index !== -1) {
-      // In-place update using MobX
-      list[index] = { ...list[index], ...note };
-    }
-  };
-
-  if (this.blinkoList.value) updateList(this.blinkoList.value);
-  if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
-  if (this.todoList.value) updateList(this.todoList.value);
-  if (this.noteList.value) updateList(this.noteList.value);
-  if (this.curSelectedNote?.id === note.id) {
-    this.curSelectedNote = { ...this.curSelectedNote, ...note };
-  }
-}
-
-pollingMap = new Map<number, NodeJS.Timeout>();
-
-startPolling(noteId: number, initialUpdatedAt ?: Date | string) {
-  this.stopPolling(noteId);
-  let attempts = 0;
-  const maxAttempts = 15; // 30s total (2s interval)
-
-  const timer = setInterval(async () => {
-    attempts++;
-
-    // [Safety Guard] If user is editing this note (has local draft), stop polling immediately
-    // to avoid overwriting their work with server data.
-    const isEditing = this.editContentStorage.list?.some(i => i.id === noteId);
-    if (isEditing || attempts > maxAttempts) {
-      this.stopPolling(noteId);
-      return;
-    }
-
-    try {
-      const freshNote = await api.notes.detail.mutate({ id: noteId }, { context: { skipBatch: true } });
-
-      // Robust Check: Has the note been updated since we started polling?
-      // We compare updatedAt timestamps. If freshNote.updatedAt is newer than the initial upsert time,
-      // it means the AI (or another process) has modified the note.
-      // We also check for tags to be sure, although the timestamp change is the strong signal.
-      const hasNewerTimestamp = initialUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(initialUpdatedAt)) : false;
-      const hasTags = freshNote && freshNote.tags && freshNote.tags.length > 0;
-
-      // If we have a newer timestamp AND tags, it's definitely an AI update.
-      // If we didn't have an initial timestamp (legacy call), fallback to just checking tags.
-      if ((hasNewerTimestamp && hasTags) || (!initialUpdatedAt && hasTags)) {
-        // It's an update!
-        this.updateLocalList(freshNote as unknown as Note);
-        this.stopPolling(noteId);
-        RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Tags Updated");
-
-        // Update local cache as well
-        db.putNotes([freshNote as unknown as Note]).catch(console.error);
+  updateLocalNote(note: Note) {
+    const updateList = (list: Note[]) => {
+      const index = list?.findIndex(i => i.id === note.id);
+      if (index !== -1 && list) {
+        list[index] = { ...list[index], ...note };
       }
-    } catch (e) {
-      // Ignore network errors during polling
-      console.warn('Polling error:', e);
     }
-  }, 2000);
 
-  this.pollingMap.set(noteId, timer);
-}
-
-stopPolling(noteId: number) {
-  if (this.pollingMap.has(noteId)) {
-    clearInterval(this.pollingMap.get(noteId));
-    this.pollingMap.delete(noteId);
+    if (this.blinkoList.value) updateList(this.blinkoList.value);
+    if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
+    if (this.todoList.value) updateList(this.todoList.value);
+    if (this.noteList.value) updateList(this.noteList.value);
+    if (this.curSelectedNote?.id === note.id) {
+      this.curSelectedNote = { ...this.curSelectedNote, ...note };
+    }
   }
-}
 
-updateTagFilter(tagId: number) {
-  this.noteListFilterConfig.tagId = tagId;
-  this.noteListFilterConfig.type = -1
-  this.noteList.resetAndCall({});
-}
+  deleteNote = new PromiseState({
+    function: async (id: number) => {
+      await api.notes.delete.mutate({ id });
+      RootStore.Get(ToastPlugin).success(i18n.t("delete-successfully"))
+      this.updateTicker++
+    }
+  })
+
+  clear() {
+    this.noteContent = ''
+    this.createContentStorage.clear()
+    this.createAttachmentsStorage.clear()
+    this.editContentStorage.clear()
+    this.editAttachmentsStorage.clear()
+  }
+
+  forceQuery: number = 0;
+
+  useQuery() {
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+
+    useEffect(() => {
+      const type = searchParams.get('type')
+      const tagId = searchParams.get('tagId')
+      const startAt = searchParams.get('startAt')
+      const endAt = searchParams.get('endAt')
+      const isArchived = searchParams.get('isArchived')
+      const isOffline = searchParams.get('isOffline')
+      const withLink = searchParams.get('withLink')
+      const withFile = searchParams.get('withFile')
+      const hasTodo = searchParams.get('hasTodo')
+      const searchText = searchParams.get('searchText')
+
+      // reset filter
+      this.noteListFilterConfig = {
+        type: -1
+      }
+      this.searchText = ''
+
+      if (type) {
+        this.noteListFilterConfig.type = Number(type)
+      }
+      if (tagId) {
+        this.noteListFilterConfig.tagId = Number(tagId)
+      }
+      if (startAt && endAt) {
+        this.noteListFilterConfig.dateRange = {
+          from: new Date(Number(startAt)),
+          to: new Date(Number(endAt))
+        }
+      }
+      if (isArchived) {
+        this.noteListFilterConfig.isArchived = true
+      }
+      if (isOffline) {
+        this.noteListFilterConfig.isOffline = true
+      }
+      if (withLink) {
+        this.noteListFilterConfig.withLink = true
+      }
+      if (withFile) {
+        this.noteListFilterConfig.withFile = true
+      }
+      if (hasTodo) {
+        this.noteListFilterConfig.hasTodo = true
+      }
+      if (searchText) {
+        this.searchText = searchText as string;
+      } else {
+        this.searchText = '';
+      }
+    }, [this.forceQuery, location.pathname, searchParams])
+  }
+
+  excludeEmbeddingTagId: number | null = null;
+
+  setExcludeEmbeddingTagId(tagId: number | null) {
+    this.excludeEmbeddingTagId = tagId;
+  }
+
+  settingsSearchText: string = '';
+
+  constructor() {
+    makeAutoObservable(this)
+    eventBus.on('user:signout', () => {
+      this.clear()
+    })
+  }
+
+  removeCreateAttachments(file: { name: string, }) {
+    this.createAttachmentsStorage.removeByFind(f => f.name === file.name);
+    this.updateTicker++;
+  }
+
+  updateLocalList(note: Note) {
+    // Helper to update a note in a specific list
+    const updateList = (list: Note[]) => {
+      const index = list.findIndex(n => n.id === note.id);
+      if (index !== -1) {
+        // In-place update using MobX
+        list[index] = { ...list[index], ...note };
+      }
+    };
+
+    if (this.blinkoList.value) updateList(this.blinkoList.value);
+    if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
+    if (this.todoList.value) updateList(this.todoList.value);
+    if (this.noteList.value) updateList(this.noteList.value);
+    if (this.curSelectedNote?.id === note.id) {
+      this.curSelectedNote = { ...this.curSelectedNote, ...note };
+    }
+  }
+
+  pollingMap = new Map<number, NodeJS.Timeout>();
+
+  startPolling(noteId: number, initialUpdatedAt?: Date | string) {
+    this.stopPolling(noteId);
+    let attempts = 0;
+    const maxAttempts = 15; // 30s total (2s interval)
+
+    const timer = setInterval(async () => {
+      attempts++;
+
+      // [Safety Guard] If user is editing this note (has local draft), stop polling immediately
+      // to avoid overwriting their work with server data.
+      const isEditing = this.editContentStorage.list?.some(i => i.id === noteId);
+      if (isEditing || attempts > maxAttempts) {
+        this.stopPolling(noteId);
+        return;
+      }
+
+      try {
+        const freshNote = await api.notes.detail.mutate({ id: noteId }, { context: { skipBatch: true } });
+
+        // Robust Check: Has the note been updated since we started polling?
+        // We compare updatedAt timestamps. If freshNote.updatedAt is newer than the initial upsert time,
+        // it means the AI (or another process) has modified the note.
+        // We also check for tags to be sure, although the timestamp change is the strong signal.
+        const hasNewerTimestamp = initialUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(initialUpdatedAt)) : false;
+        const hasTags = freshNote && freshNote.tags && freshNote.tags.length > 0;
+
+        // If we have a newer timestamp AND tags, it's definitely an AI update.
+        // If we didn't have an initial timestamp (legacy call), fallback to just checking tags.
+        if ((hasNewerTimestamp && hasTags) || (!initialUpdatedAt && hasTags)) {
+          // It's an update!
+          this.updateLocalList(freshNote as unknown as Note);
+          this.stopPolling(noteId);
+          RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Tags Updated");
+
+          // Update local cache as well
+          db.putNotes([freshNote as unknown as Note]).catch(console.error);
+        }
+      } catch (e) {
+        // Ignore network errors during polling
+        console.warn('Polling error:', e);
+      }
+    }, 2000);
+
+    this.pollingMap.set(noteId, timer);
+  }
+
+  stopPolling(noteId: number) {
+    if (this.pollingMap.has(noteId)) {
+      clearInterval(this.pollingMap.get(noteId));
+      this.pollingMap.delete(noteId);
+    }
+  }
+
+  updateTagFilter(tagId: number) {
+    this.noteListFilterConfig.tagId = tagId;
+    this.noteListFilterConfig.type = -1
+    this.noteList.resetAndCall({});
+  }
 }
 
 export const showToast = true;
