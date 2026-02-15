@@ -439,11 +439,20 @@ export class BlinkoStore extends Store {
     let attempts = 0;
     const maxAttempts = 15; // 30s total (2s interval)
 
+    // Capture initial state from local store if possible
+    const getLocalNote = () => {
+      return this.blinkoList.value?.find(n => n.id === noteId) ||
+        this.noteList.value?.find(n => n.id === noteId) ||
+        this.todayNoteList.value?.find(n => n.id === noteId); // Also check today list
+    }
+    const localNote = getLocalNote();
+    const initialTagCount = localNote?.tags?.length || 0;
+    const initialContentLength = localNote?.content?.length || 0;
+
     const timer = setInterval(async () => {
       attempts++;
 
       // [Safety Guard] If user is editing this note (has local draft), stop polling immediately
-      // to avoid overwriting their work with server data.
       const isEditing = this.editContentStorage.list?.some(i => i.id === noteId);
       if (isEditing || attempts > maxAttempts) {
         this.stopPolling(noteId);
@@ -453,20 +462,29 @@ export class BlinkoStore extends Store {
       try {
         const freshNote = await api.notes.detail.mutate({ id: noteId }, { context: { skipBatch: true } });
 
-        // Robust Check: Has the note been updated since we started polling?
-        // We compare updatedAt timestamps. If freshNote.updatedAt is newer than the initial upsert time,
-        // it means the AI (or another process) has modified the note.
-        // We also check for tags to be sure, although the timestamp change is the strong signal.
-        const hasNewerTimestamp = initialUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(initialUpdatedAt)) : false;
-        const hasTags = freshNote && freshNote.tags && freshNote.tags.length > 0;
+        if (!freshNote) return;
 
-        // If we have a newer timestamp AND tags, it's definitely an AI update.
-        // If we didn't have an initial timestamp (legacy call), fallback to just checking tags.
-        if ((hasNewerTimestamp && hasTags) || (!initialUpdatedAt && hasTags)) {
+        // Enhanced Polling Logic:
+        // 1. Timestamp check (Standard)
+        const hasNewerTimestamp = initialUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(initialUpdatedAt)) : false;
+
+        // 2. Content check (Did AI append text?)
+        const hasContentChange = (freshNote.content?.length || 0) !== initialContentLength;
+
+        // 3. Tag check (Did AI add tags? - MOST CRITICAL)
+        const currentTagCount = freshNote.tags?.length || 0;
+        const hasTagChange = currentTagCount !== initialTagCount;
+
+        // Combined Trigger
+        if (hasNewerTimestamp || hasContentChange || hasTagChange) {
           // It's an update!
           this.updateLocalList(freshNote as unknown as Note);
-          this.stopPolling(noteId);
-          RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Tags Updated");
+          this.stopPolling(noteId); // Stop purely because we found AN update. 
+
+          // Force a small delay then notify ensuring React renders
+          setTimeout(() => {
+            RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Content Updated");
+          }, 100);
 
           // Update local cache as well
           db.putNotes([freshNote as unknown as Note]).catch(console.error);
