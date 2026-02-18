@@ -403,7 +403,6 @@ export class BlinkoStore extends Store {
 
   constructor() {
     super()
-    makeAutoObservable(this)
   }
 
   use() {
