@@ -103,14 +103,14 @@ export class BlinkoStore extends Store {
 
   config = new PromiseState({
     function: async () => {
-      const res = await api.user.config.query();
+      const res = await api.config.list.query();
       return res;
     }
   });
 
   setConfig = new PromiseState({
     function: async (data: any) => {
-      await api.user.setConfig.mutate(data);
+      await api.config.update.mutate(data);
       this.config.call();
     }
   })
