@@ -20,10 +20,11 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
 const getPluginRootDir = () => {
-  if (process.env.NODE_ENV !== 'production' && process.cwd().endsWith('server')) {
-    return path.join(process.cwd(), '../plugins');
+  const cwd = process.cwd();
+  if (cwd.endsWith('server')) {
+    return path.join(cwd, '../plugins');
   }
-  return path.join(process.cwd(), 'plugins');
+  return path.join(cwd, 'plugins');
 }
 
 /**
@@ -352,6 +353,14 @@ export const pluginRouter = router({
 
       // Create plugin directory and download files
       await ensureDirectoryExists(pluginDir);
+
+      if (!input.url) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Plugin installation URL is missing in metadata.'
+        });
+      }
+
       const releaseUrl = `${input.url}/releases/download/v${input.version}/release.zip`;
 
       // Use retry mechanism for download

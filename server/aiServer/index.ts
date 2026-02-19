@@ -133,7 +133,7 @@ export class AiService {
               ...(note?.metadata || {}),
               isIndexed: true,
             },
-            updatedAt,
+            // updatedAt, // Remove this to avoid triggering frontend refresh for background indexing
           },
         });
       } catch (error) {
@@ -438,12 +438,15 @@ export class AiService {
           },
         });
 
+        // Notification will be consolidated and handled by frontend polling to avoid duplication
+        /*
         await CreateNotification({
           accountId: note.accountId ?? 0,
           title: 'ai-post-processing-notification',
           content: 'ai-processed-your-note',
           type: NotificationType.COMMENT,
         });
+        */
       }
 
       if (processingMode === 'tags' || processingMode === 'both') {
