@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { Store } from './standard/base';
 import { StorageState } from './standard/StorageState';
-import { makeAutoObservable } from 'mobx';
+import { makeObservable, observable, computed } from 'mobx';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from 'usehooks-ts';
@@ -9,7 +9,18 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 export class BaseStore implements Store {
   sid = 'BaseStore';
   constructor() {
-    makeAutoObservable(this);
+    makeObservable(this, {
+      routerList: observable,
+      currentRouter: observable,
+      currentQuery: observable,
+      currentTitle: observable,
+      documentHeight: observable,
+      isOnline: observable,
+      isResizing: observable,
+      isDragging: observable,
+      isSidebarCollapsed: computed,
+      sideBarWidth: computed,
+    });
   }
   routerList = [
     {

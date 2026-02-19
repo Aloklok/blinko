@@ -46,6 +46,8 @@ class FontManagerClass {
   private observer: MutationObserver | null = null;
   private currentFontFamily: string = '';
 
+  private observerStarted: boolean = false;
+
   private constructor() {
     // Initialize with default font
     this.loadedFonts.set('default', {
@@ -54,40 +56,38 @@ class FontManagerClass {
       loading: false,
       error: null,
     });
-    
-    // Setup MutationObserver to watch for new markdown-body elements
-    this.setupMutationObserver();
+    // MutationObserver 延迟到首次 applyFont() 时启动，避免首屏 DOM 高频变更时的额外开销
   }
-  
+
   /**
    * Setup MutationObserver to automatically apply font to new markdown-body elements
    */
   private setupMutationObserver(): void {
     if (typeof window === 'undefined' || !window.MutationObserver) return;
-    
+
     // Use a debounce mechanism to avoid excessive DOM queries
     let debounceTimer: number | null = null;
     this.observer = new MutationObserver((mutations) => {
       if (!this.currentFontFamily) return;
-      
+
       // Debounce: batch DOM updates
       if (debounceTimer) {
         clearTimeout(debounceTimer);
       }
-      
+
       debounceTimer = window.setTimeout(() => {
         const elementsToUpdate: HTMLElement[] = [];
-        
+
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as HTMLElement;
-              
+
               // Check if the added node is a markdown-body
               if (element.classList?.contains('markdown-body')) {
                 elementsToUpdate.push(element);
               }
-              
+
               // Check for markdown-body descendants
               const markdownBodies = element.querySelectorAll?.('.markdown-body');
               markdownBodies?.forEach((mb) => {
@@ -96,14 +96,14 @@ class FontManagerClass {
             }
           });
         });
-        
+
         // Batch apply font family
         elementsToUpdate.forEach((el) => {
           el.style.fontFamily = this.currentFontFamily;
         });
       }, 50); // 50ms debounce
     });
-    
+
     // Start observing
     if (document.body) {
       this.observer.observe(document.body, {
@@ -130,7 +130,7 @@ class FontManagerClass {
       }, 100);
     }
   }
-  
+
   /**
    * Get singleton instance
    */
@@ -230,7 +230,7 @@ class FontManagerClass {
       if (fontConfig.isLocal) {
         // Fetch binary data from API (lazy loading)
         const fontData = await api.fonts.getFontData.query({ name: fontName });
-        
+
         if (fontData.fileData) {
           await this.loadFontFromBinaryData(fontName, fontData.fileData, fontConfig.weights);
         } else {
@@ -271,8 +271,8 @@ class FontManagerClass {
    * Converts the binary data to a Blob URL and uses FontFace API
    */
   private async loadFontFromBinaryData(
-    fontName: string, 
-    fileData: string, 
+    fontName: string,
+    fileData: string,
     weights: number[]
   ): Promise<void> {
     // Check if already injected
@@ -291,13 +291,13 @@ class FontManagerClass {
 
     // Detect font format from magic bytes
     const format = this.detectFontFormat(binaryData);
-    
+
     // Create a Blob from the binary data
-    const mimeType = format === 'woff2' ? 'font/woff2' : 
-                     format === 'woff' ? 'font/woff' : 
-                     format === 'ttf' ? 'font/ttf' : 
-                     'font/opentype';
-    
+    const mimeType = format === 'woff2' ? 'font/woff2' :
+      format === 'woff' ? 'font/woff' :
+        format === 'ttf' ? 'font/ttf' :
+          'font/opentype';
+
     // Create Blob directly from existing Uint8Array
     const blob = new Blob([binaryData], { type: mimeType });
     const blobUrl = URL.createObjectURL(blob);
@@ -367,7 +367,7 @@ class FontManagerClass {
 
     // TTF: starts with 0x00010000 or 'true' (0x74727565)
     if ((data[0] === 0x00 && data[1] === 0x01 && data[2] === 0x00 && data[3] === 0x00) ||
-        (data[0] === 0x74 && data[1] === 0x72 && data[2] === 0x75 && data[3] === 0x65)) {
+      (data[0] === 0x74 && data[1] === 0x72 && data[2] === 0x75 && data[3] === 0x65)) {
       return 'ttf';
     }
 
@@ -398,10 +398,10 @@ class FontManagerClass {
       link.rel = 'stylesheet';
       link.href = url;
       link.setAttribute('data-font', fontName);
-      
+
       link.onload = () => resolve();
       link.onerror = () => reject(new Error(`Failed to load stylesheet for font: ${fontName}`));
-      
+
       document.head.appendChild(link);
     });
   }
@@ -411,7 +411,7 @@ class FontManagerClass {
    */
   private async waitForFontAvailable(fontName: string, timeout: number = 5000): Promise<void> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       // Use document.fonts API to check if font is loaded
       if (document.fonts) {
@@ -421,7 +421,7 @@ class FontManagerClass {
             return;
           }
         }
-        
+
         // Also try checking with document.fonts.check
         try {
           if (document.fonts.check(`16px "${fontName}"`)) {
@@ -431,11 +431,11 @@ class FontManagerClass {
           // Ignore check errors
         }
       }
-      
+
       // Wait a bit before checking again
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     // Font might still work even if we can't confirm it's loaded
     console.warn(`FontManager: Timeout waiting for font "${fontName}" to load; continuing without confirmed load status (font may not be applied correctly)`);
   }
@@ -445,7 +445,7 @@ class FontManagerClass {
    */
   private async waitForFontLoad(fontName: string, timeout: number = 10000): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       const state = this.loadedFonts.get(fontName);
       if (state?.loaded) {
@@ -456,7 +456,7 @@ class FontManagerClass {
       }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     return false;
   }
 
@@ -469,66 +469,73 @@ class FontManagerClass {
       this.currentFontFamily = '';
       document.body.style.fontFamily = '';
       document.documentElement.style.setProperty('--font-family', '');
-      
+
       // Clear font from all elements
       const expandedContainers = document.querySelectorAll('.expanded-container');
       expandedContainers.forEach((container) => {
         (container as HTMLElement).style.fontFamily = '';
       });
-      
+
       const markdownBodies = document.querySelectorAll('.markdown-body');
       markdownBodies.forEach((element) => {
         (element as HTMLElement).style.fontFamily = '';
       });
-      
+
       // Clear font from vditor elements
       this.applyFontToVditor('');
-      
+
       this.currentFont = 'default';
       return true;
     }
-    
+
     // Get font config to build font family string
     const fontConfig = this.fontRegistry.get(fontName);
     if (!fontConfig) {
       console.warn(`FontManager: Font "${fontName}" not found in registry`);
       return false;
     }
-    
+
     const fallback = this.getFallbackStack(fontConfig.category || 'sans-serif');
     const fontFamily = `"${fontName}", ${fallback}`;
-    
-    // ⚡ IMMEDIATE: Apply font name right away (browser will use fallback until font loads)
+
+    // 更新内部状态（同步）
     this.currentFontFamily = fontFamily;
     this.currentFont = fontName;
-    
-    // Apply to document body immediately
-    document.body.style.fontFamily = fontFamily;
-    
-    // Apply to CSS variable for global use
-    document.documentElement.style.setProperty('--font-family', fontFamily);
-    
-    // Apply to all existing elements immediately
-    const expandedContainers = document.querySelectorAll('.expanded-container');
-    expandedContainers.forEach((container) => {
-      (container as HTMLElement).style.fontFamily = fontFamily;
+
+    // 将 DOM 写入延迟到下一帧，减少首屏 reflow
+    requestAnimationFrame(() => {
+      // Apply to document body
+      document.body.style.fontFamily = fontFamily;
+
+      // Apply to CSS variable for global use
+      document.documentElement.style.setProperty('--font-family', fontFamily);
+
+      // Apply to all existing elements
+      const expandedContainers = document.querySelectorAll('.expanded-container');
+      expandedContainers.forEach((container) => {
+        (container as HTMLElement).style.fontFamily = fontFamily;
+      });
+
+      const markdownBodies = document.querySelectorAll('.markdown-body');
+      markdownBodies.forEach((element) => {
+        (element as HTMLElement).style.fontFamily = fontFamily;
+      });
+
+      // Apply to vditor elements
+      this.applyFontToVditor(fontFamily);
     });
-    
-    const markdownBodies = document.querySelectorAll('.markdown-body');
-    markdownBodies.forEach((element) => {
-      (element as HTMLElement).style.fontFamily = fontFamily;
-    });
-    
-    // Apply to vditor elements
-    this.applyFontToVditor(fontFamily);
-    
+
+    // 懒启动 MutationObserver（仅在首次 applyFont 时）
+    if (!this.observerStarted) {
+      this.observerStarted = true;
+      this.setupMutationObserver();
+    }
+
     // 🔄 BACKGROUND: Load font asynchronously (browser will switch when ready)
-    // Don't wait for this - let it happen in background
     this.loadFont(fontName).catch((error) => {
       console.warn(`FontManager: Background font load failed for "${fontName}":`, error);
-      // Font name is already applied, so fallback will be used
     });
-    
+
     return true;
   }
 
@@ -541,7 +548,7 @@ class FontManagerClass {
     vditorElements.forEach((element) => {
       (element as HTMLElement).style.fontFamily = fontFamily;
     });
-    
+
     // Also apply to vditor input areas
     const vditorInputs = document.querySelectorAll('.vditor-input, .vditor-ir__editor, .vditor-sv__editor, .vditor-wysiwyg__editor');
     vditorInputs.forEach((element) => {
@@ -602,7 +609,7 @@ class FontManagerClass {
         el.remove();
       }
     });
-    
+
     // Reset loaded fonts map
     this.loadedFonts.clear();
     this.loadedFonts.set('default', {

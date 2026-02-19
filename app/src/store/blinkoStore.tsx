@@ -11,7 +11,7 @@ import i18n from '@/lib/i18n';
 import { api } from '@/lib/trpc';
 import { Attachment, NoteType, type Note } from '@shared/lib/types';
 import { ARCHIVE_BLINKO_TASK_NAME, DBBAK_TASK_NAME } from '@shared/lib/sharedConstant';
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, makeObservable, observable, action, computed } from 'mobx';
 import { UserStore } from './user';
 import { BaseStore } from './baseStore';
 import { StorageState } from './standard/StorageState';
@@ -118,7 +118,7 @@ export class BlinkoStore extends Store {
   blinkoList = new PromisePageState({
     key: 'blinkoList',
     function: async (data) => {
-      const res = await api.notes.list.query({ ...data, type: 0 });
+      const res = await api.notes.list.mutate({ ...data, type: 0 });
       return res;
     }
   });
@@ -126,7 +126,7 @@ export class BlinkoStore extends Store {
   noteOnlyList = new PromisePageState({
     key: 'noteOnlyList',
     function: async (data) => {
-      const res = await api.notes.list.query({ ...data, type: 1 });
+      const res = await api.notes.list.mutate({ ...data, type: 1 });
       return res;
     }
   });
@@ -134,7 +134,7 @@ export class BlinkoStore extends Store {
   todoList = new PromisePageState({
     key: 'todoList',
     function: async (data) => {
-      const res = await api.notes.list.query({ ...data, type: 2 });
+      const res = await api.notes.list.mutate({ ...data, type: 2 });
       return res;
     }
   });
@@ -142,7 +142,7 @@ export class BlinkoStore extends Store {
   archivedList = new PromisePageState({
     key: 'archivedList',
     function: async (data) => {
-      const res = await api.notes.list.query({ ...data, isArchived: true });
+      const res = await api.notes.list.mutate({ ...data, isArchived: true });
       return res;
     }
   });
@@ -150,7 +150,7 @@ export class BlinkoStore extends Store {
   trashList = new PromisePageState({
     key: 'trashList',
     function: async (data) => {
-      const res = await api.notes.trashList.query({ ...data });
+      const res = await api.notes.list.mutate({ ...data, isRecycle: true });
       return res;
     }
   });
@@ -172,8 +172,8 @@ export class BlinkoStore extends Store {
     key: 'noteList',
     function: async (data) => {
       try {
-        const res = await api.notes.list.query({
-          type: this.noteListFilterConfig.type == -1 ? undefined : this.noteListFilterConfig.type,
+        const res = await api.notes.list.mutate({
+          type: this.noteListFilterConfig.type == -1 ? void 0 : this.noteListFilterConfig.type,
           tagId: this.noteListFilterConfig.tagId,
           startAt: this.noteListFilterConfig.dateRange?.from,
           endAt: this.noteListFilterConfig.dateRange?.to,
@@ -215,7 +215,139 @@ export class BlinkoStore extends Store {
   tagList = new PromiseState({
     function: async () => {
       const res = await api.tags.list.query();
+      const listTags = helper.buildHashTagTreeFromDb(res);
+      let pathTags: string[] = [];
+      listTags.forEach(node => {
+        pathTags = pathTags.concat(helper.generateTagPaths(node));
+      });
+      return {
+        listTags,
+        pathTags,
+        falttenTags: res
+      };
+    }
+  });
+
+  noteDetail = new PromiseState({
+    function: async (data: { id: number }) => {
+      const res = await api.notes.detail.mutate(data);
+      return res as unknown as Note;
+    }
+  });
+
+  todayNoteList = new PromiseState({
+    function: async () => {
+      const res = await api.notes.today.query();
+      return res as unknown as Note[];
+    }
+  });
+
+  resourceList = new PromisePageState({
+    key: 'resourceList',
+    function: async (data: { folder?: string, searchText?: string } & any) => {
+      const res = await api.attachments.list.query({
+        ...data,
+      });
       return res;
+    }
+  });
+
+  archiveNotes = new PromiseState({
+    function: async (ids: number[]) => {
+      await api.notes.updateMany.mutate({ ids, isArchived: true });
+      this.refreshData();
+    }
+  });
+
+  updateNotesType = new PromiseState({
+    function: async (data: { ids: number[], type: number }) => {
+      await api.notes.updateMany.mutate({ ...data });
+      this.refreshData();
+    }
+  });
+
+  deleteNotes = new PromiseState({
+    function: async (ids: number[]) => {
+      await api.notes.trashMany.mutate({ ids });
+      this.refreshData();
+    }
+  });
+
+  updateNotesTags = new PromiseState({
+    function: async (data: { ids: number[], tag: string }) => {
+      await api.tags.updateTagMany.mutate({ ...data });
+      this.refreshData();
+    }
+  });
+
+  createNote = new PromiseState({
+    function: async (params: UpsertNoteParams) => {
+      const res = await this.upsertNote.call(params);
+      return res;
+    }
+  });
+
+  restoreNote = new PromiseState({
+    function: async (id: number) => {
+      await api.notes.updateMany.mutate({ ids: [id], isRecycle: false });
+      this.refreshData();
+    }
+  });
+
+  updateNote = new PromiseState({
+    function: async (params: UpsertNoteParams) => {
+      return await this.upsertNote.call(params);
+    }
+  });
+
+  permanentlyDeleteNote = new PromiseState({
+    function: async (id: number) => {
+      await api.notes.deleteMany.mutate({ ids: [id] });
+      this.refreshData();
+    }
+  });
+
+  searchNotes = new PromiseState({
+    function: async (data: any) => {
+      await this._noteList.call(data);
+    }
+  });
+
+  referenceSearchList = new PromisePageState({
+    key: 'referenceSearchList',
+    function: async (data: { searchText?: string } & any) => {
+      const res = await api.notes.list.mutate({
+        ...data,
+      });
+      return res;
+    }
+  });
+
+  updateDBTask = new PromiseState({
+    function: async (time: string) => {
+      await api.task.upsertTask.mutate({ task: DBBAK_TASK_NAME, type: 'start', time });
+    }
+  });
+
+  updateArchiveTask = new PromiseState({
+    function: async (time: string) => {
+      await api.task.upsertTask.mutate({ task: ARCHIVE_BLINKO_TASK_NAME, type: 'start', time });
+    }
+  });
+
+  getNoteById(id: number) {
+    return this.blinkoList.value?.find(i => i.id === id) ||
+      this._noteList.value?.find(i => i.id === id) ||
+      this.noteOnlyList.value?.find(i => i.id === id) ||
+      this.todoList.value?.find(i => i.id === id) ||
+      this.archivedList.value?.find(i => i.id === id);
+  }
+
+  generateAITitle = new PromiseState({
+    function: async (noteId: number) => {
+      // Implementation depends on server-side logic, usually a writing task
+      // For now, mapping to a likely endpoint if exists or return null
+      return null;
     }
   });
 
@@ -391,6 +523,23 @@ export class BlinkoStore extends Store {
         this.searchText = '';
       }
     }, [this.forceQuery, location.pathname, searchParams])
+
+    useEffect(() => {
+      const path = searchParams.get('path');
+      if (path === 'notes') {
+        this.noteOnlyList.resetAndCall({});
+      } else if (path === 'todo') {
+        this.todoList.resetAndCall({});
+      } else if (path === 'archived') {
+        this.archivedList.resetAndCall({});
+      } else if (path === 'trash') {
+        this.trashList.resetAndCall({});
+      } else if (path === 'all') {
+        this.noteList.resetAndCall({});
+      } else {
+        this.blinkoList.resetAndCall({});
+      }
+    }, [this.forceQuery, location.pathname, searchParams])
   }
 
   excludeEmbeddingTagId: number | null = null;
@@ -403,6 +552,66 @@ export class BlinkoStore extends Store {
 
   constructor() {
     super()
+    makeObservable(this, {
+      noteContent: observable,
+      _isCreateMode: observable,
+      isCreateMode: computed,
+      searchText: observable,
+      isSearchMode: observable,
+      searchFilterType: observable,
+      fullscreenEditorNoteId: observable,
+      curMultiSelectIds: observable,
+      isMultiSelectMode: observable,
+      isMultSelectAll: computed,
+      noteListFilterConfig: observable,
+      settingsSearchText: observable,
+      excludeEmbeddingTagId: observable,
+
+      // 以下是子 Store 实例，它们在构造时已自行处理响应性
+      // 显式标记为 false 以避免 MobX 对其进行二次包装导致的 Proxy 损坏
+      createContentStorage: false,
+      createAttachmentsStorage: false,
+      editContentStorage: false,
+      editAttachmentsStorage: false,
+      config: false,
+      setConfig: false,
+      blinkoList: false,
+      noteOnlyList: false,
+      todoList: false,
+      archivedList: false,
+      trashList: false,
+      _noteList: false,
+      noteList: computed,
+      dailyReviewNoteList: false,
+      tagList: false,
+      noteDetail: false,
+      todayNoteList: false,
+      upsertNote: false,
+      updateNote: false,
+      deleteNote: false,
+      updateNotesType: false,
+      archiveNotes: false,
+      deleteNotes: false,
+      updateNotesTags: false,
+      createNote: false,
+      restoreNote: false,
+      permanentlyDeleteNote: false,
+      getNoteById: false,
+      resourceList: false,
+      referenceSearchList: false,
+      updateDBTask: false,
+      updateArchiveTask: false,
+      searchNotes: false,
+      generateAITitle: false,
+
+      // Actions
+      onMultiSelectNote: action,
+      onMultiSelectAll: action,
+      setNoteListFilter: action,
+      setExcludeEmbeddingTagId: action,
+      clear: action,
+      useQuery: action
+    })
   }
 
   use() {
@@ -410,6 +619,7 @@ export class BlinkoStore extends Store {
       const handleSignout = () => {
         this.clear()
       }
+      this.tagList.call()
       eventBus.on('user:signout', handleSignout)
       return () => {
         eventBus.off('user:signout', handleSignout)

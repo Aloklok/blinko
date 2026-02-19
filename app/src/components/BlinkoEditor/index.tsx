@@ -140,7 +140,7 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
       onHeightChange={() => {
         onHeightChange?.(editorRef.current?.clientHeight ?? 75)
       }}
-      isSendLoading={blinko.upsertNote.loading.value}
+      isSendLoading={blinko.upsertNote?.loading?.value ?? false}
       bottomSlot={
         isCreateMode ? <div className='text-xs text-ignore ml-2'>Drop to upload files</div> :
           blinko.curSelectedNote?.createdAt ? <div className='text-xs text-desc'>{dayjs(blinko.curSelectedNote.createdAt).format("YYYY-MM-DD hh:mm:ss")}</div> : null

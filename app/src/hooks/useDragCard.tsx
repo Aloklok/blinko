@@ -27,7 +27,7 @@ export const useDragCard = ({ notes, onNotesUpdate, activeId, setActiveId, inser
 
   // Update local notes when the list changes (but not during drag operations)
   useEffect(() => {
-    if (notes && !isDraggingRef.current) {
+    if (Array.isArray(notes) && !isDraggingRef.current) {
       // Sort by isTop first (desc), then by sortOrder (asc) to maintain the correct order from the database
       const sortedNotes = [...notes].sort((a, b) => {
         // First, sort by isTop (pinned notes first)
@@ -35,19 +35,19 @@ export const useDragCard = ({ notes, onNotesUpdate, activeId, setActiveId, inser
           return b.isTop ? 1 : -1;
         }
         // Then sort by sortOrder
-        return a.sortOrder - b.sortOrder;
+        return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
       });
       setLocalNotes(sortedNotes);
       onNotesUpdate?.(sortedNotes);
     }
-    else if (!notes) {
+    else if (!notes || !Array.isArray(notes)) {
       setLocalNotes([]);
     }
   }, [notes]);
 
   // Disable sensors when fullscreen editor is open
   const shouldEnableDrag = blinko.fullscreenEditorNoteId === null;
-  
+
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: shouldEnableDrag ? {
@@ -77,7 +77,7 @@ export const useDragCard = ({ notes, onNotesUpdate, activeId, setActiveId, inser
     if (blinko.fullscreenEditorNoteId !== null) {
       return; // Don't start drag if fullscreen editor is open
     }
-    
+
     setActiveId(event.active.id as number);
     isDraggingRef.current = true;
   };
@@ -142,13 +142,13 @@ export const useDragCard = ({ notes, onNotesUpdate, activeId, setActiveId, inser
     if (over && active) {
       const targetNoteId = parseInt(over.id.toString().replace('drop-', ''));
       const dragItemId = active.id;
-      
+
       setInsertPosition(targetNoteId);
-      
+
       // Check if dragging between different isTop states
       const draggedNote = localNotes.find((note) => note.id === dragItemId);
       const targetNote = localNotes.find((note) => note.id === targetNoteId);
-      
+
       if (draggedNote && targetNote && draggedNote.isTop !== targetNote.isTop) {
         setIsDragForbidden(true);
       } else {
@@ -177,7 +177,7 @@ interface DraggableBlinkoCardProps {
 
 export const DraggableBlinkoCard = ({ blinkoItem, showInsertLine, insertPosition, isDragForbidden }: DraggableBlinkoCardProps) => {
   const { t } = useTranslation()
-  
+
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `drop-${blinkoItem.id}`,
   });

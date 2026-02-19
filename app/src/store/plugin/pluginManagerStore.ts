@@ -95,6 +95,8 @@ export class PluginManagerStore implements Store {
 
       if (cssContents.length > 0) {
         const styleElements: HTMLStyleElement[] = [];
+        // 使用 DocumentFragment 批量插入，避免逐个 appendChild 触发多次 reflow
+        const fragment = document.createDocumentFragment();
 
         for (const cssData of cssContents) {
           // Create style element
@@ -106,11 +108,13 @@ export class PluginManagerStore implements Store {
           // Set CSS content
           styleElement.textContent = cssData.content;
 
-          // Add to document
-          document.head.appendChild(styleElement);
+          // 先添加到 fragment（不触发 reflow）
+          fragment.appendChild(styleElement);
           styleElements.push(styleElement);
         }
 
+        // 一次性插入所有 style 节点（只触发一次 reflow）
+        document.head.appendChild(fragment);
         this.loadedCssFiles.set(pluginName, styleElements);
       }
     } catch (error) {

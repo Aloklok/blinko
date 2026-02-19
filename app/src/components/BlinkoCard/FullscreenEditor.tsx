@@ -28,7 +28,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
   const [viewMode, setViewMode] = useState<string>('wysiwyg');
   const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('preview');
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Clean up fullscreen editor state when closing
   const handleClose = () => {
     blinko.fullscreenEditorNoteId = null;
@@ -45,7 +45,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
   const handleSwitchToPreview = () => {
     setEditorMode('preview');
   };
-  
+
 
   // Set default view mode to wysiwyg when opening editor in edit mode
   useEffect(() => {
@@ -53,13 +53,13 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
       const originalMode = localStorage.getItem('blinko-editor-view-mode');
       localStorage.setItem('blinko-editor-view-mode', 'wysiwyg');
       setViewMode('wysiwyg');
-      
+
       // Listen for view mode changes
       const handleViewModeChange = (mode: string) => {
         setViewMode(mode);
       };
       eventBus.on('editor:setViewMode', handleViewModeChange);
-      
+
       return () => {
         if (originalMode) {
           localStorage.setItem('blinko-editor-view-mode', originalMode);
@@ -76,15 +76,15 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
     if (isOpen) {
       // Load fresh note data from server
       if (blinkoItem.id) {
-        blinko.noteDetail.call({ id: blinkoItem.id }).then(() => {
-          if (blinko.noteDetail.value) {
+        blinko.noteDetail?.call({ id: blinkoItem.id }).then(() => {
+          if (blinko.noteDetail?.value) {
             blinko.curSelectedNote = _.cloneDeep(blinko.noteDetail.value);
           }
         });
       } else {
         // Fallback to prop data if no id
         blinko.curSelectedNote = _.cloneDeep(blinkoItem);
-        blinko.noteDetail.value = _.cloneDeep(blinkoItem);
+        if (blinko.noteDetail) blinko.noteDetail.value = _.cloneDeep(blinkoItem);
       }
     }
   }, [isOpen, blinkoItem.id]);
@@ -92,7 +92,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
   // Handle ESC key to close editor
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         // Check if PhotoView (image preview) is open
@@ -109,7 +109,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
             }
           }
         }
-        
+
         // In edit mode, ESC goes back to preview mode first
         if (editorMode === 'edit') {
           setEditorMode('preview');
@@ -147,14 +147,14 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
     if (blinkoItem.id) {
       // Trigger list refresh
       blinko.updateTicker++;
-      
+
       // Re-fetch the note detail to get latest data
-      await blinko.noteDetail.call({ id: blinkoItem.id });
-      if (blinko.noteDetail.value) {
+      await blinko.noteDetail?.call({ id: blinkoItem.id });
+      if (blinko.noteDetail?.value) {
         blinko.curSelectedNote = _.cloneDeep(blinko.noteDetail.value);
       }
     }
-    
+
     handleClose();
   };
 
@@ -165,7 +165,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
   if (!isOpen) return null;
 
   const editorContent = (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] bg-background overflow-hidden"
       onClick={handleOutsideClick}
       onPointerDownCapture={(e) => {
@@ -182,18 +182,18 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
           e.stopPropagation();
         }
       }}
-      style={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
         bottom: 0
       }}
     >
       <div className="h-full flex">
-        <div 
+        <div
           ref={editorContainerRef}
-          className={`w-full mx-auto  h-full flex ${isPc ? 'flex-col px-4' : 'flex-col p-2'}`} 
+          className={`w-full mx-auto  h-full flex ${isPc ? 'flex-col px-4' : 'flex-col p-2'}`}
           style={{ maxWidth }}
           onClick={(e) => {
             // Stop propagation to prevent closing when clicking inside editor
@@ -244,7 +244,7 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
               </div>
             </div>
           )}
-          
+
           {editorMode === 'preview' ? (
             /* Preview mode - render with MarkdownRender */
             <div
@@ -253,22 +253,22 @@ export const FullscreenEditor = observer(({ blinkoItem, isOpen, onClose }: Fulls
               onDoubleClick={handleSwitchToEdit}
             >
               <MarkdownRender
-                content={blinko.noteDetail.value?.content ?? blinkoItem.content}
+                content={blinko.noteDetail?.value?.content ?? blinkoItem.content}
                 onChange={(newContent) => {
                   blinkoItem.content = newContent;
-                  blinko.upsertNote.call({ id: blinkoItem.id, content: newContent, refresh: false });
+                  blinko.upsertNote?.call({ id: blinkoItem.id, content: newContent, refresh: false });
                 }}
                 largeSpacing={true}
               />
-              <ReferencesContent blinkoItem={blinko.noteDetail.value ?? blinkoItem} className="my-4" />
+              <ReferencesContent blinkoItem={blinko.noteDetail?.value ?? blinkoItem} className="my-4" />
               <div className={blinkoItem.attachments?.length != 0 ? 'my-2' : ''}>
-                <FilesAttachmentRender files={blinko.noteDetail.value?.attachments ?? blinkoItem.attachments ?? []} preview />
+                <FilesAttachmentRender files={blinko.noteDetail?.value?.attachments ?? blinkoItem.attachments ?? []} preview />
               </div>
             </div>
           ) : (
             /* Edit mode - render with BlinkoEditor */
-            <div 
-              className={`flex-1 overflow-hidden flex flex-col min-h-0 ${isLongText ? 'editor-long-text' : ''}`} 
+            <div
+              className={`flex-1 overflow-hidden flex flex-col min-h-0 ${isLongText ? 'editor-long-text' : ''}`}
               style={{ height: isPc ? 'calc(100vh - 100px)' : 'calc(100vh - 80px)', paddingBottom: isPc ? '20px' : '0' }}
             >
               <BlinkoEditor

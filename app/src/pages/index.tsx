@@ -26,7 +26,7 @@ const Home = observer(() => {
   const { t } = useTranslation();
   const isPc = useMediaQuery('(min-width: 768px)')
   const blinko = RootStore.Get(BlinkoStore)
-  blinko.use()
+  // blinko.use() 已在 CommonLayout 中调用，此处不再重复调用，以避免重复注册 signout 监听器
   blinko.useQuery();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -58,7 +58,7 @@ const Home = observer(() => {
 
   // Use drag card hook only for non-todo views
   const { localNotes, sensors, setLocalNotes, handleDragStart, handleDragEnd, handleDragOver } = useDragCard({
-    notes: isTodoView ? undefined : currentListState.value,
+    notes: isTodoView ? undefined : currentListState?.value,
     activeId,
     setActiveId,
     insertPosition,
@@ -73,13 +73,13 @@ const Home = observer(() => {
       return !blinko.noteListFilterConfig.isArchived && !blinko.noteListFilterConfig.isRecycle
     },
     get showLoadAll() {
-      return currentListState.isLoadAll
+      return currentListState?.isLoadAll ?? false
     }
   }))
 
   const todosByDate = useMemo(() => {
-    if (!isTodoView || !currentListState.value) return {} as Record<string, TodoGroup>;
-    const todoItems = currentListState.value;
+    if (!isTodoView || !currentListState?.value) return {} as Record<string, TodoGroup>;
+    const todoItems = currentListState?.value ?? [];
     const groupedTodos: Record<string, TodoGroup> = {};
     todoItems.forEach(todo => {
       const date = dayjs(todo.createdAt).format('YYYY-MM-DD');
@@ -107,7 +107,7 @@ const Home = observer(() => {
         acc[date] = data;
         return acc;
       }, {} as Record<string, TodoGroup>);
-  }, [currentListState.value, isTodoView, t]);
+  }, [currentListState?.value, isTodoView, t]);
 
   // Restore scroll position when returning from editor
   useEffect(() => {
@@ -144,8 +144,8 @@ const Home = observer(() => {
       {(!isPc || blinko.config.value?.hidePcEditor) && <BlinkoAddButton />}
 
       <LoadingAndEmpty
-        isLoading={currentListState.isLoading}
-        isEmpty={currentListState.isEmpty}
+        isLoading={currentListState?.isLoading ?? true}
+        isEmpty={currentListState?.isEmpty ?? false}
       />
 
       {

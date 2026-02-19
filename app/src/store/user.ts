@@ -275,8 +275,8 @@ export class UserStore implements Store {
     }
 
 
-    const darkElement = document.querySelector('.dark')
-    const lightElement = document.querySelector('.light')
+    const darkElement = document.querySelector('.dark') as HTMLElement | null;
+    const lightElement = document.querySelector('.light') as HTMLElement | null;
 
     const hexToRgb = (hex: string) => {
       if (!hex || !hex.startsWith('#')) return null;
@@ -286,37 +286,20 @@ export class UserStore implements Store {
       return `${r}, ${g}, ${b}`;
     };
 
+    // 批量设置 CSS 变量，减少多次 setProperty 触发的 reflow
+    const applyThemeVars = (el: HTMLElement, primary: string, foreground: string, rgb: string) => {
+      el.style.setProperty('--primary', primary);
+      el.style.setProperty('--primary-foreground', foreground);
+      el.style.setProperty('--primary-rgb', rgb);
+    };
+
     if (config?.themeColor && config?.themeForegroundColor) {
-      const rgb = hexToRgb(config.themeColor);
-      if (darkElement) {
-        //@ts-ignore
-        darkElement.style.setProperty('--primary', config.themeColor)
-        //@ts-ignore
-        darkElement.style.setProperty('--primary-foreground', config.themeForegroundColor)
-        if (rgb) darkElement.style.setProperty('--primary-rgb', rgb);
-      }
-      if (lightElement) {
-        //@ts-ignore
-        lightElement.style.setProperty('--primary', config.themeColor)
-        //@ts-ignore
-        lightElement.style.setProperty('--primary-foreground', config.themeForegroundColor)
-        if (rgb) lightElement.style.setProperty('--primary-rgb', rgb);
-      }
+      const rgb = hexToRgb(config.themeColor) ?? '0, 0, 0';
+      if (darkElement) applyThemeVars(darkElement, config.themeColor, config.themeForegroundColor, rgb);
+      if (lightElement) applyThemeVars(lightElement, config.themeColor, config.themeForegroundColor, rgb);
     } else {
-      if (darkElement) {
-        //@ts-ignore
-        darkElement.style.setProperty('--primary', '#f9f9f9')
-        //@ts-ignore
-        darkElement.style.setProperty('--primary-foreground', '#000000')
-        darkElement.style.setProperty('--primary-rgb', '249, 249, 249');
-      }
-      if (lightElement) {
-        //@ts-ignore
-        lightElement.style.setProperty('--primary', '#000000')
-        //@ts-ignore
-        lightElement.style.setProperty('--primary-foreground', 'hsl(210 40% 98%)')
-        lightElement.style.setProperty('--primary-rgb', '0, 0, 0');
-      }
+      if (darkElement) applyThemeVars(darkElement, '#f9f9f9', '#000000', '249, 249, 249');
+      if (lightElement) applyThemeVars(lightElement, '#000000', 'hsl(210 40% 98%)', '0, 0, 0');
     }
 
     // Apply saved font using FontManager

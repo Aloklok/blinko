@@ -214,7 +214,7 @@ export class PromisePageState<T extends (...args: any) => Promise<any>, U = Retu
 
     try {
       if (this.loadingLock && this.loading.value == true) {
-        console.warn('loadingLock', this.loading.value);
+        // 静默跳过重复调用（loadingLock 保护机制）
         return
       };
       this.loading.setValue(true);
