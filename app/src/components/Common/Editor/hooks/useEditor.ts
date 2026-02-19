@@ -727,11 +727,7 @@ export const useEditorEvents = (store: EditorStore) => {
   };
 
   useEffect(() => {
-    eventBus.on('editor:clear', store.clearMarkdown);
-    eventBus.on('editor:insert', store.insertMarkdown);
-    eventBus.on('editor:replace', store.replaceMarkdown);
-    eventBus.on('editor:focus', store.focus);
-    eventBus.on('editor:setViewMode', (mode) => {
+    const handleSetViewMode = (mode: any) => {
       store.viewMode = mode;
 
       // Handle preview visibility for raw mode
@@ -755,7 +751,13 @@ export const useEditorEvents = (store: EditorStore) => {
       if (store.isFullscreen) {
         adjustEditorHeight();
       }
-    });
+    };
+
+    eventBus.on('editor:clear', store.clearMarkdown);
+    eventBus.on('editor:insert', store.insertMarkdown);
+    eventBus.on('editor:replace', store.replaceMarkdown);
+    eventBus.on('editor:focus', store.focus);
+    eventBus.on('editor:setViewMode', handleSetViewMode);
     eventBus.on('editor:setFullScreen', handleFullScreen);
     store.handleIOSFocus();
 
@@ -764,9 +766,7 @@ export const useEditorEvents = (store: EditorStore) => {
       eventBus.off('editor:insert', store.insertMarkdown);
       eventBus.off('editor:replace', store.replaceMarkdown);
       eventBus.off('editor:focus', store.focus);
-      eventBus.off('editor:setViewMode', (mode) => {
-        store.viewMode = mode;
-      });
+      eventBus.off('editor:setViewMode', handleSetViewMode);
       eventBus.off('editor:setFullScreen', handleFullScreen);
       if ((store as any)._resizeObserver) {
         (store as any)._resizeObserver.disconnect();

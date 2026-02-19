@@ -257,13 +257,23 @@ export class FileService {
       await s3ClientInstance.send(command);
       const attachmentPath = await prisma.attachments.findFirst({ where: { path: api_attachment_path } })
       if (attachmentPath) {
-        await prisma.attachments.delete({ where: { id: attachmentPath.id } })
+        try {
+          await prisma.attachments.delete({ where: { id: attachmentPath.id } })
+        } catch (error) {
+          // Ignore P2025 (Record not found) as it might have been deleted by deleteMany
+          if (error.code !== 'P2025') throw error;
+        }
       }
     } else {
       const filepath = this.extractAndValidatePath(api_attachment_path);
       const attachmentPath = await prisma.attachments.findFirst({ where: { path: api_attachment_path } })
       if (attachmentPath) {
-        await prisma.attachments.delete({ where: { id: attachmentPath.id } })
+        try {
+          await prisma.attachments.delete({ where: { id: attachmentPath.id } })
+        } catch (error) {
+          // Ignore P2025 (Record not found)
+          if (error.code !== 'P2025') throw error;
+        }
       }
       await unlink(filepath);
     }

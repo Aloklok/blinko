@@ -18,6 +18,7 @@ import orderBy from "lodash/orderBy";
 import pick from "lodash/pick";
 import difference from "lodash/difference";
 import uniqBy from "lodash/uniqBy";
+import chunk from "lodash/chunk";
 export const _ = {
   throttle,
   debounce,
@@ -38,5 +39,6 @@ export const _ = {
   orderBy,
   pick,
   difference,
-  uniqBy
+  uniqBy,
+  chunk
 };
