@@ -651,6 +651,31 @@ export const noteRouter = router({
         include: { attachments: true },
       });
     }),
+  today: authProcedure
+    .meta({ openapi: { method: 'GET', path: '/v1/note/today', summary: 'Query today note list', protect: true, tags: ['Note'] } })
+    .input(z.void())
+    .output(
+      z.array(
+        notesSchema.merge(
+          z.object({
+            attachments: z.array(attachmentsSchema),
+          }),
+        ),
+      ),
+    )
+    .query(async function ({ ctx }) {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      return await prisma.notes.findMany({
+        where: {
+          createdAt: { gte: startOfDay },
+          accountId: Number(ctx.id),
+          isRecycle: false,
+        },
+        orderBy: { id: 'desc' },
+        include: { attachments: true },
+      });
+    }),
   randomNoteList: authProcedure
     .meta({ openapi: { method: 'GET', path: '/v1/note/random-list', summary: 'Query random notes for review', protect: true, tags: ['Note'] } })
     .input(
@@ -1256,6 +1281,13 @@ export const noteRouter = router({
       SendWebhook({ ids }, 'delete', ctx);
       return await prisma.notes.updateMany({ where: { id: { in: ids }, accountId: Number(ctx.id) }, data: { isRecycle: true } });
     }),
+  delete: authProcedure
+    .meta({ openapi: { method: 'POST', path: '/v1/note/delete', summary: 'Delete note', protect: true, tags: ['Note'] } })
+    .input(z.object({ id: z.number() }))
+    .output(z.any())
+    .mutation(async function ({ input, ctx }) {
+      return await deleteNotes([input.id], ctx);
+    }),
   deleteMany: authProcedure
     .use(demoAuthMiddleware)
     .meta({ openapi: { method: 'POST', path: '/v1/note/batch-delete', summary: 'Batch delete note', protect: true, tags: ['Note'] } })
@@ -1383,6 +1415,10 @@ export const noteRouter = router({
       const noteIds = recycleBinNotes.map((note) => note.id);
       if (noteIds.length === 0) return { ok: true };
 
+      // Use a smaller chunk size for clearRecycleBin to prevent timeouts if there are many items
+      // The deleteNotes function itself handles chunking, but for very large sets we might want to
+      // yield to the event loop or process in background if we had a job queue.
+      // For now, rely on optimized deleteNotes.
       return await deleteNotes(noteIds, ctx);
     }),
   updateAttachmentsOrder: authProcedure
@@ -1780,46 +1816,72 @@ export async function deleteNotes(ids: number[], ctx: Context) {
   });
 
   const handleDeleteRelation = async () => {
-    for (const note of notes) {
-      SendWebhook({ ...note }, 'delete', ctx);
-      await prisma.tagsToNote.deleteMany({ where: { noteId: note.id } });
+    // Process in chunks to avoid overwhelming DB/S3 but faster than serial
+    const chunks = _.chunk(notes, 5);
+    let processedCount = 0;
 
-      await prisma.noteReference.deleteMany({
-        where: {
-          OR: [{ fromNoteId: note.id }, { toNoteId: note.id }],
-        },
-      });
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(async (note) => {
+        try {
+          SendWebhook({ ...note }, 'delete', ctx);
+          await prisma.tagsToNote.deleteMany({ where: { noteId: note.id } });
 
-      const allTagsInThisNote = note.tags || [];
-      const oldTags = allTagsInThisNote.map((i) => i.tag).filter((i) => !!i);
-      const allTagsIds = oldTags?.map((i) => i?.id);
-      const usingTags = (
-        await prisma.tagsToNote.findMany({
-          where: { tagId: { in: allTagsIds } },
-          include: { tag: true },
-        })
-      )
-        .map((i) => i.tag?.id)
-        .filter((i) => !!i);
-      const needTobeDeledTags = _.difference(allTagsIds, usingTags);
-      if (needTobeDeledTags?.length) {
-        await prisma.tag.deleteMany({ where: { id: { in: needTobeDeledTags }, accountId: Number(ctx.id) } });
-      }
+          await prisma.noteReference.deleteMany({
+            where: {
+              OR: [{ fromNoteId: note.id }, { toNoteId: note.id }],
+            },
+          });
 
-      if (note.attachments?.length) {
-        for (const attachment of note.attachments) {
-          try {
-            await FileService.deleteFile(attachment.path);
-          } catch (error) {
-            console.log('delete attachment error:', error);
+          const allTagsInThisNote = note.tags || [];
+          const oldTags = allTagsInThisNote.map((i) => i.tag).filter((i) => !!i);
+          const allTagsIds = oldTags?.map((i) => i?.id);
+          const usingTags = (
+            await prisma.tagsToNote.findMany({
+              where: { tagId: { in: allTagsIds } },
+              include: { tag: true },
+            })
+          )
+            .map((i) => i.tag?.id)
+            .filter((i) => !!i);
+          const needTobeDeledTags = _.difference(allTagsIds, usingTags);
+          if (needTobeDeledTags?.length) {
+            await prisma.tag.deleteMany({ where: { id: { in: needTobeDeledTags }, accountId: Number(ctx.id) } });
           }
+
+          if (note.attachments?.length) {
+            for (const attachment of note.attachments) {
+              try {
+                await FileService.deleteFile(attachment.path);
+              } catch (error) {
+                console.log('delete attachment error:', error);
+              }
+            }
+            await prisma.attachments.deleteMany({
+              where: { id: { in: note.attachments.map((i) => i.id) } },
+            });
+          }
+
+        } catch (err) {
+          console.error(`Failed to cleanup relations for note ${note.id}`, err);
+          // Continue to allow deletion of the note record itself
         }
-        await prisma.attachments.deleteMany({
-          where: { id: { in: note.attachments.map((i) => i.id) } },
-        });
+      }));
+
+      // Delete vectors in batch for the whole chunk
+      try {
+        const chunkIds = chunk.map(n => n.id);
+        if (chunkIds.length > 0) {
+          await Promise.race([
+            AiModelFactory.queryAndDeleteVectorByIds(chunkIds),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Batch vector deletion timed out')), 8000))
+          ]);
+        }
+      } catch (e) {
+        console.error('Failed to delete vectors for chunk', e);
       }
 
-      AiModelFactory.queryAndDeleteVectorById(note.id);
+      processedCount += chunk.length;
+      console.log(`Deleted relations for ${processedCount}/${notes.length} notes`);
     }
   };
 

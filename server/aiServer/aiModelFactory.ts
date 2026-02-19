@@ -28,31 +28,31 @@ import { MastraVoice } from '@mastra/core/voice';
 
 export class AiModelFactory {
   static async queryAndDeleteVectorById(targetId: number) {
+    return this.queryAndDeleteVectorByIds([targetId]);
+  }
+
+  static async queryAndDeleteVectorByIds(targetIds: number[]) {
     const { VectorStore } = await AiModelFactory.GetProvider();
+    if (targetIds.length === 0) return { success: true, deletedData: [] };
+
     try {
+      // Build the placeholders string based on the length of targetIds
+      const placeholders = targetIds.map(() => '?').join(',');
+
       const query = `
-          WITH target_record AS (
-            SELECT vector_id 
-            FROM 'blinko'
-            WHERE metadata->>'id' = ? 
-            LIMIT 1
-          )
           DELETE FROM 'blinko'
-          WHERE vector_id IN (SELECT vector_id FROM target_record)
+          WHERE metadata->>'id' IN (${placeholders})
           RETURNING *;`;
+
       //@ts-ignore
       const result = await VectorStore.turso.execute({
         sql: query,
-        args: [targetId],
+        args: targetIds,
       });
-
-      if (result.rows.length === 0) {
-        throw new Error(`id  ${targetId} is not found`);
-      }
 
       return {
         success: true,
-        deletedData: result.rows[0],
+        deletedData: result.rows,
       };
     } catch (error) {
       return {
