@@ -115,8 +115,18 @@ export class BlinkoStore extends Store {
     }
   })
 
+  // [OPTIMISTIC UI] Keep track of locally created notes to prevent them from being overwritten by delayed server response
+  optimisticIds = new Set<number>();
+
   blinkoList = new PromisePageState({
     key: 'blinkoList',
+    onBeforeSetValue: (oldVal, newVal) => {
+      if (!oldVal || !Array.isArray(oldVal)) return newVal;
+      const newIds = new Set(newVal.map((n: any) => n.id));
+      // Keep local optimistic items that are missing from server response
+      const keptItems = oldVal.filter((n: any) => this.optimisticIds.has(n.id) && !newIds.has(n.id));
+      return [...keptItems, ...newVal];
+    },
     function: async (data) => {
       const res = await api.notes.list.mutate({ ...data, type: 0 });
       return res;
@@ -125,6 +135,12 @@ export class BlinkoStore extends Store {
 
   noteOnlyList = new PromisePageState({
     key: 'noteOnlyList',
+    onBeforeSetValue: (oldVal, newVal) => {
+      if (!oldVal || !Array.isArray(oldVal)) return newVal;
+      const newIds = new Set(newVal.map((n: any) => n.id));
+      const keptItems = oldVal.filter((n: any) => this.optimisticIds.has(n.id) && !newIds.has(n.id));
+      return [...keptItems, ...newVal];
+    },
     function: async (data) => {
       const res = await api.notes.list.mutate({ ...data, type: 1 });
       return res;
@@ -133,6 +149,12 @@ export class BlinkoStore extends Store {
 
   todoList = new PromisePageState({
     key: 'todoList',
+    onBeforeSetValue: (oldVal, newVal) => {
+      if (!oldVal || !Array.isArray(oldVal)) return newVal;
+      const newIds = new Set(newVal.map((n: any) => n.id));
+      const keptItems = oldVal.filter((n: any) => this.optimisticIds.has(n.id) && !newIds.has(n.id));
+      return [...keptItems, ...newVal];
+    },
     function: async (data) => {
       const res = await api.notes.list.mutate({ ...data, type: 2 });
       return res;
@@ -170,6 +192,12 @@ export class BlinkoStore extends Store {
 
   _noteList = new PromisePageState({
     key: 'noteList',
+    onBeforeSetValue: (oldVal, newVal) => {
+      if (!oldVal || !Array.isArray(oldVal)) return newVal;
+      const newIds = new Set(newVal.map((n: any) => n.id));
+      const keptItems = oldVal.filter((n: any) => this.optimisticIds.has(n.id) && !newIds.has(n.id));
+      return [...keptItems, ...newVal];
+    },
     function: async (data) => {
       try {
         const res = await api.notes.list.mutate({
@@ -207,7 +235,7 @@ export class BlinkoStore extends Store {
 
   dailyReviewNoteList = new PromiseState({
     function: async () => {
-      const res = await api.notes.dailyReview.query();
+      const res = await api.notes.dailyReviewNoteList.query();
       return res;
     }
   })
@@ -236,6 +264,12 @@ export class BlinkoStore extends Store {
   });
 
   todayNoteList = new PromiseState({
+    onBeforeSetValue: (oldVal, newVal) => {
+      if (!oldVal || !Array.isArray(oldVal)) return newVal;
+      const newIds = new Set(newVal.map((n: any) => n.id));
+      const keptItems = oldVal.filter((n: any) => this.optimisticIds.has(n.id) && !newIds.has(n.id));
+      return [...keptItems, ...newVal];
+    },
     function: async () => {
       const res = await api.notes.today.query();
       return res as unknown as Note[];
@@ -268,7 +302,13 @@ export class BlinkoStore extends Store {
 
   deleteNotes = new PromiseState({
     function: async (ids: number[]) => {
+      // Kill any active polling for these notes immediately
+      ids.forEach(id => this.stopPolling(id));
+      // Remove from local memory lists for instant dismissal UX
+      this.removeLocalNote(ids);
+
       await api.notes.trashMany.mutate({ ids });
+      RootStore.Get(ToastPlugin).success(i18n.t("delete-successfully"))
       this.refreshData();
     }
   });
@@ -302,8 +342,11 @@ export class BlinkoStore extends Store {
 
   permanentlyDeleteNote = new PromiseState({
     function: async (id: number) => {
+      this.stopPolling(id);
+      this.removeLocalNote(id);
       await api.notes.deleteMany.mutate({ ids: [id] });
-      this.refreshData();
+      RootStore.Get(ToastPlugin).success(i18n.t("delete-successfully"))
+      this.updateTicker++
     }
   });
 
@@ -357,6 +400,7 @@ export class BlinkoStore extends Store {
   typeBeforeSearch: number = -1;
 
   updateTicker = 0;
+  localUpdateTicker = 0;
 
   refreshData = _.debounce(async () => {
     // Fix: Clear multi-select state when refreshing data to avoid stale selections
@@ -367,18 +411,20 @@ export class BlinkoStore extends Store {
 
     const currentPath = new URLSearchParams(window.location.search).get('path');
 
+    // Use call() instead of resetAndCall() to achieve silent background refresh
+    // and avoid the "No Data" loading flicker.
     if (currentPath === 'notes') {
-      this.noteOnlyList.resetAndCall({});
+      this.noteOnlyList.call({});
     } else if (currentPath === 'todo') {
-      this.todoList.resetAndCall({});
+      this.todoList.call({});
     } else if (currentPath === 'archived') {
-      this.archivedList.resetAndCall({});
+      this.archivedList.call({});
     } else if (currentPath === 'trash') {
-      this.trashList.resetAndCall({});
+      this.trashList.call({});
     } else if (currentPath === 'all') {
-      this.noteList.resetAndCall({});
+      this.noteList.call({});
     } else {
-      this.blinkoList.resetAndCall({});
+      this.blinkoList.call({});
     }
 
     this.config.call()
@@ -387,10 +433,66 @@ export class BlinkoStore extends Store {
 
   setNoteListFilter(config: Partial<typeof this.noteListFilterConfig>) {
     Object.assign(this.noteListFilterConfig, config)
-    this.noteList.resetAndCall({});
+    this.noteList.call({});
   }
 
+  unshiftLocalNote(note: Note) {
+    if (note.id) {
+      this.optimisticIds.add(note.id);
+      // Auto-cleanup optimistic ID after 30 seconds to prevent permanent ghost retention if sync actually failed
+      setTimeout(() => {
+        this.optimisticIds.delete(note.id!);
+      }, 30000);
+    }
 
+    const unshiftToList = (list: Note[]) => {
+      // Avoid duplicate insertion
+      if (list.some(n => n.id === note.id)) return;
+      list.unshift({ ...note });
+    };
+
+    if (this.blinkoList.value) unshiftToList(this.blinkoList.value);
+    if (this.noteOnlyList.value) unshiftToList(this.noteOnlyList.value);
+    if (this.noteList.value) unshiftToList(this.noteList.value);
+    if (this._noteList.value) unshiftToList(this._noteList.value);
+    // If it's a today note, add to today list
+    const isToday = dayjs().isSame(dayjs(note.createdAt), 'day');
+    if (isToday && this.todayNoteList.value) unshiftToList(this.todayNoteList.value);
+
+    // Trigger local React sync
+    this.localUpdateTicker++;
+  }
+
+  removeLocalNote(ids: number | number[]) {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    const removeFromList = (list: Note[]) => {
+      const initialLength = list.length;
+      const filtered = list.filter(n => !idList.includes(n.id));
+      if (filtered.length !== initialLength) {
+        // We need to modify the array in-place or replace values while keeping observability
+        // For PromisePageState value, replacing the entire array is fine if it's marked as observable
+        return filtered;
+      }
+      return null;
+    };
+
+    const targetLists = [this.blinkoList, this.noteOnlyList, this.todoList, this.noteList, this.todayNoteList, this._noteList, this.trashList, this.archivedList];
+    let changed = false;
+
+    targetLists.forEach(ps => {
+      if (ps.value) {
+        const result = removeFromList(ps.value);
+        if (result) {
+          ps.value = result;
+          changed = true;
+        }
+      }
+    });
+
+    if (changed) {
+      this.localUpdateTicker++;
+    }
+  }
 
   upsertNote = new PromiseState({
     eventKey: 'upsertNote',
@@ -408,24 +510,35 @@ export class BlinkoStore extends Store {
         metadata: metadata ? JSON.stringify(metadata) : undefined,
         date
       });
+
+      if ((!content || content.trim() === "") && !id) {
+        console.warn("Attempting to create note with empty content", params);
+      }
+
       eventBus.emit('editor:clear')
+
+      const showToast = params.showToast ?? true;
       showToast && RootStore.Get(ToastPlugin).success(id ? i18n.t("update-successfully") : i18n.t("create-successfully"))
 
       if (id) {
-        // Fix: Ensure all lists are updated to reflect the changes, especially for archive/top status
+        // Update existing note with reference replacement
         this.updateLocalNote(res as unknown as Note);
         // Refresh detail view if open
         if (this.curSelectedNote?.id === id) {
           const detail = await api.notes.detail.mutate({ id });
           this.curSelectedNote = detail as unknown as Note;
         }
+      } else {
+        // [INSTANT ADMISSION] For new notes, unshift directly into local lists
+        this.unshiftLocalNote(res as unknown as Note);
       }
 
+      // If refresh is true, we still trigger updateTicker to ensure background consistency,
+      // but users won't see a loading flicker due to our improved refreshData (silent call).
       refresh && this.updateTicker++
 
       // [Feature] Smart Polling for AI Tags
-      // If AI Post Processing is enabled, start polling for tags
-      if (res && res.id && this.config.value?.isUseAiPostProcessing) {
+      if (res && res.id && !id && this.config.value?.isUseAiPostProcessing) {
         this.startPolling(res.id, res.updatedAt);
       }
 
@@ -437,6 +550,7 @@ export class BlinkoStore extends Store {
     const updateList = (list: Note[]) => {
       const index = list?.findIndex(i => i.id === note.id);
       if (index !== -1 && list) {
+        // Replacement of reference to trigger React re-render via shallow equality check
         list[index] = { ...list[index], ...note };
       }
     }
@@ -445,13 +559,22 @@ export class BlinkoStore extends Store {
     if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
     if (this.todoList.value) updateList(this.todoList.value);
     if (this.noteList.value) updateList(this.noteList.value);
+    if (this.todayNoteList.value) updateList(this.todayNoteList.value);
+    if (this._noteList.value) updateList(this._noteList.value);
+
     if (this.curSelectedNote?.id === note.id) {
       this.curSelectedNote = { ...this.curSelectedNote, ...note };
     }
+    this.localUpdateTicker++;
+    this.updateTicker++;
   }
 
   deleteNote = new PromiseState({
     function: async (id: number) => {
+      // Stop polling and remove local item for instant feedback
+      this.stopPolling(id);
+      this.removeLocalNote(id);
+
       await api.notes.delete.mutate({ id });
       RootStore.Get(ToastPlugin).success(i18n.t("delete-successfully"))
       this.updateTicker++
@@ -566,6 +689,10 @@ export class BlinkoStore extends Store {
       noteListFilterConfig: observable,
       settingsSearchText: observable,
       excludeEmbeddingTagId: observable,
+      curSelectedNote: observable,
+      curSelectedNoteId: observable,
+      updateTicker: observable,
+      localUpdateTicker: observable,
 
       // 以下是子 Store 实例，它们在构造时已自行处理响应性
       // 显式标记为 false 以避免 MobX 对其进行二次包装导致的 Proxy 损坏
@@ -625,6 +752,11 @@ export class BlinkoStore extends Store {
         eventBus.off('user:signout', handleSignout)
       }
     }, [])
+
+    useEffect(() => {
+      if (this.updateTicker === 0) return
+      this.refreshData()
+    }, [this.updateTicker])
   }
 
   removeCreateAttachments(file: { name: string, }) {
@@ -637,7 +769,7 @@ export class BlinkoStore extends Store {
     const updateList = (list: Note[]) => {
       const index = list.findIndex(n => n.id === note.id);
       if (index !== -1) {
-        // In-place update using MobX
+        // Replacement of reference to trigger React re-render via shallow equality check
         list[index] = { ...list[index], ...note };
       }
     };
@@ -646,32 +778,52 @@ export class BlinkoStore extends Store {
     if (this.noteOnlyList.value) updateList(this.noteOnlyList.value);
     if (this.todoList.value) updateList(this.todoList.value);
     if (this.noteList.value) updateList(this.noteList.value);
+    if (this.todayNoteList.value) updateList(this.todayNoteList.value);
+    if (this._noteList.value) updateList(this._noteList.value);
+
     if (this.curSelectedNote?.id === note.id) {
       this.curSelectedNote = { ...this.curSelectedNote, ...note };
     }
+    // Trigger local sync only for polling to avoid full server refresh
+    this.localUpdateTicker++;
   }
 
   pollingMap = new Map<number, NodeJS.Timeout>();
 
   startPolling(noteId: number, initialUpdatedAt?: Date | string) {
-    this.stopPolling(noteId);
-    let attempts = 0;
-    const maxAttempts = 15; // 30s total (2s interval)
+    if (this.pollingMap.has(noteId)) return;
 
-    // Capture initial state from local store if possible
+    let attempts = 0;
+    const maxAttempts = 15; // Reset each time an update is found (total 30s timeout per stage)
+
+    // Leading-edge notification to sync with UI rendering
+    let lastNotifyTime = 0;
+    const notifyUpdate = () => {
+      const now = Date.now();
+      // Only notify once every 15s for the same note to avoid multi-stage update spam
+      if (now - lastNotifyTime > 15000) {
+        RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Content Updated");
+        lastNotifyTime = now;
+      }
+    };
+
+    // Initial baseline state
     const getLocalNote = () => {
       return this.blinkoList.value?.find(n => n.id === noteId) ||
+        this.noteOnlyList.value?.find(n => n.id === noteId) ||
         this.noteList.value?.find(n => n.id === noteId) ||
-        this.todayNoteList.value?.find(n => n.id === noteId); // Also check today list
+        this.todayNoteList.value?.find(n => n.id === noteId);
     }
-    const localNote = getLocalNote();
-    const initialTagCount = localNote?.tags?.length || 0;
-    const initialContentLength = localNote?.content?.length || 0;
+
+    let baseline = getLocalNote();
+    let baselineTagCount = baseline?.tags?.length || 0;
+    let baselineContentLength = baseline?.content?.length || 0;
+    let baselineUpdatedAt = initialUpdatedAt ? (typeof initialUpdatedAt === 'string' ? initialUpdatedAt : initialUpdatedAt) : undefined;
 
     const timer = setInterval(async () => {
       attempts++;
 
-      // [Safety Guard] If user is editing this note (has local draft), stop polling immediately
+      // Stop if user is editing or exceeded max attempts without any new change
       const isEditing = this.editContentStorage.list?.some(i => i.id === noteId);
       if (isEditing || attempts > maxAttempts) {
         this.stopPolling(noteId);
@@ -680,37 +832,41 @@ export class BlinkoStore extends Store {
 
       try {
         const freshNote = await api.notes.detail.mutate({ id: noteId }, { context: { skipBatch: true } });
-
         if (!freshNote) return;
 
-        // Enhanced Polling Logic:
-        // 1. Timestamp check (Standard)
-        const hasNewerTimestamp = initialUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(initialUpdatedAt)) : false;
+        // [POLLLING SHIELD] If the note is moved to recycle bin, stop polling silently
+        if (freshNote.isRecycle) {
+          this.stopPolling(noteId);
+          return;
+        }
 
-        // 2. Content check (Did AI append text?)
-        const hasContentChange = (freshNote.content?.length || 0) !== initialContentLength;
+        const hasNewerTimestamp = baselineUpdatedAt ? dayjs(freshNote.updatedAt).isAfter(dayjs(baselineUpdatedAt)) : false;
+        const hasContentChange = (freshNote.content?.length || 0) !== baselineContentLength;
+        const hasTagChange = (freshNote.tags?.length || 0) !== baselineTagCount;
 
-        // 3. Tag check (Did AI add tags? - MOST CRITICAL)
-        const currentTagCount = freshNote.tags?.length || 0;
-        const hasTagChange = currentTagCount !== initialTagCount;
-
-        // Combined Trigger
         if (hasNewerTimestamp || hasContentChange || hasTagChange) {
-          // It's an update!
-          this.updateLocalList(freshNote as unknown as Note);
-          this.stopPolling(noteId); // Stop purely because we found AN update. 
+          if ((freshNote.tags?.length || 0) === 0) {
+            RootStore.Get(ToastPlugin).success(i18n.t("no-ai-tags-generated") || "暂无 AI 标签生成");
+          } else {
+            notifyUpdate();
+          }
 
-          // Force a small delay then notify ensuring React renders
-          setTimeout(() => {
-            RootStore.Get(ToastPlugin).success(i18n.t("ai-tags-updated") || "AI Content Updated");
-          }, 100);
+          // Update local UI immediately with reference replacement
+          this.updateLocalNote(freshNote as unknown as Note);
 
-          // Update local cache as well
+          // Reset polling state for next stage (e.g. comment found -> now wait for tags)
+          attempts = 0;
+          baselineContentLength = freshNote.content?.length || 0;
+          baselineTagCount = freshNote.tags?.length || 0;
+          baselineUpdatedAt = freshNote.updatedAt;
+
+          notifyUpdate();
+
+          // Ensure local persistent cache is updated
           db.putNotes([freshNote as unknown as Note]).catch(console.error);
         }
       } catch (e) {
-        // Ignore network errors during polling
-        console.warn('Polling error:', e);
+        console.warn('Polling error during dynamic poll:', e);
       }
     }, 2000);
 
@@ -727,7 +883,7 @@ export class BlinkoStore extends Store {
   updateTagFilter(tagId: number) {
     this.noteListFilterConfig.tagId = tagId;
     this.noteListFilterConfig.type = -1
-    this.noteList.resetAndCall({});
+    this.noteList.call({});
   }
 }
 

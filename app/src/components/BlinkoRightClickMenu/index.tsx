@@ -24,6 +24,8 @@ import { useLocation } from "react-router-dom";
 import { ShowCommentDialog } from "../BlinkoCard/commentButton";
 import { useMediaQuery } from "usehooks-ts";
 import { FocusEditorFixMobile } from "@/components/Common/Editor/editorUtils";
+import { showTipsDialog } from '../Common/TipsDialog';
+import { DialogStandaloneStore } from "@/store/module/DialogStandalone";
 
 
 export const ShowEditTimeModel = (showExpired: boolean = false) => {
@@ -299,12 +301,19 @@ const handleAITag = () => {
 
 const handleTrash = () => {
   const blinko = RootStore.Get(BlinkoStore)
-  PromiseCall(api.notes.trashMany.mutate({ ids: [blinko.curSelectedNote?.id!] }))
+  showTipsDialog({
+    title: i18n.t('confirm-delete'),
+    content: "确认移入回收站？",
+    onConfirm: async () => {
+      blinko.deleteNotes.call([blinko.curSelectedNote?.id!])
+      RootStore.Get(DialogStandaloneStore).close()
+    }
+  })
 }
 
 const handleDelete = async () => {
   const blinko = RootStore.Get(BlinkoStore)
-  await blinko.deleteNotes.call([blinko.curSelectedNote?.id!])
+  await blinko.permanentlyDeleteNote.call(blinko.curSelectedNote?.id!)
   api.ai.embeddingDelete.mutate({ id: blinko.curSelectedNote?.id! })
 }
 
