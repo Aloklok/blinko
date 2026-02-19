@@ -45,6 +45,10 @@ export class PromiseState<T extends (...args: any[]) => Promise<any>, U = Return
   autoAlert = true;
   autoUpdate = false;
   context: any = undefined;
+
+  // New hook for custom merge strategies
+  onBeforeSetValue?: (oldValue: any, newValue: any) => any;
+
   autoInit = false;
   autoClean = false;
   autoAuthRedirect = true;
@@ -118,7 +122,9 @@ export class PromiseState<T extends (...args: any[]) => Promise<any>, U = Return
       if (this.loadingLock && this.loading.value == true) return;
       this.loading.setValue(true);
       const res = await this.function.apply(this.context, args);
-      this.setValue(res);
+      // Apply custom merge strategy if defined
+      const finalVal = this.onBeforeSetValue ? this.onBeforeSetValue(this.value, res) : res;
+      this.setValue(finalVal);
       if (this.autoAlert && this.successMsg && res) {
         toast.success(this.successMsg);
       }
@@ -180,6 +186,9 @@ export class PromisePageState<T extends (...args: any) => Promise<any>, U = Retu
   autoClean = false;
   context: any = undefined;
 
+  // New hook for custom merge strategies (e.g. optimistic UI preservation)
+  onBeforeSetValue?: (oldValue: any, newValue: any) => any;
+
   successMsg: string = "";
   errMsg: string = "";
 
@@ -236,7 +245,9 @@ export class PromisePageState<T extends (...args: any) => Promise<any>, U = Retu
       }
       if (res.length == Number(this.size.value)) {
         if (this.page == 1) {
-          this.setValue(res);
+          // Apply custom merge strategy if defined
+          const finalVal = this.onBeforeSetValue ? this.onBeforeSetValue(this.value, res) : res;
+          this.setValue(finalVal);
         } else {
           //@ts-ignore
           // Fix: Deduplicate items when concatenating pages to avoid duplicate display
@@ -250,7 +261,9 @@ export class PromisePageState<T extends (...args: any) => Promise<any>, U = Retu
         }
       } else {
         if (this.page == 1) {
-          this.setValue(res);
+          // Apply custom merge strategy if defined
+          const finalVal = this.onBeforeSetValue ? this.onBeforeSetValue(this.value, res) : res;
+          this.setValue(finalVal);
           this.isLoadAll = true
         } else {
           //@ts-ignore

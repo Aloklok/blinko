@@ -5,6 +5,7 @@ import { RootStore } from '@/store/root';
 import { useNavigate } from 'react-router-dom';
 import { BlinkoStore } from '@/store/blinkoStore';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { observer } from 'mobx-react-lite';
 
 interface BlogContentProps {
   blinkoItem: Note & {
@@ -27,7 +28,7 @@ const gradientPairs: [string, string][] = [
   ['#4B134F', '#C94B4B'],
 ];
 
-export const CardBlogBox = ({ blinkoItem, isExpanded }: BlogContentProps) => {
+export const CardBlogBox = observer(({ blinkoItem, isExpanded }: BlogContentProps) => {
   const navigate = useNavigate();
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState<number>(112);
@@ -94,4 +95,4 @@ export const CardBlogBox = ({ blinkoItem, isExpanded }: BlogContentProps) => {
       </div>
     </div>
   );
-};
+});

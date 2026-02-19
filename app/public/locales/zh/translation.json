@@ -177,6 +177,7 @@
   "title-first-line-of-the-text": "标题（文本第一行）",
   "content-rest-of-the-text-if-the-text-is-longer-than-the-length": "内容（文本的其余部分，如果文本长度超过规定长度）",
   "ai-tag": "AI标签",
+  "ai-tags-updated": "AI 内容已更新",
   "article": "文章",
   "embedding-model": "嵌入式模型",
   "if-you-have-a-lot-of-notes-you-may-consume-a-certain-number-of-tokens": "如果您有大量笔记，可能会消耗一定数量的代币",

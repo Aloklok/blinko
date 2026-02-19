@@ -147,7 +147,7 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
       }
       onSend={async ({ files, references, noteType, metadata }) => {
         if (isCreateMode) {
-          console.log("createMode", files, references, noteType, metadata)
+          console.log("createMode", files, references, noteType, metadata, "content:", blinko.noteContent)
           //@ts-ignore
           await blinko.upsertNote.call({ type: noteType, references, refresh: false, content: blinko.noteContent, attachments: files.map(i => { return { name: i.name, path: i.uploadPath, size: i.size, type: i.type } }), metadata })
           blinko.createAttachmentsStorage.clear()
@@ -160,7 +160,6 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
             await navigate('/')
             blinko.forceQuery++
           }
-          blinko.updateTicker++
         } else {
           if (!blinko.curSelectedNote) return;
           await blinko.upsertNote.call({

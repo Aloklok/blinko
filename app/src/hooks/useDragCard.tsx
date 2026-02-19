@@ -43,7 +43,7 @@ export const useDragCard = ({ notes, onNotesUpdate, activeId, setActiveId, inser
     else if (!notes || !Array.isArray(notes)) {
       setLocalNotes([]);
     }
-  }, [notes]);
+  }, [notes, blinko.localUpdateTicker]);
 
   // Disable sensors when fullscreen editor is open
   const shouldEnableDrag = blinko.fullscreenEditorNoteId === null;
