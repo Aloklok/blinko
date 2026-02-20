@@ -258,7 +258,7 @@ const VoiceMessageRender = memo(({ file, files, preview, fileDuration }: VoiceMe
         {!preview && (
           <DeleteIcon
             files={files}
-            className="ml-1 group-hover:opacity-100 opacity-0 transition-opacity text-gray-400 hover:text-red-500"
+            className="ml-1 transition-all opacity-70 md:opacity-0 md:group-hover:opacity-100 text-gray-400 hover:text-red-500 transform md:translate-x-2 md:group-hover:translate-x-0"
             file={file}
           />
         )}
@@ -598,7 +598,7 @@ export const AudioRender = observer(({ files, preview = false }: Props) => {
                       {!file.uploadPromise?.loading?.value && !preview && (
                         <DeleteIcon
                           files={files}
-                          className={`ml-2 group-hover:opacity-100 opacity-0 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-red-500'
+                          className={`ml-2 transition-all opacity-70 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-2 md:group-hover:translate-x-0 ${metadata?.coverUrl ? 'text-white' : 'text-gray-400 hover:text-red-500'
                             }`}
                           file={file}
                         />

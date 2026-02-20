@@ -30,8 +30,8 @@ type IProps = {
 const AttachmentsRender = observer((props: IProps) => {
   const { files, preview = false, columns = 3 } = props
 
-  const gridClassName = preview 
-    ? `grid grid-cols-${(columns - 1) < 1 ? 1 : (columns - 1)} md:grid-cols-${columns} gap-2` 
+  const gridClassName = preview
+    ? `grid grid-cols-${(columns - 1) < 1 ? 1 : (columns - 1)} md:grid-cols-${columns} gap-2`
     : 'flex flex-row gap-2 overflow-x-auto pb-2';
 
   return (
@@ -48,7 +48,7 @@ const AttachmentsRender = observer((props: IProps) => {
           if (token) {
             videoUrl = `${videoUrl}?token=${token}`;
           }
-          
+
           return (
             <div
               key={`${file.name}-${index}`}
@@ -82,7 +82,7 @@ const AttachmentsRender = observer((props: IProps) => {
         className={gridClassName}
         onReorder={props.onReorder}
         renderItem={(file) => (
-          <div 
+          <div
             className={`relative mt-2 flex p-2 items-center gap-2 cursor-pointer 
               bg-secondbackground hover:bg-hover !transition-all rounded-md group
               ${!preview ? 'min-w-[200px] flex-shrink-0' : 'w-full'}`}
@@ -95,7 +95,7 @@ const AttachmentsRender = observer((props: IProps) => {
             <FileIcons path={file.name} isLoading={file.uploadPromise?.loading?.value} />
             <div className='truncate text-xs md:text-sm font-bold'>{file.name}</div>
             {!file.uploadPromise?.loading?.value && !preview &&
-              <DeleteIcon className='ml-auto group-hover:opacity-100 opacity-0' files={files} file={file} />
+              <DeleteIcon className='ml-auto transition-all opacity-70 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-2 md:group-hover:translate-x-0' files={files} file={file} />
             }
           </div>
         )}
