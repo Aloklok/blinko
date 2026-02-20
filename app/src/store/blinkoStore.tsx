@@ -68,6 +68,10 @@ export class BlinkoStore extends Store {
     return this.curMultiSelectIds.length === this.blinkoList.value?.length;
   }
 
+  get showAi() {
+    return true;
+  }
+
   onMultiSelectNote(id: number) {
     if (this.curMultiSelectIds.includes(id)) {
       this.curMultiSelectIds = this.curMultiSelectIds.filter(i => i !== id);
