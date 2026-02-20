@@ -40,7 +40,15 @@ export const ImageThumbnailRender = ({ src, className }: { src: string, classNam
       if (!token) return;
 
       // Primary Strategy: Direct URL with Token (Supports 302 Redirect & Native Loading)
-      const directUrl = getBlinkoEndpoint(`${src}?token=${token}&thumbnail=true`);
+      let directUrl = src;
+      if (!src.startsWith('blob:')) {
+        const token = RootStore.Get(UserStore).tokenData.value?.token;
+        if (token) {
+          directUrl = getBlinkoEndpoint(`${src}?token=${token}&thumbnail=true`);
+        } else {
+          directUrl = getBlinkoEndpoint(`${src}?thumbnail=true`);
+        }
+      }
       setCurrentSrc(directUrl);
       setLoading(false);
     };
@@ -133,7 +141,11 @@ const ImageRender = observer((props: IProps) => {
         </div>
       )}
       <div className='w-full'>
-        <PhotoView src={getBlinkoEndpoint(`${file.preview}?token=${RootStore.Get(UserStore).tokenData.value?.token}`)}>
+        <PhotoView src={
+          file.preview.startsWith('blob:')
+            ? file.preview
+            : getBlinkoEndpoint(`${file.preview}?token=${RootStore.Get(UserStore).tokenData.value?.token}`)
+        }>
           <div className="w-full cursor-zoom-in">
             <ImageThumbnailRender
               src={file.preview}
