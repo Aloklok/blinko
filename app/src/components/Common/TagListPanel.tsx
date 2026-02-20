@@ -53,6 +53,8 @@ const CustomIcon = observer(({ onSubmit }: { onSubmit: (icon: string) => void })
   return <div className='w-full flex flex-col gap-2'>
     <Input
       label='Custom Icon'
+      labelPlacement="outside"
+      variant="bordered"
       placeholder='Enter custom icon like "ri:star-smile-line"'
       value={icon}
       onValueChange={setIcon}
@@ -168,7 +170,7 @@ export const TagListPanel = observer(() => {
                       </div>
                     </DropdownItem> : <></>
                   }
-                  <DropdownItem key="aiEmoji" textValue={t('custom-icon')} onPress={async () => {
+                  <DropdownItem key="customIcon" textValue={t('custom-icon')} onPress={async () => {
                     if (!isPc) {
                       eventBus.emit('close-sidebar')
                     }
