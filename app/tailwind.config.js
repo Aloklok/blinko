@@ -93,6 +93,7 @@ module.exports = {
     require('@headlessui/tailwindcss'),
     require('@tailwindcss/typography'),
     heroui({
+      prefix: 'heroui',
       addCommonColors: false,
       defaultTheme: 'light',
       defaultExtendTheme: 'light',
