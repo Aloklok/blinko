@@ -849,9 +849,8 @@ export class BlinkoStore extends Store {
         const hasTagChange = (freshNote.tags?.length || 0) !== baselineTagCount;
 
         if (hasNewerTimestamp || hasContentChange || hasTagChange) {
-          if ((freshNote.tags?.length || 0) === 0) {
-            RootStore.Get(ToastPlugin).success(i18n.t("no-ai-tags-generated") || "暂无 AI 标签生成");
-          } else {
+          // 只在明确有新增标签时才提示
+          if (hasTagChange && (freshNote.tags?.length || 0) > 0) {
             notifyUpdate();
           }
 
@@ -863,8 +862,6 @@ export class BlinkoStore extends Store {
           baselineContentLength = freshNote.content?.length || 0;
           baselineTagCount = freshNote.tags?.length || 0;
           baselineUpdatedAt = freshNote.updatedAt;
-
-          notifyUpdate();
 
           // Ensure local persistent cache is updated
           db.putNotes([freshNote as unknown as Note]).catch(console.error);
