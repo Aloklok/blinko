@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react-lite';
-import { Button, Input, Select, SelectItem, Autocomplete, AutocompleteItem, Tooltip, Chip } from '@heroui/react';
+import { Button, Input, Select, SelectItem, Autocomplete, AutocompleteItem, Tooltip, Chip, Switch } from '@heroui/react';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -376,6 +376,60 @@ export default observer(function ModelDialogContent({ model }: ModelDialogConten
           </div>
         )}
       </div>
+
+      {/* Reasoning Model Settings */}
+      {editingModel.capabilities?.inference && (
+        <div className="space-y-3 p-4 bg-default-50 rounded-lg border border-default-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icon icon="hugeicons:brain" width="16" height="16" className="text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-default-600">{t('enable-thinking-mode') || 'Enable Thinking Mode'}</p>
+                <p className="text-xs text-default-500">{t('thinking-mode-desc') || 'For reasoning models like DeepSeek-R1'}</p>
+              </div>
+            </div>
+            <Switch
+              size="sm"
+              isSelected={editingModel.config?.isThinkingEnabled || false}
+              onValueChange={(isSelected) => {
+                setEditingModel(prev => ({
+                  ...prev,
+                  config: {
+                    ...prev.config,
+                    isThinkingEnabled: isSelected
+                  }
+                }));
+              }}
+            />
+          </div>
+
+          {editingModel.config?.isThinkingEnabled && (
+            <div className="pt-2 animate-appearance-in">
+              <Input
+                type="number"
+                size="sm"
+                label={t('thinking-budget') || 'Thinking Budget (Tokens)'}
+                placeholder="4096"
+                value={editingModel.config?.thinkingBudget?.toString() || ''}
+                onValueChange={(value) => {
+                  setEditingModel(prev => ({
+                    ...prev,
+                    config: {
+                      ...prev.config,
+                      thinkingBudget: value ? parseInt(value) : undefined
+                    }
+                  }));
+                }}
+                description={t('thinking-budget-desc') || 'Max tokens for chain-of-thought (e.g. 4096)'}
+                classNames={{
+                  base: "bg-background",
+                  inputWrapper: "bg-background"
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Embedding Dimensions - Only show for embedding models */}
       {editingModel.capabilities?.embedding && (

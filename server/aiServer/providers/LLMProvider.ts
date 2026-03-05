@@ -15,6 +15,8 @@ interface LLMConfig {
   baseURL?: any;
   modelKey: string;
   apiVersion?: any;
+  isThinkingEnabled?: boolean;
+  thinkingBudget?: number;
 }
 
 export class LLMProvider extends BaseProvider {
@@ -81,7 +83,21 @@ export class LLMProvider extends BaseProvider {
         return createOpenAI({
           apiKey: config.apiKey,
           baseURL: config.baseURL || undefined,
-          fetch: this.proxiedFetch
+          fetch: async (input, init) => {
+            if (init?.body && typeof init.body === 'string' && config.isThinkingEnabled) {
+              try {
+                const body = JSON.parse(init.body);
+                body.enable_thinking = true;
+                if (config.thinkingBudget) {
+                  body.thinking_budget = Number(config.thinkingBudget);
+                }
+                init.body = JSON.stringify(body);
+              } catch (e) {
+                console.error("Failed to inject thinking parameters", e);
+              }
+            }
+            return this.proxiedFetch(input, init);
+          }
         }).languageModel(config.modelKey);
     }
   }

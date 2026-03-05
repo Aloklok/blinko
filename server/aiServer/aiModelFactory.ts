@@ -277,7 +277,9 @@ export class AiModelFactory {
       apiKey: mainModel.provider.apiKey,
       baseURL: mainModel.provider.baseURL,
       modelKey: mainModel.modelKey,
-      apiVersion: (mainModel.provider.config as any)?.apiVersion
+      apiVersion: (mainModel.provider.config as any)?.apiVersion,
+      isThinkingEnabled: (mainModel.config as any)?.isThinkingEnabled,
+      thinkingBudget: (mainModel.config as any)?.thinkingBudget
     };
 
     // Get LLM instance
@@ -317,7 +319,9 @@ export class AiModelFactory {
         apiKey: imageModel.provider.apiKey,
         baseURL: imageModel.provider.baseURL,
         modelKey: imageModel.modelKey,
-        apiVersion: (imageModel.provider.config as any)?.apiVersion
+        apiVersion: (imageModel.provider.config as any)?.apiVersion,
+        isThinkingEnabled: (imageModel.config as any)?.isThinkingEnabled,
+        thinkingBudget: (imageModel.config as any)?.thinkingBudget
       };
       vision = await llmProvider.getLanguageModel(visionConfig);
     }
