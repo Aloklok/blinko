@@ -104,7 +104,7 @@ export const ZConfigKey = z.union([
   z.literal('globalPrompt'),
   z.literal('signinFooterEnabled'),
   z.literal('signinFooterText'),
-  // z.literal('aiTagsOnlyExisting'),
+  z.literal('customTitle'),
   ZUserPerferConfigKey,
   z.any()
 ]);
@@ -195,7 +195,7 @@ export const ZConfigSchema = z.object({
   fontStyle: z.string().optional(),
   signinFooterEnabled: z.boolean().optional(),
   signinFooterText: z.string().optional(),
-  // aiTagsOnlyExisting: z.boolean().optional()
+  customTitle: z.string().optional()
 });
 
 export type GlobalConfig = z.infer<typeof ZConfigSchema>;

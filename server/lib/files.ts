@@ -14,6 +14,40 @@ import sanitizeFilename from 'sanitize-filename';
 import sharp from "sharp";
 import { concatUint8Arrays } from 'uint8array-extras';
 
+/**
+ * Sanitize a filename for safe filesystem storage.
+ * Removes control characters, reserved characters, truncates to safe length,
+ * and replaces whitespace with underscores.
+ */
+export function sanitizeUploadFileName(name: string): string {
+  let sanitized = name
+    // Replace whitespace (including tabs) with underscores BEFORE removing control chars
+    .replace(/\s+/g, '_')
+    // Remove control characters (0x00-0x1f, 0x7f, 0x80-0x9f)
+    .replace(/[\x00-\x1f\x7f\x80-\x9f]/g, '')
+    // Replace reserved filesystem characters
+    .replace(/[<>:"/\\|?*]/g, '_')
+    // Collapse consecutive dots to single dot (prevents path traversal false positives)
+    .replace(/\.{2,}/g, '.')
+    // Collapse multiple consecutive underscores
+    .replace(/_+/g, '_')
+    // Remove leading/trailing dots, spaces, and underscores
+    .replace(/^[.\s_]+|[.\s_]+$/g, '');
+
+  // Truncate to 200 characters to stay well under filesystem limits (255)
+  // while leaving room for timestamp suffix and extension
+  if (sanitized.length > 200) {
+    sanitized = sanitized.substring(0, 200);
+  }
+
+  // Fallback if the name is empty after sanitization
+  if (!sanitized) {
+    sanitized = 'unnamed_file';
+  }
+
+  return sanitized;
+}
+
 export class FileService {
   /**
    * Validates and sanitizes a file path to prevent path traversal attacks
@@ -190,7 +224,8 @@ export class FileService {
     }
 
     const extension = path.extname(finalName);
-    const baseName = path.basename(finalName, extension);
+    const rawBaseName = path.basename(finalName, extension);
+    const baseName = sanitizeUploadFileName(rawBaseName);
     const timestamp = Date.now();
     const config = await getGlobalConfig({ useAdmin: true });
 
@@ -354,7 +389,6 @@ export class FileService {
       stream: ReadableStream, originalName: string, fileSize: number, type: string, accountId: number, metadata?: any
     }) {
     const config = await getGlobalConfig({ useAdmin: true });
-
     let finalStream = stream;
     let finalType = type;
     let finalName = originalName;
@@ -386,7 +420,8 @@ export class FileService {
     }
 
     const extension = path.extname(finalName);
-    const baseName = path.basename(finalName, extension);
+    const rawBaseName = path.basename(finalName, extension);
+    const baseName = sanitizeUploadFileName(rawBaseName);
     const timestamp = Date.now();
     const timestampedFileName = `${baseName}_${timestamp}${extension}`;
 

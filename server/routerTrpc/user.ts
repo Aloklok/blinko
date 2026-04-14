@@ -4,26 +4,9 @@ import { z } from 'zod';
 import { prisma } from '../prisma';
 import { Prisma } from '@server/generated/client';
 import { accountsSchema } from '@shared/lib/prismaZodType';
-import { hashPassword, verifyPassword } from '../lib/helper';
-import { generateTOTP, generateTOTPQRCode, getNextAuthSecret, verifyTOTP } from "@server/lib/helper";
+import { hashPassword, verifyPassword, generateTOTP, generateTOTPQRCode, getNextAuthSecret, verifyTOTP, generateApiToken } from "@server/lib/helper";
 import { deleteNotes } from './note';
 import { createSeed } from '@prisma/seedData';
-import jwt from 'jsonwebtoken';
-
-const genToken = async ({ id, name, role, permissions }: { id: number, name: string, role: string, permissions?: string[] }) => {
-  const secret = await getNextAuthSecret();
-  return jwt.sign(
-    {
-      role,
-      name,
-      sub: id.toString(),
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 365 * 100),
-      iat: Math.floor(Date.now() / 1000),
-      permissions
-    },
-    secret
-  )
-}
 
 export const userRouter = router({
   list: authProcedure.use(superAdminAuthMiddleware)
@@ -263,7 +246,7 @@ export const userRouter = router({
           await prisma.accounts.update({
             where: { id: res.id },
             data: {
-              apiToken: await genToken({ id: res.id, name, role: 'superadmin' })
+              apiToken: await generateApiToken({ id: res.id, name, role: 'superadmin' })
             }
           })
           await prisma.config.create({
@@ -292,7 +275,7 @@ export const userRouter = router({
               });
             }
             const res = await prisma.accounts.create({ data: { name, password: passwordHash, nickname: name, role: 'user' } })
-            await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await genToken({ id: res.id, name, role: 'user' }) } })
+            await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await generateApiToken({ id: res.id, name, role: 'user' }) } })
             return true
           }
         }
@@ -305,7 +288,7 @@ export const userRouter = router({
     .mutation(async ({ ctx }) => {
       const user = await prisma.accounts.findFirst({ where: { id: Number(ctx.id) } })
       if (user) {
-        const token = await genToken({ id: user.id, name: user.name ?? '', role: user.role })
+        const token = await generateApiToken({ id: user.id, name: user.name ?? '', role: user.role })
         console.log('token', token);
         await prisma.accounts.update({ where: { id: user.id }, data: { apiToken: token } })
         return true
@@ -325,7 +308,7 @@ export const userRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
-      const token = await genToken({
+      const token = await generateApiToken({
         id: user.id,
         name: user.name ?? '',
         role: user.role,
@@ -377,7 +360,7 @@ export const userRouter = router({
             continue;
           }
 
-          const token = await genToken({
+          const token = await generateApiToken({
             id: user.id,
             name: user.name ?? '',
             role: user.role
@@ -493,7 +476,7 @@ export const userRouter = router({
           }
           const passwordHash = await hashPassword(password!);
           const res = await prisma.accounts.create({ data: { name, password: passwordHash, nickname: name, role: 'user' } });
-          await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await genToken({ id: res.id, name: name ?? '', role: 'user' }) } });
+          await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await generateApiToken({ id: res.id, name: name ?? '', role: 'user' }) } });
           return true;
         }
       })
@@ -543,7 +526,7 @@ export const userRouter = router({
           }
           const passwordHash = await hashPassword(password!)
           const res = await prisma.accounts.create({ data: { name, password: passwordHash, nickname: name, role: 'user' } })
-          await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await genToken({ id: res.id, name: name ?? '', role: 'user' }) } })
+          await prisma.accounts.update({ where: { id: res.id }, data: { apiToken: await generateApiToken({ id: res.id, name: name ?? '', role: 'user' }) } })
           return true
         }
       })
@@ -690,7 +673,7 @@ export const userRouter = router({
         });
       }
 
-      const token = await genToken({
+      const token = await generateApiToken({
         id: user.id,
         name: user.name ?? '',
         role: user.role

@@ -676,7 +676,6 @@ export class BlinkoStore extends Store {
   }
 
   settingsSearchText: string = '';
-
   constructor() {
     super()
     makeObservable(this, {

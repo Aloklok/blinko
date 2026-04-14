@@ -8,7 +8,7 @@ import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { prisma } from '../../prisma';
 import { getGlobalConfig } from '../../routerTrpc/config';
-import { getNextAuthSecret, generateToken, verifyPassword } from '../../lib/helper';
+import { getNextAuthSecret, generateToken, verifyPassword, generateApiToken } from '../../lib/helper';
 import { cache } from '@shared/lib/cache';
 
 // Cache TTL in milliseconds (20 seconds)
@@ -47,6 +47,11 @@ async function handleOAuthCallback(accessToken: string, refreshToken: string, pr
       cache.set(`user_by_id_${newUser.id}`, null);
 
       const token = await generateToken(newUser, false);
+      const apiToken = await generateApiToken({ id: newUser.id, name: newUser.name ?? '', role: newUser.role });
+      await prisma.accounts.update({
+        where: { id: newUser.id },
+        data: { apiToken }
+      });
 
       return done(null, { ...newUser, token });
     } else {
@@ -83,6 +88,11 @@ async function handleOAuthCallback(accessToken: string, refreshToken: string, pr
       }
 
       const token = await generateToken(realUser, false);
+      const apiToken = await generateApiToken({ id: realUser.id, name: realUser.name ?? '', role: realUser.role });
+      await prisma.accounts.update({
+        where: { id: realUser.id },
+        data: { apiToken }
+      });
 
       return done(null, { ...realUser, token });
     }
@@ -191,6 +201,11 @@ const initLocalStrategy = () => {
           }
 
           const token = await generateToken(user, false);
+          const apiToken = await generateApiToken({ id: user.id, name: user.name ?? '', role: user.role });
+          await prisma.accounts.update({
+            where: { id: user.id },
+            data: { apiToken }
+          });
 
           return done(null, { ...user, token });
         } catch (error) {
