@@ -47,7 +47,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@heroui/react": "2.8.8",
+    "@heroui/react": "3.0.3",
     "@prisma/adapter-pg": "7.3.0",
     "@prisma/client": "7.3.0",
     "dotenv": "^16.5.0",
