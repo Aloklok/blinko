@@ -114,6 +114,8 @@ jobs:
             args: '--target x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
     steps:
       - uses: actions/checkout@v6
         with:
@@ -175,10 +177,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-
-      - name: Increase Node.js memory limit
-        run: |
-          echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2

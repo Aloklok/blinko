@@ -22,24 +22,23 @@ jobs:
     name: Validate Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.8
-      
+
       - name: Setup Node (for Vite)
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-      
-      - name: Increase Node.js memory limit
-        run: echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
-      
+
       # 安装依赖
       # Dependabot 只改 package.json 不更新 bun.lock，--frozen-lockfile 会失败
       - name: Install Dependencies
@@ -49,7 +48,7 @@ jobs:
           else
             bun install --frozen-lockfile
           fi
-      
+
       # Turbo 会自动按依赖顺序构建：
       # prisma:generate → build:iconify:icons → app/build:web → server/build:web
       - name: Build (Frontend + Backend)
