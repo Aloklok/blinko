@@ -50,7 +50,7 @@ export const ExportSetting = observer(() => {
       exportParams.endDate = new Date(dateRange.end.toString());
     }
     try {
-      const res = await PromiseCall(api.task.exportMarkdown.mutate(exportParams));
+      const res = await PromiseCall(api.task.exportMarkdown.mutate(exportParams), { autoAlert: false });
       RootStore.Get(ToastPlugin).dismiss('exporting')
       if (res?.downloadUrl) {
         downloadFromLink(getBlinkoEndpoint(res.downloadUrl));

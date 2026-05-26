@@ -22,8 +22,8 @@ export const UpdateUserInfo = observer(() => {
     originalPassword: ''
   }))
   useEffect(() => {
-    store.username = user.name!
-    store.nickname = user.nickname!
+    store.username = user.name
+    store.nickname = user.nickname
   }, [user.name, user.nickname])
 
   return (

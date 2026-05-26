@@ -17,7 +17,6 @@ export const DefaultModelsSection = observer(() => {
   const blinko = RootStore.Get(BlinkoStore);
 
   useEffect(() => {
-    blinko.config.call();
     aiSettingStore.aiProviders.call();
     aiSettingStore.allModels.call();
   }, []);

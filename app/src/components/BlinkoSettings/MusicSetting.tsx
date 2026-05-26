@@ -30,7 +30,7 @@ export const MusicSetting = observer(() => {
             className="w-full md:w-[400px]"
             type="text"
             value={blinko.config.value?.spotifyConsumerKey}
-            onChange={e => {
+            onBlur={e => {
               PromiseCall(api.config.update.mutate({
                 key: 'spotifyConsumerKey',
                 value: e.target.value
@@ -49,7 +49,7 @@ export const MusicSetting = observer(() => {
             type="password"
             className="w-full md:w-[400px]"
             value={blinko.config.value?.spotifyConsumerSecret}
-            onChange={e => {
+            onBlur={e => {
               PromiseCall(api.config.update.mutate({
                 key: 'spotifyConsumerSecret',
                 value: e.target.value

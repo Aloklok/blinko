@@ -14,10 +14,6 @@ export const GlobalPromptSection = observer(() => {
   const [globalPrompt, setGlobalPrompt] = useState('');
 
   useEffect(() => {
-    blinko.config.call();
-  }, []);
-
-  useEffect(() => {
     setGlobalPrompt(blinko.config.value?.globalPrompt || '');
   }, [blinko.config.value?.globalPrompt]);
 

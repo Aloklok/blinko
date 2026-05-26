@@ -41,7 +41,7 @@ export class StorageState<T> {
   save(value?: T) {
     try {
       if (typeof window == 'undefined') return
-      if (value !== null || value !== undefined) {
+      if (value !== null && value !== undefined) {
         this.value = this.validate ? this.validate(value!) : value;
       }
       window?.localStorage.setItem(this.key, JSON.stringify(this.value));

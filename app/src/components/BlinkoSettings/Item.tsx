@@ -73,7 +73,7 @@ export const SelectDropdown = ({
         onAction={async (key) => {
           await onChange(key.toString())
         }}
-        selectedKeys={[value || '']}
+        selectedKeys={value != null ? [String(value)] : []}
       >
         {options.map(option => (
           <DropdownItem key={option.key}>{option.label}</DropdownItem>

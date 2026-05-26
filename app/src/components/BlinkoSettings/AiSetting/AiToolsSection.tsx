@@ -19,10 +19,6 @@ export const AiToolsSection = observer(() => {
   const [tavilyMaxResult, setTavilyMaxResult] = useState(5);
 
   useEffect(() => {
-    blinko.config.call();
-  }, []);
-
-  useEffect(() => {
     if (blinko.config.value) {
       setTavilyApiKey(blinko.config.value.tavilyApiKey || '');
       setTavilyMaxResult(Number(blinko.config.value.tavilyMaxResult) || 5);

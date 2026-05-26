@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { RootStore } from '@/store';
 import { DialogStore } from '@/store/module/Dialog';
-import { BlinkoStore } from '@/store/blinkoStore';
 import { UserStore } from '@/store/user';
 import ProviderCard from './ProviderCard';
 import ProviderDialogContent from './ProviderDialogContent';
@@ -26,11 +25,9 @@ import { getBlinkoEndpoint } from '@/lib/blinkoEndpoint';
 export default observer(function AiSetting() {
   const { t } = useTranslation();
   const aiStore = RootStore.Get(AiSettingStore);
-  const blinko = RootStore.Get(BlinkoStore);
   const user = RootStore.Get(UserStore);
 
   useEffect(() => {
-    blinko.config.call();
     aiStore.aiProviders.call();
   }, []);
 

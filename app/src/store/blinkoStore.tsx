@@ -113,6 +113,13 @@ export class BlinkoStore extends Store {
     }
   });
 
+  userList = new PromiseState({
+    function: async () => {
+      const res = await api.users.list.query();
+      return res;
+    }
+  });
+
   setConfig = new PromiseState({
     function: async (data: any) => {
       await api.config.update.mutate(data);
@@ -715,6 +722,7 @@ export class BlinkoStore extends Store {
       editContentStorage: false,
       editAttachmentsStorage: false,
       config: false,
+      userList: false,
       setConfig: false,
       blinkoList: false,
       noteOnlyList: false,

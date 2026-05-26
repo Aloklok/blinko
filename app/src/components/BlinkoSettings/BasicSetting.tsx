@@ -355,7 +355,7 @@ export const BasicSetting = observer(() => {
                   blinko.config.call();
                 } else {
                   const response = await PromiseCall(api.users.generate2FASecret.mutate({
-                    name: user.name!
+                    name: user.name
                   }), { autoAlert: false });
                   if (response) {
                     ShowGen2FATokenModal({

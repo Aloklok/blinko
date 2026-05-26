@@ -35,11 +35,11 @@ export const HttpProxySetting = observer(() => {
   }));
 
   useEffect(() => {
-    store.isUseHttpProxy = blinko.config.value?.isUseHttpProxy!;
-    store.httpProxyHost = blinko.config.value?.httpProxyHost!;
-    store.httpProxyPort = blinko.config.value?.httpProxyPort! || 0;
-    store.httpProxyUsername = blinko.config.value?.httpProxyUsername!;
-    store.httpProxyPassword = blinko.config.value?.httpProxyPassword!;
+    store.isUseHttpProxy = blinko.config.value?.isUseHttpProxy ?? false;
+    store.httpProxyHost = blinko.config.value?.httpProxyHost ?? '';
+    store.httpProxyPort = blinko.config.value?.httpProxyPort ?? 0;
+    store.httpProxyUsername = blinko.config.value?.httpProxyUsername ?? '';
+    store.httpProxyPassword = blinko.config.value?.httpProxyPassword ?? '';
   }, [blinko.config.value]);
 
   const testHttpProxy = async () => {

@@ -29,19 +29,19 @@ export const StorageSetting = observer(() => {
   }))
 
   useEffect(() => {
-    store.s3AccessKeyId = blinko.config.value?.s3AccessKeyId!
-    store.s3AccessKeySecret = blinko.config.value?.s3AccessKeySecret!
-    store.s3Endpoint = blinko.config.value?.s3Endpoint!
-    store.s3Region = blinko.config.value?.s3Region!
-    store.s3Bucket = blinko.config.value?.s3Bucket!
-    store.s3CustomPath = blinko.config.value?.s3CustomPath!
-    store.s3CustomDomain = blinko.config.value?.s3CustomDomain!
-    store.localCustomPath = blinko.config.value?.localCustomPath!
+    store.s3AccessKeyId = blinko.config.value?.s3AccessKeyId ?? ''
+    store.s3AccessKeySecret = blinko.config.value?.s3AccessKeySecret ?? ''
+    store.s3Endpoint = blinko.config.value?.s3Endpoint ?? ''
+    store.s3Region = blinko.config.value?.s3Region ?? ''
+    store.s3Bucket = blinko.config.value?.s3Bucket ?? ''
+    store.s3CustomPath = blinko.config.value?.s3CustomPath ?? ''
+    store.s3CustomDomain = blinko.config.value?.s3CustomDomain ?? ''
+    store.localCustomPath = blinko.config.value?.localCustomPath ?? ''
   }, [blinko.config.value])
 
 
   return <CollapsibleCard
-    icon="tabler:brush"
+    icon="tabler:database"
     title={t('storage')}
   >
     <Item

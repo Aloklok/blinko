@@ -30,13 +30,12 @@ export const PerferSetting = observer(() => {
   const user = RootStore.Get(UserStore)
 
   useEffect(() => {
-    blinko.config.call();
     setTextLength(blinko.config.value?.textFoldLength?.toString() || '500');
     setMaxHomePageWidth(blinko.config.value?.maxHomePageWidth?.toString() || '0');
     setCustomBackgroundUrl(blinko.config.value?.customBackgroundUrl || '');
     setSigninFooterText(blinko.config.value?.signinFooterText || '');
     setCustomTitle(blinko.config.value?.customTitle || '');
-  }, [blinko.config.value?.textFoldLength, blinko.config.value?.maxHomePageWidth, blinko.config.value?.customBackgroundUrl, blinko.config.value?.signinFooterText, blinko.config.value?.customTitle]);
+  }, [blinko.config.value]);
 
 
   return <CollapsibleCard

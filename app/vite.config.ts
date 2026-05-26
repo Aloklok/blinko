@@ -133,7 +133,7 @@ export default defineConfig({
     target: 'es2020', // Modern browsers, removed @vitejs/plugin-legacy to reduce size
     outDir: "../dist/public",
     emptyOutDir: true,
-    sourcemap: false,
+    sourcemap: true,
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
       output: {

@@ -24,10 +24,6 @@ export const AiPostProcessingSection = observer(() => {
   const [aiCustomPrompt, setAiCustomPrompt] = useState('');
 
   useEffect(() => {
-    blinko.config.call();
-  }, []);
-
-  useEffect(() => {
     if (blinko.config.value) {
       setIsUseAiPostProcessing(blinko.config.value.isUseAiPostProcessing || false);
       setAiPostProcessingMode(blinko.config.value.aiPostProcessingMode || 'comment');
