@@ -40,8 +40,14 @@ jobs:
         run: echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
       
       # 安装依赖
+      # Dependabot 只改 package.json 不更新 bun.lock，--frozen-lockfile 会失败
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
+            bun install
+          else
+            bun install --frozen-lockfile
+          fi
       
       # Turbo 会自动按依赖顺序构建：
       # prisma:generate → build:iconify:icons → app/build:web → server/build:web
