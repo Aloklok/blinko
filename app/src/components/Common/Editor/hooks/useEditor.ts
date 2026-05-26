@@ -440,7 +440,7 @@ export const useEditorInit = (
           await store.handleSend()
         },
         customWysiwygToolbar: (type: any, element: HTMLElement) => {
-          console.log(type, element)
+          // Silence Vditor's internal listToggle null errors
         },
         placeholder: t('i-have-a-new-idea'),
         i18n: {

@@ -585,6 +585,7 @@ export class BlinkoStore extends Store {
     }
     this.localUpdateTicker++;
     this.updateTicker++;
+    this.forceQuery++;
   }
 
   deleteNote = new PromiseState({
@@ -759,7 +760,9 @@ export class BlinkoStore extends Store {
       setNoteListFilter: action,
       setExcludeEmbeddingTagId: action,
       clear: action,
-      useQuery: action
+      useQuery: action,
+      forceQuery: observable,
+      refreshData: action,
     })
   }
 

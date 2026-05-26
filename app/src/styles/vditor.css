@@ -31,10 +31,35 @@
   display: none;
 }
 
+/* Override Vditor's built-in list indentation */
 .vditor-reset ul,
-.vditor-reset ol {
+.vditor-reset ol,
+pre.vditor-reset ul,
+pre.vditor-reset ol {
   padding-left: 2.8em !important;
-  /* Increase padding to ensure bullets are not cut off */
+  padding-inline-start: 2.8em !important;
+  margin-inline-start: 0 !important;
+}
+
+/* Reduce nested list padding so TAB indentation doesn't compound too much */
+.vditor-reset ul ul,
+.vditor-reset ol ol,
+.vditor-reset ul ol,
+.vditor-reset ol ul,
+pre.vditor-reset ul ul,
+pre.vditor-reset ol ol,
+pre.vditor-reset ul ol,
+pre.vditor-reset ol ul {
+  padding-left: 1.5em !important;
+  padding-inline-start: 1.5em !important;
+  margin-inline-start: 0 !important;
+}
+
+/* Override li indentation in editor - Vditor adds padding to li too */
+.vditor-reset li,
+pre.vditor-reset li {
+  padding-inline-start: 0.2em !important;
+  margin-inline-start: 0 !important;
 }
 
 .vditor-toolbar {
@@ -65,6 +90,9 @@
   min-height: var(--min-editor-height);
   padding-top: 5px;
   padding-bottom: 5px;
+  line-height: 1.8 !important;
+  tab-size: 4;
+  -moz-tab-size: 4;
 }
 
 /* Fullscreen editor mode - remove max-height restriction */
@@ -175,42 +203,41 @@
 
 /* Broader selector to catch all checkboxes in Vditor (Issue #2: Invisible on Safari) */
 .vditor-reset input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 16px !important;
+  height: 16px !important;
 
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: transparent;
-  box-sizing: border-box;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: transparent !important;
+  box-sizing: border-box !important;
 
-  border: 2px solid #EAB308;
-  border-radius: 50%;
+  border: 2px solid #EAB308 !important;
+  border-radius: 50% !important;
 
-  margin-right: 8px;
-  vertical-align: middle;
-  cursor: pointer;
-  display: inline-block;
-  /* Ensure it takes up space */
+  margin: 0 8px 0 0 !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  display: inline-block !important;
+  position: relative !important;
 }
 
 .vditor-reset input[type="checkbox"]:checked {
-  background-color: #EAB308;
-  border-color: #EAB308;
-  position: relative;
+  background-color: #EAB308 !important;
+  border-color: #EAB308 !important;
 }
 
 .vditor-reset input[type="checkbox"]:checked::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  content: '' !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 8px !important;
+  height: 8px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E") !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
 }
 
 .vditor-toolbar__item .vditor-tooltipped {

@@ -199,7 +199,7 @@ export const MarkdownRender = observer(({ content = '', onChange, isShareMode, l
             },
             li: ({ node, children, className }) => {
               const isTaskListItem = className?.includes('task-list-item');
-              if (isTaskListItem && onChange && !isShareMode) {
+              if (isTaskListItem) {
                 return (
                   <ListItem
                     content={content}

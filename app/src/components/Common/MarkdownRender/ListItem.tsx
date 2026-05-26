@@ -136,6 +136,8 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
     onChange(newContent);
   };
 
+  const isReadOnly = !onChange;
+
   const getIcon = () => {
     if (!hasChildren) {
       return isChecked ? "lets-icons:check-fill" : "ci:radio-unchecked";
@@ -159,10 +161,10 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
   return (
     <li className={`${className} !list-none -ml-[1.4em]`}>
       <div
-        className='flex items-start gap-1 cursor-pointer justify-center'
+        className={`flex items-start gap-1 ${isReadOnly ? '' : 'cursor-pointer'} justify-center`}
         onClick={handleToggle}
       >
-        <div className='w-[20px] h-[20px] flex-shrink-0 mt-[3px] hover:opacity-80 !transition-all'>
+        <div className={`w-[20px] h-[20px] flex-shrink-0 mt-[3px] ${isReadOnly ? '' : 'hover:opacity-80 !transition-all'}`}>
           <Icon
             className='text-[#EAB308]'
             icon={getIcon()}
