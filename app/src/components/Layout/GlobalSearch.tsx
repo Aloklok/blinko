@@ -204,8 +204,6 @@ export const GlobalSearch = observer(({ isOpen, onOpenChange }: GlobalSearchProp
           settings: matchingSettings,
           tags: [],
         };
-
-        blinkoStore.forceQuery++
       } catch (error) {
         console.error('Search error:', error);
       } finally {

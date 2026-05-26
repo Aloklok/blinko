@@ -58,6 +58,7 @@ export class BlinkoStore extends Store {
   }
 
   searchText: string = '';
+  globalSearchTerm: string = '';
   isSearchMode: boolean = false;
   searchFilterType: filterType = FilterType[0];
   fullscreenEditorNoteId: number | null = null;
@@ -189,7 +190,9 @@ export class BlinkoStore extends Store {
     isOffline?: boolean | undefined,
     withLink?: boolean | undefined,
     withFile?: boolean | undefined,
-    hasTodo?: boolean | undefined
+    hasTodo?: boolean | undefined,
+    isUseAiQuery?: boolean | undefined,
+    withoutTag?: boolean | undefined,
   } = {
       type: -1
     }
@@ -215,6 +218,8 @@ export class BlinkoStore extends Store {
           withLink: this.noteListFilterConfig.withLink,
           withFile: this.noteListFilterConfig.withFile,
           hasTodo: this.noteListFilterConfig.hasTodo,
+          withoutTag: this.noteListFilterConfig.withoutTag,
+          isUseAiQuery: this.noteListFilterConfig.isUseAiQuery,
           ...data
         });
         return res;
@@ -286,7 +291,9 @@ export class BlinkoStore extends Store {
       const res = await api.attachments.list.query({
         ...data,
       });
-      return res;
+      // attachments.list returns { items: [...], total: number }, extract the array
+      if (Array.isArray(res)) return res;
+      return res?.items ?? [];
     }
   });
 
@@ -599,6 +606,8 @@ export class BlinkoStore extends Store {
     const [searchParams] = useSearchParams();
     const location = useLocation();
 
+    // First effect: sync filter config from URL params
+    // Only resets when URL actually changes, not when forceQuery changes (e.g. from GlobalSearch)
     useEffect(() => {
       const type = searchParams.get('type')
       const tagId = searchParams.get('tagId')
@@ -649,8 +658,9 @@ export class BlinkoStore extends Store {
       } else {
         this.searchText = '';
       }
-    }, [this.forceQuery, location.pathname, searchParams])
+    }, [location.pathname, searchParams])
 
+    // Second effect: fetch data when URL or forceQuery changes
     useEffect(() => {
       const path = searchParams.get('path');
       if (path === 'notes') {
@@ -683,6 +693,7 @@ export class BlinkoStore extends Store {
       _isCreateMode: observable,
       isCreateMode: computed,
       searchText: observable,
+      globalSearchTerm: observable,
       isSearchMode: observable,
       searchFilterType: observable,
       fullscreenEditorNoteId: observable,
