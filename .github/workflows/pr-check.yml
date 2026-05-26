@@ -40,14 +40,8 @@ jobs:
           node-version: lts/*
 
       # 安装依赖
-      # Dependabot 只改 package.json 不更新 bun.lock，--frozen-lockfile 会失败
       - name: Install Dependencies
-        run: |
-          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
-            bun install
-          else
-            bun install --frozen-lockfile
-          fi
+        run: bun install
 
       # Turbo 会自动按依赖顺序构建：
       # prisma:generate → build:iconify:icons → app/build:web → server/build:web
