@@ -157,7 +157,7 @@ const Home = observer(() => {
             await currentListState.resetAndCall({})
           }}
           onBottom={() => {
-            blinko.onBottom();
+            currentListState.callNextPage();
           }}
           style={{ height: store.showEditor ? `calc(100% - ${(isPc ? (!store.showEditor ? store.editorHeight : 10) : 0)}px)` : '100%' }}
           className={`px-0 mt-0 md:${blinko.config.value?.hidePcEditor ? 'mt-0' : 'mt-4'} w-full h-full !transition-all scroll-area`}>

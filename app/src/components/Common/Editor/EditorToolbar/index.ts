@@ -162,6 +162,8 @@ export const ToolbarPC = [
   List,
   OrderedList,
   Check,
+  Outdent,
+  Indent,
   Table,
   Code,
   InlineCode,
@@ -174,6 +176,8 @@ export const ToolbarMobile = [
   List,
   OrderedList,
   Check,
+  Outdent,
+  Indent,
   MoreMobile
 ]
 // emoji，headings，bold，italic，strike，|，line，quote，list，ordered-list，check ,outdent ,indent，code，inline-code，insert-after，insert-before ,undo，redo，upload，link，table，record，edit-mode，both，preview，fullscreen，outline，code-theme，content-theme，export, devtools，info，help，br

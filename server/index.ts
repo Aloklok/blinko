@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import compression from 'compression';
 import cors from 'cors';
 import path from 'path';
@@ -276,6 +277,19 @@ async function bootstrap() {
 
     // Setup API routes
     await setupApiRoutes(app);
+
+    // Remove restrictive CSP in development (Express serve-static adds default-src 'none'
+    // which blocks Vite's inline scripts and HMR)
+    if (process.env.NODE_ENV !== 'production') {
+      app.use((req, res, next) => {
+        const originalSetHeader = res.setHeader.bind(res);
+        res.setHeader = function (name: string, value: any) {
+          if (name.toLowerCase() === 'content-security-policy') return res;
+          return originalSetHeader(name, value);
+        };
+        next();
+      });
+    }
     //@ts-ignore
     app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
       errorHandler(err, req, res, next);
@@ -295,7 +309,11 @@ async function bootstrap() {
 
     // Start or update server
     if (!server) {
-      server = app.listen(PORT, "0.0.0.0", () => {
+      // Create HTTP server manually so ViteExpress can bind before listening
+      server = http.createServer(app);
+      ViteExpress.bind(app, server);
+
+      server.listen(PORT, "0.0.0.0", () => {
         console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
         console.log('Server restarted via watcher.');
       });
@@ -304,8 +322,6 @@ async function bootstrap() {
       server.timeout = 5 * 60 * 1000;
       server.keepAliveTimeout = 5 * 60 * 1000;
       server.headersTimeout = 5 * 60 * 1000;
-
-      ViteExpress.bind(app, server); // the server binds to all network interfaces
     } else {
       console.log(`API routes updated - env: ${process.env.NODE_ENV || 'development'}`);
     }
@@ -314,10 +330,11 @@ async function bootstrap() {
     try {
       // Attempt to start server even if route setup fails
       if (!server) {
-        server = app.listen(PORT, "0.0.0.0", () => {
+        server = http.createServer(app);
+        ViteExpress.bind(app, server);
+        server.listen(PORT, "0.0.0.0", () => {
           console.log(`🎉server start on port http://0.0.0.0:${PORT} - env: ${process.env.NODE_ENV || 'development'}`);
         });
-        ViteExpress.bind(app, server); // the server binds to all network interfaces
       }
     } catch (startupError) {
       console.error('start server error:', startupError);

@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index 1234567..abcdefg 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -10009,7 +10009,7 @@ function listToggle(itemElement, range, type) {
+             else {
+                 if (itemElement.querySelector("input")) {
+                     itemElement.parentElement.querySelectorAll("li").forEach(function (item) {
+-                        item.querySelector("input").remove();
++                        item.querySelector("input")?.remove();
+                         item.classList.remove("vditor-task");
+                     });
+                 }

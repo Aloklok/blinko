@@ -54,3 +54,5 @@ CONTRIBUTING.md
 **/target
 
 !**/dist-js/*
+!/patches/
+!/patches/**
