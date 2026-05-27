@@ -540,9 +540,11 @@ ol {
 
 .markdown-body ul {
   list-style: disc !important;
+  list-style-position: inside !important;
 }
 .markdown-body ol {
   list-style: decimal !important;
+  list-style-position: inside !important;
 }
 
 
