@@ -1,4 +1,3 @@
-import { Icon } from '@/components/Common/Iconify/icons';
 import React from 'react';
 
 interface ListItemProps {
@@ -140,15 +139,41 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
 
   const getIcon = () => {
     if (!hasChildren) {
-      return isChecked ? "lets-icons:check-fill" : "ci:radio-unchecked";
+      return isChecked ? "check" : "unchecked";
     }
     if (allChildrenChecked) {
-      return "lets-icons:check-fill";
+      return "check";
     }
     if (someChildrenChecked) {
-      return "ri:indeterminate-circle-line";
+      return "indeterminate";
     }
-    return "ci:radio-unchecked";
+    return "unchecked";
+  };
+
+  const CheckboxIcon = ({ type }: { type: string }) => {
+    const color = '#EAB308';
+    switch (type) {
+      case 'check':
+        return (
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" fill={color} />
+            <path d="M6 10l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        );
+      case 'indeterminate':
+        return (
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="9" stroke={color} strokeWidth="2" fill="none" />
+            <line x1="6" y1="10" x2="14" y2="10" stroke={color} strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        );
+      default:
+        return (
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="9" stroke={color} strokeWidth="2" fill="none" />
+          </svg>
+        );
+    }
   };
 
   const getTextStyle = () => {
@@ -165,12 +190,7 @@ export const ListItem: React.FC<ListItemProps> = ({ children, content, onChange,
         onClick={handleToggle}
       >
         <div className={`w-[20px] h-[20px] flex-shrink-0 mt-[3px] ${isReadOnly ? '' : 'hover:opacity-80 !transition-all'}`}>
-          <Icon
-            className='text-[#EAB308]'
-            icon={getIcon()}
-            width="20"
-            height="20"
-          />
+          <CheckboxIcon type={getIcon()} />
         </div>
         <div
           className={`${getTextStyle()} break-all flex-1 min-w-0 md:mt-0 mt-[2px]`}
