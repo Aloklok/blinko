@@ -162,7 +162,7 @@ jobs:
 
   merge:
     name: Merge and Push Multi-Arch
-    needs: build
+    needs: [get-version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: read
