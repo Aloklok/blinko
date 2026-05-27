@@ -535,7 +535,7 @@ ol {
 .markdown-body ol {
   margin-top: 0;
   margin-bottom: 0;
-  padding-left: 2em;
+  padding-left: 2em !important;
 }
 
 .markdown-body ul {
