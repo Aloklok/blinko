@@ -23,6 +23,9 @@ RUN mkdir -p /app/plugins
 # Install Dependencies and Build App
 RUN bun install --unsafe-perm
 
+# Apply Vditor patches (see patches/apply-vditor-patches.js)
+RUN node patches/apply-vditor-patches.js
+
 # Generate Prisma Client (Includes both native and linux-musl targets)
 # Config is loaded from prisma.config.ts which is copied with COPY . .
 # Use local binary to avoid npx version mismatch

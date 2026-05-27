@@ -2,19 +2,28 @@ name: Build and Push Release Docker Image
 
 run-name: >-
   ${{
-    github.event_name == 'workflow_dispatch' && format('Docker Released - v{0}', github.event.inputs.version) ||
+    github.event_name == 'workflow_dispatch' && format('Docker Released - v{0}', github.event.inputs.version || 'latest') ||
+    github.event_name == 'push' && format('Docker Auto-Build - {0}', github.sha) ||
     github.event_name == 'release' && format('Docker Released - {0}', github.event.release.tag_name) ||
     'Docker Released'
   }}
 
 on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'docs/**'
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. 1.0.0)'
-        required: true
+        description: 'Version (e.g. 1.8.8) — leave empty to use package.json'
+        required: false
         default: ''
       trigger_app_release:
         description: 'Trigger app release simultaneously'
@@ -34,47 +43,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  update-version:
-    name: Update Project Version
+  get-version:
+    name: Get Version
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Git User
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
-      - name: Get Version
+      - name: Determine Version
+        id: version
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
           else
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+            # Push event or workflow_dispatch without version: read from package.json
+            VERSION=$(jq -r '.version' package.json)
           fi
-          echo "Trigger app version release: ${{ env.VERSION }}"
-          echo "Version value: ${{ env.VERSION }}"
-
-      - name: Update package.json Version
-        run: |
-          # Get current version from package.json
-          CURRENT_VERSION=$(jq -r '.version' package.json)
-          
-          # Only update if versions are different
-          if [ "$CURRENT_VERSION" != "${{ env.VERSION }}" ]; then
-            # Update version using jq
-            jq '.version = "${{ env.VERSION }}"' package.json > package.json.tmp
-            mv package.json.tmp package.json
-          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
 
   build:
-    needs: update-version
+    needs: get-version
     strategy:
       matrix:
         include:
@@ -83,7 +80,7 @@ jobs:
           - platform: linux/arm64
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
-    name: Build ${{ matrix.platform }} Image
+    name: Build ${{ matrix.platform }}
     permissions:
       contents: read
       packages: write
@@ -92,11 +89,7 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-          fi
+          echo "VERSION=${{ needs.get-version.outputs.version }}" >> $GITHUB_ENV
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
 
       - name: Checkout code
@@ -104,16 +97,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull latest changes
-        run: |
-          git pull origin ${{ github.ref_name }}
-
-      - name: Sync Version to package.json
-        run: |
-          jq '.version = "${{ env.VERSION }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-          echo "Synced package.json version to ${{ env.VERSION }} for Docker build"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -144,8 +127,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/blinko
           tags: |
             type=raw,value=${{ env.VERSION }}
-          flavor: |
-            latest=${{ github.event_name != 'workflow_dispatch' || github.event.inputs.set_latest == 'true' }}
+            type=raw,value=latest
           labels: |
             org.opencontainers.image.version=${{ env.VERSION }}
             org.opencontainers.image.created=${{ env.BUILD_DATE }}
@@ -178,7 +160,7 @@ jobs:
           retention-days: 1
 
   merge:
-    name: Merge and Push Multi-Architecture Image
+    name: Merge and Push Multi-Arch
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -191,14 +173,9 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest changes
+      - name: Set Version
         run: |
-          git pull origin ${{ github.ref_name }}
-
-      - name: Sync Version to package.json
-        run: |
-          jq '.version = "${{ env.VERSION }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
+          echo "VERSION=${{ needs.build.outputs.version || needs.get-version.outputs.version }}" >> $GITHUB_ENV
 
       - name: Download digests
         uses: actions/download-artifact@v8
@@ -206,14 +183,6 @@ jobs:
           path: /tmp/digests
           pattern: digest-*
           merge-multiple: true
-
-      - name: Extract version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -245,8 +214,7 @@ jobs:
             ghcr.io/${{ env.REPO_OWNER_LC }}/blinko
           tags: |
             type=raw,value=${{ env.VERSION }}
-          flavor: |
-            latest=${{ github.event_name != 'workflow_dispatch' || github.event.inputs.set_latest == 'true' }}
+            type=raw,value=latest
           labels: |
             org.opencontainers.image.version=${{ env.VERSION }}
 
@@ -263,42 +231,3 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.DOCKER_USERNAME_LC }}/blinko:${{ env.VERSION }}
           docker buildx imagetools inspect ghcr.io/${{ env.REPO_OWNER_LC }}/blinko:${{ env.VERSION }}
-
-  trigger-app-release:
-    name: Trigger App Build Release
-    needs: update-version
-    # Only run when manually triggered and app release trigger option selected
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.trigger_app_release == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Get Version
-        run: |
-          if [[ "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-          fi
-          echo "Trigger app version release: ${{ env.VERSION }}"
-
-      - name: Trigger App Release Workflow
-        id: dispatch
-        uses: peter-evans/repository-dispatch@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: trigger-app-release
-          client-payload: |
-            {
-              "tag": "${{ env.VERSION }}",
-              "version": "${{ env.VERSION }}",
-              "sha": "${{ github.sha }}"
-            }
-        continue-on-error: true
-
-      - name: Check Dispatch Result
-        if: steps.dispatch.outcome == 'failure'
-        run: |
-          echo "::warning::Failed to trigger app release workflow. This might be due to permission issues."
-          echo "::warning::Please ensure the GITHUB_TOKEN has 'workflow' permission enabled in repository settings."
-          echo "::warning::Alternatively, you can manually trigger the app-release workflow with version: ${{ env.VERSION }}"

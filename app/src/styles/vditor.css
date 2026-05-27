@@ -214,7 +214,7 @@ pre.vditor-reset li {
   border: 2px solid #EAB308 !important;
   border-radius: 50% !important;
 
-  margin: 0 8px 0 0 !important;
+  margin: 0 8px 0 -1.2em !important;
   vertical-align: middle !important;
   cursor: pointer !important;
   display: inline-block !important;
