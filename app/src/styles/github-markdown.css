@@ -538,6 +538,13 @@ ol {
   padding-left: 2em;
 }
 
+.markdown-body ul {
+  list-style: disc !important;
+}
+.markdown-body ol {
+  list-style: decimal !important;
+}
+
 
 .markdown-body ol ol,
 .markdown-body ul ol {
