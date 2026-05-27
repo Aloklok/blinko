@@ -15,8 +15,9 @@ on:
       - master
     paths-ignore:
       - '**.md'
-      - '.github/**'
       - 'docs/**'
+      - '.github/dependabot.yml'
+      - '.github/FUNDING.yml'
   release:
     types: [published]
   workflow_dispatch:
