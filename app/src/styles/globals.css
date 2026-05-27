@@ -2,6 +2,22 @@
 @config "../../tailwind.config.js";
 @source "../../../node_modules/@heroui/theme/dist";
 
+@layer base {
+  .markdown-body ul {
+    list-style: disc;
+  }
+  .markdown-body ol {
+    list-style: decimal;
+  }
+  .markdown-body ul ul,
+  .markdown-body ol ul {
+    list-style: circle;
+  }
+  .markdown-body ul ul ul {
+    list-style: square;
+  }
+}
+
 .bm-burger-button {
   display: none;
 }
