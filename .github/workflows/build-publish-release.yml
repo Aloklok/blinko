@@ -175,7 +175,7 @@ jobs:
 
       - name: Set Version
         run: |
-          echo "VERSION=${{ needs.build.outputs.version || needs.get-version.outputs.version }}" >> $GITHUB_ENV
+          echo "VERSION=${{ needs.get-version.outputs.version }}" >> $GITHUB_ENV
 
       - name: Download digests
         uses: actions/download-artifact@v8
