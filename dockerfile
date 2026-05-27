@@ -36,7 +36,7 @@ RUN bun run build:web
 RUN bun run build:seed
 
 # Create startup script
-RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\n\n# 1. Idempotent: Rename index.js to index.cjs if it exists (avoids crash on restart)\nif [ -f "server/index.js" ]; then\n  mv server/index.js server/index.cjs\nfi\n\n# 2. Database Tasks: Use local prisma binary\necho "🚀 Executing DB Migration (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL ./node_modules/.bin/prisma migrate deploy\n\necho "📝 Executing Seed (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\n\n# 3. Start App: Pooler Connection (6543) + Zeabur Config\necho "✅ Starting App (Pooler URL)..."\nnode server/index.cjs\n' > start.sh && \
+RUN printf '#!/bin/sh\nset -e\necho "Current Environment: $NODE_ENV"\n\n# 1. Idempotent: Rename index.js to index.cjs if it exists (avoids crash on restart)\nif [ -f "server/index.js" ]; then\n  mv server/index.js server/index.cjs\nfi\n\n# 2. Database Tasks: Use local prisma binary\necho "🚀 Executing DB Migration (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL npx prisma migrate deploy\n\necho "📝 Executing Seed (DIRECT_URL)..."\nDATABASE_URL=$DIRECT_URL node server/seed.mjs\n\n# 3. Start App: Pooler Connection (6543) + Zeabur Config\necho "✅ Starting App (Pooler URL)..."\nnode server/index.cjs\n' > start.sh && \
     chmod +x start.sh
 
 
@@ -82,10 +82,7 @@ COPY server/package.json ./package.json
 # We DO NOT install global prisma or build tools anymore.
 RUN echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
-    # Explicitly install Prisma dependencies (Driver Adapter & CLI)
-    npm install prisma@7.3.0 @prisma/adapter-pg@7.3.0 --save-exact --legacy-peer-deps && \
-    # Install runtime utilities
-    npm install pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
+    npm install prisma@7.3.0 @prisma/adapter-pg@7.3.0 pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
 
