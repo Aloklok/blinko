@@ -80,6 +80,7 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const userStore = RootStore.Get(UserStore);
 
   useEffect(() => {
@@ -99,9 +100,12 @@ const ProtectedRoute = ({ children }) => {
         if (!tokenData?.user?.id) {
           console.log('No valid token, redirecting to login page');
           navigate('/signin', { replace: true });
+          setIsChecking(false);
+          return;
         }
       }
 
+      setIsAuthenticated(true);
       setIsChecking(false);
     };
 
@@ -109,6 +113,10 @@ const ProtectedRoute = ({ children }) => {
   }, [userStore.isLogin]);
 
   if (isChecking) {
+    return <LoadingPage />;
+  }
+
+  if (!isAuthenticated) {
     return <LoadingPage />;
   }
 

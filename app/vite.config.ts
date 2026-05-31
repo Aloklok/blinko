@@ -94,6 +94,11 @@ export default defineConfig({
           // Runtime caching strategy for better update control
           runtimeCaching: [
             {
+              // Never cache local API requests (tRPC, auth, etc.)
+              urlPattern: /^.*\/api\/.*/,
+              handler: 'NetworkOnly',
+            },
+            {
               // Cache API responses with network-first strategy
               urlPattern: /^https:\/\/api\..*/i,
               handler: 'NetworkFirst',

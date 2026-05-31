@@ -132,6 +132,14 @@ async function setupApiRoutes(app: express.Application) {
   // Authentication routes
   app.use('/api/auth', authRoutes);
 
+  // Prevent browser/service-worker caching of tRPC responses
+  app.use('/api/trpc', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Vary', 'Accept, Content-Type, Authorization');
+    next();
+  });
+
   // tRPC endpoint with adapter for Express
   app.use('/api/trpc',
     createExpressMiddleware({
@@ -139,8 +147,14 @@ async function setupApiRoutes(app: express.Application) {
       createContext: ({ req, res }) => {
         return createContext(req, res);
       },
-      onError: ({ error }) => {
-        console.error('tRPC error:', error);
+      onError: ({ error, path, req }) => {
+        console.error('tRPC error:', {
+          message: error.message,
+          code: error.code,
+          path,
+          httpMethod: req?.method,
+          userAgent: req?.headers?.['user-agent']?.substring(0, 100),
+        });
       }
     })
   );

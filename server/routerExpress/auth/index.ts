@@ -202,13 +202,20 @@ router.get('/profile', async (req: any, res) => {
 
 router.get('/:providerId', logOAuthRequest('Custom'), (req, res, next) => {
   const providerId = req.params.providerId;
+
+  // Exclude reserved paths that have their own explicit handlers
+  const reservedPaths = ['login', 'logout', 'profile', 'validate-token', 'verify-2fa', 'callback'];
+  if (reservedPaths.includes(providerId.toLowerCase())) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   console.log(`Custom OAuth provider ${providerId} authentication route accessed`);
-  
+
   const predefinedProviders = ['github', 'google', 'facebook', 'twitter', 'discord'];
   if (predefinedProviders.includes(providerId.toLowerCase())) {
-    return next();
+    return res.status(404).json({ error: 'Not found' });
   }
-  
+
   passport.authenticate(providerId, {
     scope: ['openid', 'profile', 'email'],
     state: Math.random().toString(36).substring(2, 12)
