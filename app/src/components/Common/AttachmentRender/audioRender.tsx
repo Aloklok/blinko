@@ -106,7 +106,7 @@ const VoiceMessageRender = memo(({ file, files, preview, fileDuration }: VoiceMe
       }
 
       audioRef.current.src = audioUrl;
-      audioRef.current.preload = 'metadata'; // Load metadata to reduce playback latency
+      audioRef.current.preload = 'none'; // Don't preload audio, load only on play
 
       // Add error handling for audio loading
       audioRef.current.addEventListener('error', (e) => {
