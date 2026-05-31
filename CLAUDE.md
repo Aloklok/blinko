@@ -150,6 +150,14 @@ ANTHROPIC_API_KEY=
 
 ## 部署
 
+### Docker 构建
+
+Dockerfile 在项目根目录 (`dockerfile`)，构建流程：
+1. Builder 阶段：`COPY . .` → `bun install` → `bun run build:web` → 生成 `dist/`
+2. Runner 阶段：`COPY --from=builder /app/dist ./server` → 安装生产依赖
+
+**注意**: 静态资源（字体、图标等）放在 `app/public/` 下，构建时会被复制到 `dist/public/`，最终被 COPY 到 Docker 镜像的 `./server/public/`。
+
 ```bash
 # Docker
 docker-compose -f docker-compose.prod.yml up -d
@@ -160,6 +168,14 @@ bun run prisma:migrate:deploy
 bun run start
 ```
 
+### 云端部署注意事项
+
+- **静态资源**: 新增的字体文件 (`app/public/fonts/`) 会被自动包含在 Docker 镜像中，无需额外配置
+- **环境变量**: 确保 `DATABASE_URL`、`NEXTAUTH_SECRET` 等在云端正确设置
+- **Prisma 迁移**: Docker 启动脚本 (`start.sh`) 会自动执行 `prisma migrate deploy`
+- **端口**: 默认 1111，通过 `EXPOSE 1111` 暴露
+- **多架构**: CI 支持 `linux/amd64` 和 `linux/arm64` 两种架构
+
 ## 注意事项
 
 - 包管理器使用 Bun，不要用 npm/yarn
@@ -167,3 +183,4 @@ bun run start
 - PostgreSQL 是必须的数据库
 - Tauri 桌面端需要 Rust 工具链
 - 前端类型检查有部分预存错误（与本次修改无关）
+- **修改静态资源后必须重新 `bun run build:web`**，否则 dist 目录不会更新

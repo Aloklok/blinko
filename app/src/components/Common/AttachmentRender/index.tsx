@@ -60,6 +60,7 @@ const AttachmentsRender = observer((props: IProps) => {
                 id="player"
                 playsInline
                 controls
+                preload="none"
                 className='rounded-2xl w-full z-0 max-h-[150px]'
               />
               {!file.uploadPromise?.loading?.value && !preview &&

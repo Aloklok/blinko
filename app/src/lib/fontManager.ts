@@ -384,6 +384,7 @@ class FontManagerClass {
 
   /**
    * Inject a font stylesheet link tag
+   * Uses local font files when available, falls back to CDN
    */
   private async injectFontStylesheet(url: string, fontName: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -394,9 +395,16 @@ class FontManagerClass {
         return;
       }
 
+      // Use local font CSS if available
+      const localFonts: Record<string, string> = {
+        'Barlow': '/fonts/barlow.css',
+      };
+      const localUrl = localFonts[fontName];
+      const finalUrl = localUrl || url;
+
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = url;
+      link.href = finalUrl;
       link.setAttribute('data-font', fontName);
 
       link.onload = () => resolve();
