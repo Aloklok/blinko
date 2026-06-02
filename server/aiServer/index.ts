@@ -267,35 +267,44 @@ export class AiService {
   }) {
     try {
       console.log('completions');
-    
-      conversations.push({
-        role: 'system',
-        content: `Current user name: ${ctx.name}\n`,
-      });
-      if (systemPrompt) {
-        conversations.push({
-          role: 'system',
-          content: systemPrompt,
-        });
-      }
+
+      // Fold all system context into a single agent instruction so that only ONE
+      // system message reaches the model. Some providers (e.g. Qwen/DashScope) reject
+      // multiple leading system messages with "System message must be at the beginning".
+      // See https://github.com/blinkospace/blinko/issues/1122
+      const historySystem = conversations
+        .filter((m) => m.role === 'system')
+        .map((m) => m.content as string);
+      const cleanedConversations = conversations.filter((m) => m.role !== 'system');
+
       let ragNote: any[] = [];
+      let ragNoteString = '';
       if (withRAG) {
         let { notes, aiContext } = await AiModelFactory.queryVector(question, Number(ctx.id));
         ragNote = notes;
-        conversations.push({
-          role: 'system',
-          content: `This is the note content ${ragNote.map((i) => i.content).join('\n')} ${aiContext}`,
-        });
+        ragNoteString = `This is the note content ${ragNote.map((i) => i.content).join('\n')} ${aiContext}`;
       }
-      conversations.push({
+
+      const contextParts = [
+        ...historySystem,
+        `Current user name: ${ctx.name}`,
+        systemPrompt,
+        ragNoteString,
+      ].filter(Boolean);
+
+      cleanedConversations.push({
         role: 'user',
         content: question,
       });
-      console.log(conversations, 'conversations');
+      console.log(cleanedConversations, 'conversations');
       const runtimeContext = new RuntimeContext();
       runtimeContext.set('accountId', Number(ctx.id));
-      const agent = await AiModelFactory.BaseChatAgent({ withTools, withOnlineSearch: withOnline });
-      const result = await agent.stream(conversations, { runtimeContext });
+      const agent = await AiModelFactory.BaseChatAgent({
+        withTools,
+        withOnlineSearch: withOnline,
+        extraInstructions: contextParts.join('\n\n'),
+      });
+      const result = await agent.stream(cleanedConversations, { runtimeContext });
       return { result, notes: ragNote };
     } catch (error) {
       console.log(error);
@@ -407,6 +416,42 @@ export class AiService {
       }
 
       const processingMode = config.aiPostProcessingMode || 'comment';
+
+      // Custom processing mode (disabled - BaseChatAgent with tools)
+      /*
+      if (processingMode === 'custom') {
+        const tags = await getAllPathTags();
+        const tagsList = tags.join(', ');
+
+        let customPrompt = config.aiCustomPrompt || 'Analyze the following note content and provide feedback.';
+        customPrompt = customPrompt.replace('{tags}', tagsList).replace('{note}', note.content);
+        const withOnlineSearch = !!config.tavilyApiKey;
+
+        const agent = await AiModelFactory.BaseChatAgent({
+          withTools: true,
+          withOnlineSearch: withOnlineSearch,
+          extraInstructions: `You are an AI assistant that helps to process notes. You MUST use the available tools to complete your task.
+This is a one-time conversation, so you MUST take action immediately using the tools provided.
+You have access to tools that can help you modify notes, add comments, or create new notes.
+DO NOT just respond with suggestions or analysis - you MUST use the appropriate tool to implement your changes.
+If you need to add a comment, use the createCommentTool.
+If you need to update the note, use the updateBlinkoTool.
+If you need to create a new note, use the upsertBlinkoTool.
+Remember: ALWAYS use tools to implement your suggestions rather than just describing what should be done.`,
+        });
+        const result = await agent.generate([
+          {
+            role: 'user',
+            content: `Current user name: ${ctx.name}\n${customPrompt}\n\nNote ID: ${noteId}\nNote content:\n${note.content}
+            Current Note Type: ${noteType}`
+          }
+        ], {
+          runtimeContext
+        });
+
+        return { success: true, message: 'Custom processing completed' };
+      }
+      */
 
       // Handle based on the processing mode
       if (processingMode === 'comment' || processingMode === 'both') {
@@ -539,12 +584,11 @@ export class AiService {
       if (processingMode === 'smartEdit' || processingMode === 'both') {
         try {
           const smartEditPrompt = config.aiSmartEditPrompt || 'Improve this note by organizing content, adding headers, and enhancing readability.';
-          const agent = await AiModelFactory.BaseChatAgent({ withTools: true });
+          const agent = await AiModelFactory.BaseChatAgent({
+            withTools: true,
+            extraInstructions: `You are an AI assistant that helps to improve notes. You'll be provided with a note content, and your task is to enhance it according to instructions. You have access to tools that can help you modify the note. Use these tools to make the requested improvements.`,
+          });
           const result = await agent.generate([
-            {
-              role: 'system',
-              content: `You are an AI assistant that helps to improve notes. You'll be provided with a note content, and your task is to enhance it according to instructions. You have access to tools that can help you modify the note. Use these tools to make the requested improvements.`
-            },
             {
               role: 'user',
               content: `\nCurrent user id: ${ctx.id}\nCurrent user name: ${ctx.name}\n${smartEditPrompt}\n\nNote ID: ${noteId}\nNote content:\n${note.content}`
