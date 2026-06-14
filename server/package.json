@@ -128,7 +128,7 @@
     "@types/ws": "^8.5.10",
     "@types/yauzl-promise": "^4.0.1",
     "bun-types": "latest",
-    "esbuild": "^0.25.3",
+    "esbuild": "^0.28.1",
     "esbuild-node-externals": "^1.18.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
