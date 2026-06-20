@@ -77,7 +77,7 @@ COPY server/package.json ./package.json
 
 # 1. Install dependencies from package.json (production only)
 # 2. Add dependencies needed for runtime but missing from server/package.json if any
-# NOTE: We use npm here to ensure compatibility with standard node modules, 
+# NOTE: We use npm here to ensure compatibility with standard node modules,
 # but we could use bun if we copied it. Sticking to npm for runner stability as per original.
 # We DO NOT install global prisma or build tools anymore.
 RUN echo "Installing production dependencies..." && \
