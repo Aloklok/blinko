@@ -80,9 +80,13 @@ COPY server/package.json ./package.json
 # NOTE: We use npm here to ensure compatibility with standard node modules,
 # but we could use bun if we copied it. Sticking to npm for runner stability as per original.
 # We DO NOT install global prisma or build tools anymore.
-RUN echo "Installing production dependencies..." && \
+# Install build tools temporarily for native module compilation (sqlite3 etc.)
+# Python 3.14 removed distutils; py3-setuptools restores it for node-gyp
+RUN apk add --no-cache --virtual .build-deps build-base py3-setuptools && \
+    echo "Installing production dependencies..." && \
     npm install --omit=dev --legacy-peer-deps && \
     npm install prisma@7.3.0 @prisma/adapter-pg@7.3.0 pg lru-cache@11.1.0 uint8array-extras tsx @prisma/config --save-exact --legacy-peer-deps && \
+    apk del .build-deps && \
     rm -rf /tmp/* && \
     rm -rf /root/.npm /root/.cache
 
